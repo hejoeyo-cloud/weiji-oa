@@ -18,6 +18,7 @@ def user_to_full(u: User) -> UserInfoFull:
     return UserInfoFull(
         id=u.id, company_id=u.company_id, company_name=u.company.name if u.company else "",
         is_platform_admin=u.is_platform_admin or False,
+        email=u.email or "",
         username=u.username, name=u.name,
         note=u.note or "", role=u.role,
         role_label=role_label, role_color=role_color,
@@ -35,9 +36,13 @@ def create_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    existing = db.query(User).filter(User.username == req.username).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Username already exists")
+    if req.email:
+        existing = db.query(User).filter(User.email == req.email).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="邮箱已存在")
+    # 公司内用户名查重
+    if req.username and db.query(User).filter(User.username == req.username, User.company_id == current_user.company_id).first():
+        raise HTTPException(status_code=400, detail="公司内用户名已存在")
 
     # 查找角色
     role_id = None
@@ -56,7 +61,8 @@ def create_user(
             role_name = role_obj.name
 
     user = User(
-        username=req.username,
+        email=req.email.strip() if req.email else None,
+        username=req.username.strip() or (req.email.split("@")[0] if req.email else ""),
         company_id=current_user.company_id,
         password_hash=get_password_hash(req.password),
         name=req.name,

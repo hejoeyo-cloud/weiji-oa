@@ -1,7 +1,7 @@
 import client from './client'
 import type { User } from '../types'
 
-export function createUser(data: { username: string; password: string; name: string; note: string; role: string; department_id?: number; is_manager?: boolean }) {
+export function createUser(data: { email?: string; username?: string; password: string; name: string; note?: string; role?: string; department_id?: number; is_manager?: boolean }) {
   return client.post<User>('/users', data)
 }
 

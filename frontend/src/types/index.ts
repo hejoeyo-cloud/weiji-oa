@@ -3,6 +3,7 @@ export interface User {
   company_id?: number
   company_name?: string
   is_platform_admin?: boolean
+  email: string
   username: string
   name: string
   note: string

@@ -54,7 +54,8 @@ export default function ProfilePage() {
             </div>
             <div>
               <p className="text-base font-semibold text-gray-800">{user?.name}</p>
-              <p className="text-xs text-gray-500 mt-0.5">@{user?.username}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{user?.email || ''}</p>
+              <p className="text-xs text-gray-400">@{user?.username}</p>
             </div>
           </div>
         </div>

@@ -252,14 +252,15 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
     is_platform_admin = Column(Boolean, default=False)
-    username = Column(String(50), unique=True, nullable=False, index=True)
+    email = Column(String(120), unique=True, nullable=True, index=True)  # 登录邮箱（可为空兼容旧数据）
+    username = Column(String(50), nullable=False)                        # 公司内昵称
     password_hash = Column(String(128), nullable=False)
     name = Column(String(50), nullable=False)
     note = Column(String(200), default="")
-    role = Column(String(50), default="customer")            # 角色标识（冗余，方便快速查询）
-    role_id = Column(Integer, ForeignKey("roles.id"), nullable=True)  # 角色外键
+    role = Column(String(50), default="customer")
+    role_id = Column(Integer, ForeignKey("roles.id"), nullable=True)
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
-    is_manager = Column(Boolean, default=False)              # 是否部门管理人员（可作为审批人）
+    is_manager = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.now)
 
     company = relationship("Company", back_populates="users", foreign_keys=[company_id])
@@ -1275,6 +1276,21 @@ def _migrate_db():
             conn.execute(text("UPDATE users SET is_platform_admin = 1 WHERE username = 'admin'"))
             conn.commit()
 
+        if "email" not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE users ADD COLUMN email VARCHAR(120)"))
+                conn.commit()
+            with engine.connect() as conn:
+                conn.execute(text("UPDATE users SET email = 'admin@fries-oa.local' WHERE username = 'admin' AND email IS NULL"))
+                conn.commit()
+            # 尝试移除 username 的全局唯一约束，改为添加联合唯一索引
+            try:
+                with engine.connect() as conn:
+                    conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_company_username ON users (company_id, username)"))
+                    conn.commit()
+            except:
+                pass
+
     with engine.connect() as conn:
         sub = conn.execute(text("SELECT id FROM subscriptions WHERE company_id = :company_id"), {"company_id": default_company_id}).fetchone()
         if not sub:
@@ -1588,6 +1604,7 @@ def init_db():
         admin = User(
             company_id=default_company.id,
             is_platform_admin=True,
+            email="admin@fries-oa.local",
             username="admin",
             password_hash=get_password_hash("admin"),
             name="管理员",
@@ -1608,6 +1625,9 @@ def init_db():
             db.commit()
         if not existing.is_platform_admin:
             existing.is_platform_admin = True
+            db.commit()
+        if not existing.email:
+            existing.email = "admin@fries-oa.local"
             db.commit()
         # 确保 admin 的 role 字段与 role_id 一致
         if existing.role_obj and existing.role != existing.role_obj.name:

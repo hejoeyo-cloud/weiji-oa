@@ -4,7 +4,7 @@ import { Store, Eye, EyeOff } from 'lucide-react'
 import { login, register } from '../api/auth'
 
 export default function Login() {
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [companyName, setCompanyName] = useState('')
   const [name, setName] = useState('')
@@ -16,18 +16,18 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!username || !password || (mode === 'register' && (!companyName || !name))) return
+    if (!email || !password || (mode === 'register' && (!companyName || !name))) return
     setLoading(true)
     setError('')
     try {
       const res = mode === 'login'
-        ? await login(username, password)
-        : await register({ company_name: companyName, username, password, name })
+        ? await login(email, password)
+        : await register({ company_name: companyName, email, password, name })
       localStorage.setItem('token', res.data.token)
       localStorage.setItem('user', JSON.stringify(res.data.user))
       navigate('/')
     } catch (err: any) {
-      setError(err.response?.data?.detail || (mode === 'login' ? '登录失败，请检查账号密码' : '注册失败，请检查填写信息'))
+      setError(err.response?.data?.detail || (mode === 'login' ? '登录失败，请检查邮箱密码' : '注册失败，请检查填写信息'))
     } finally {
       setLoading(false)
     }
@@ -36,15 +36,12 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden"
       style={{ background: '#fafaf9' }}>
-      {/* 暖色装饰 - 左上 */}
       <div className="absolute top-0 left-0 w-[500px] h-[500px] rounded-full opacity-40"
         style={{ background: 'radial-gradient(circle at 30% 30%, #f5f5f4 0%, #fafaf9 100%)' }} />
-      {/* 右下装饰 */}
       <div className="absolute bottom-0 right-0 w-[600px] h-[600px] rounded-full opacity-50"
         style={{ background: 'radial-gradient(circle at 70% 70%, #f5f5f4 0%, transparent 70%)' }} />
 
       <div className="relative z-10 w-full max-w-[400px] px-6">
-        {/* Logo 区域 */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center justify-center mb-6">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
@@ -58,21 +55,16 @@ export default function Login() {
           <p className="text-sm mt-2 tracking-wide" style={{ color: '#a3a3a3' }}>智能内部管理系统</p>
         </div>
 
-        {/* 登录卡片 */}
         <div className="bg-white rounded-2xl p-8 relative"
           style={{ boxShadow: '0 2px 24px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)' }}>
           <div className="text-center mb-8">
             <h2 className="text-lg font-semibold" style={{ color: '#1f1f1f' }}>{mode === 'login' ? '欢迎登录' : '注册公司账号'}</h2>
-            <p className="text-sm mt-1" style={{ color: '#a3a3a3' }}>{mode === 'login' ? '请输入您的账号信息' : '新公司可免费试用 1 个月'}</p>
+            <p className="text-sm mt-1" style={{ color: '#a3a3a3' }}>{mode === 'login' ? '请输入您的邮箱和密码' : '新公司可免费试用 1 个月'}</p>
           </div>
 
           {error && (
             <div className="mb-5 px-4 py-3 rounded-xl text-sm"
-              style={{
-                background: '#fef2f2',
-                color: '#dc2626',
-                border: '1px solid #fecaca'
-              }}>
+              style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
               {error}
             </div>
           )}
@@ -87,7 +79,7 @@ export default function Login() {
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
                     placeholder="请输入公司名称"
-                    className="w-full px-4 py-3.5 rounded-xl text-sm transition-all duration-200 focus:outline-none"
+                    className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none"
                     style={{ background: '#fafaf9', border: '1.5px solid #e5e5e5', color: '#1f1f1f' }}
                   />
                 </div>
@@ -98,28 +90,21 @@ export default function Login() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="请输入您的姓名"
-                    className="w-full px-4 py-3.5 rounded-xl text-sm transition-all duration-200 focus:outline-none"
+                    className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none"
                     style={{ background: '#fafaf9', border: '1.5px solid #e5e5e5', color: '#1f1f1f' }}
                   />
                 </div>
               </>
             )}
             <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: '#404040' }}>账号</label>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#404040' }}>邮箱</label>
               <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="请输入账号"
-                className="w-full px-4 py-3.5 rounded-xl text-sm transition-all duration-200
-                  focus:outline-none"
-                style={{
-                  background: '#fafaf9',
-                  border: '1.5px solid #e5e5e5',
-                  color: '#1f1f1f',
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#404040'}
-                onBlur={(e) => e.target.style.borderColor = '#e5e5e5'}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="请输入邮箱"
+                className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none"
+                style={{ background: '#fafaf9', border: '1.5px solid #e5e5e5', color: '#1f1f1f' }}
               />
             </div>
 
@@ -131,20 +116,13 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="请输入密码"
-                  className="w-full px-4 py-3.5 pr-12 rounded-xl text-sm transition-all duration-200
-                    focus:outline-none"
-                  style={{
-                    background: '#fafaf9',
-                    border: '1.5px solid #e5e5e5',
-                    color: '#1f1f1f',
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#404040'}
-                  onBlur={(e) => e.target.style.borderColor = '#e5e5e5'}
+                  className="w-full px-4 py-3.5 pr-12 rounded-xl text-sm focus:outline-none"
+                  style={{ background: '#fafaf9', border: '1.5px solid #e5e5e5', color: '#1f1f1f' }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPwd(!showPwd)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2"
                   style={{ color: '#a3a3a3' }}
                 >
                   {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -154,19 +132,9 @@ export default function Login() {
 
             <button
               type="submit"
-              disabled={loading || !username || !password || (mode === 'register' && (!companyName || !name))}
-              className="w-full rounded-xl py-3.5 font-medium text-sm
-                disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
-              style={{
-                background: '#404040',
-                color: 'white',
-              }}
-              onMouseEnter={(e) => {
-                if (!loading && username && password) e.currentTarget.style.background = '#262626'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#404040'
-              }}
+              disabled={loading || !email || !password || (mode === 'register' && (!companyName || !name))}
+              className="w-full rounded-xl py-3.5 font-medium text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: '#404040', color: 'white' }}
             >
               {loading ? (mode === 'login' ? '登录中...' : '注册中...') : (mode === 'login' ? '登录' : '注册并开始试用')}
             </button>

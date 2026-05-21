@@ -33,6 +33,7 @@ def _build_user_info(u: User, db: Session | None = None) -> UserInfo:
         company_id=u.company_id,
         company_name=u.company.name if u.company else "",
         is_platform_admin=u.is_platform_admin or False,
+        email=u.email or "",
         username=u.username,
         name=u.name,
         note=u.note or "",
@@ -49,9 +50,9 @@ def _build_user_info(u: User, db: Session | None = None) -> UserInfo:
 
 @router.post("/login", response_model=LoginResponse)
 def login(req: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == req.username).first()
+    user = db.query(User).filter(User.email == req.email).first()
     if not user or not verify_password(req.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=401, detail="邮箱或密码错误")
     if user.company and user.company.status == "disabled" and not user.is_platform_admin:
         raise HTTPException(status_code=403, detail="公司账号已停用")
     token = create_access_token({"user_id": user.id})
@@ -61,14 +62,15 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
 @router.post("/register", response_model=LoginResponse)
 def register(req: RegisterRequest, db: Session = Depends(get_db)):
     company_name = req.company_name.strip()
-    username = req.username.strip()
+    email = req.email.strip()
     name = req.name.strip()
-    if not company_name or not username or not req.password or not name:
-        raise HTTPException(status_code=400, detail="公司名称、账号、姓名和密码不能为空")
+    username = (req.username or req.email.split("@")[0]).strip()
+    if not company_name or not email or not req.password or not name:
+        raise HTTPException(status_code=400, detail="公司名称、邮箱、姓名和密码不能为空")
     if db.query(Company).filter(Company.name == company_name).first():
         raise HTTPException(status_code=400, detail="公司名称已存在")
-    if db.query(User).filter(User.username == username).first():
-        raise HTTPException(status_code=400, detail="账号已存在")
+    if db.query(User).filter(User.email == email).first():
+        raise HTTPException(status_code=400, detail="邮箱已注册")
 
     now = datetime.now()
     trial_end = now + timedelta(days=TRIAL_DAYS)
@@ -113,6 +115,7 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
 
     user = User(
         company_id=company.id,
+        email=email,
         username=username,
         password_hash=get_password_hash(req.password),
         name=name,

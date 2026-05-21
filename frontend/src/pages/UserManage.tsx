@@ -5,7 +5,7 @@ import { getDepartments, createDepartment, deleteDepartment } from '../api/depar
 import { getRoles, createRole, updateRole, deleteRole, getAllPermissions } from '../api/roles'
 import type { User, Department, Role } from '../types'
 
-const emptyUserForm = { username: '', password: '', name: '', note: '', role: 'customer', department_id: 0, is_manager: false }
+const emptyUserForm = { email: '', username: '', password: '', name: '', note: '', role: 'customer', department_id: 0, is_manager: false }
 const emptyDeptForm = { name: '', description: '', sort_order: 0 }
 const emptyRoleForm = { name: '', label: '', color: '#1677FF', permissions: [] as string[] }
 
@@ -83,7 +83,7 @@ export default function UserManage() {
 
   const openEditUser = (u: User) => {
     setEditUser(u)
-    setUserForm({ username: u.username, password: '', name: u.name, note: u.note || '', role: u.role, department_id: u.department_id || 0, is_manager: u.is_manager || false })
+    setUserForm({ email: u.email || '', username: u.username, password: '', name: u.name, note: u.note || '', role: u.role, department_id: u.department_id || 0, is_manager: u.is_manager || false })
     setUserError('')
     setShowUserModal(true)
   }
@@ -245,7 +245,7 @@ export default function UserManage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-600">
               <tr>
-                {['账号', '姓名', '角色', '所属部门', '部门管理员', '备注', '创建时间', '操作'].map(h => (
+                {['邮箱', '账号', '姓名', '角色', '所属部门', '备注', '创建时间', '操作'].map(h => (
                   <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>
                 ))}
               </tr>
@@ -253,6 +253,7 @@ export default function UserManage() {
             <tbody className="divide-y divide-gray-50">
               {users.map(u => (
                 <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3 text-gray-500 text-sm">{u.email || '-'}</td>
                   <td className="px-4 py-3 font-mono text-gray-700 font-medium">{u.username}</td>
                   <td className="px-4 py-3 text-gray-800">{u.name}</td>
                   <td className="px-4 py-3">
@@ -369,9 +370,14 @@ export default function UserManage() {
               {userError && <div className="px-3 py-2 bg-red-50 text-red-600 text-sm rounded-lg">{userError}</div>}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">账号</label>
-                  <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 disabled:bg-gray-50"
-                    disabled={!!editUser} value={userForm.username} onChange={e => setUserForm(f => ({ ...f, username: e.target.value }))} />
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">邮箱</label>
+                  <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                    type="email" value={userForm.email} onChange={e => setUserForm(f => ({ ...f, email: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">账号（公司内唯一）</label>
+                  <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                    value={userForm.username} onChange={e => setUserForm(f => ({ ...f, username: e.target.value }))} />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">{editUser ? '新密码（留空不修改）' : '密码'}</label>

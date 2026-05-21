@@ -4,13 +4,14 @@ from pydantic import BaseModel
 
 
 class LoginRequest(BaseModel):
-    username: str
+    email: str
     password: str
 
 
 class RegisterRequest(BaseModel):
     company_name: str
-    username: str
+    email: str
+    username: str = ""
     password: str
     name: str
 
@@ -34,6 +35,7 @@ class UserInfo(BaseModel):
     company_id: Optional[int] = None
     company_name: str = ""
     is_platform_admin: bool = False
+    email: str = ""
     username: str
     name: str
     note: str
@@ -51,7 +53,8 @@ class UserInfo(BaseModel):
 
 
 class CreateUserRequest(BaseModel):
-    username: str
+    email: str = ""
+    username: str = ""
     password: str
     name: str
     note: str = ""
@@ -240,6 +243,7 @@ class UserInfoFull(BaseModel):
     company_id: Optional[int] = None
     company_name: str = ""
     is_platform_admin: bool = False
+    email: str = ""
     username: str
     name: str
     note: str
@@ -257,6 +261,7 @@ class UserInfoFull(BaseModel):
 
 
 class UpdateUserRequest(BaseModel):
+    email: Optional[str] = None
     username: Optional[str] = None
     name: Optional[str] = None
     note: Optional[str] = None
