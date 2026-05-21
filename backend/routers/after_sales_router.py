@@ -1,0 +1,332 @@
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+
+from database import get_db, AfterSalesRecord, User, AfterSalesFeedback, AfterSalesChargeRequest
+from schemas import (
+    AfterSalesCreate,
+    AfterSalesUpdate,
+    AfterSalesOut,
+    AfterSalesFeedbackCreate,
+    AfterSalesFeedbackOut,
+    AfterSalesChargeRequestCreate,
+    AfterSalesChargeRequestPaid,
+    AfterSalesChargeRequestCancel,
+    AfterSalesChargeRequestOut,
+)
+from auth import get_current_user
+from services import audit_service
+from services.after_sales_charge_service import (
+    cancel_charge_request,
+    create_charge_request,
+    mark_charge_paid,
+)
+
+router = APIRouter(prefix="/api/after-sales", tags=["after_sales"])
+
+
+def record_to_out(r: AfterSalesRecord) -> AfterSalesOut:
+    return AfterSalesOut(
+        id=r.id,
+        apply_date=r.apply_date or "",
+        order_no=r.order_no or "",
+        return_reason=r.return_reason or "",
+        size=r.size or "",
+        model=r.model or "",
+        config=r.config or "",
+        computer_price=r.computer_price or 0,
+        quantity=r.quantity or 1,
+        accessories=r.accessories or "",
+        accessories_price=r.accessories_price or 0,
+        customer_info=r.customer_info or "",
+        return_tracking=r.return_tracking or "",
+        send_tracking=r.send_tracking or "",
+        handle_result=r.handle_result or "",
+        progress=r.progress or "pending",
+        charge_required=bool(r.charge_required),
+        charge_status=r.charge_status or "none",
+        current_expected_amount=r.current_expected_amount or 0,
+        current_paid_amount=r.current_paid_amount or 0,
+        last_charge_request_id=r.last_charge_request_id,
+        disassembly_feedback=r.disassembly_feedback or "",
+        shipping_fee=r.shipping_fee or 0,
+        remark=r.remark or "",
+        record_type=r.record_type or "",
+        created_by=r.created_by,
+        creator_name=r.creator.name if r.creator else "",
+        created_at=r.created_at,
+        updated_at=r.updated_at,
+    )
+
+
+def charge_to_out(charge_request: AfterSalesChargeRequest) -> AfterSalesChargeRequestOut:
+    return AfterSalesChargeRequestOut(
+        id=charge_request.id,
+        after_sales_record_id=charge_request.after_sales_record_id,
+        status=charge_request.status or "pending_charge",
+        expected_amount=charge_request.expected_amount or 0,
+        paid_amount=charge_request.paid_amount or 0,
+        charge_note=charge_request.charge_note or "",
+        amount_change_note=charge_request.amount_change_note or "",
+        created_by=charge_request.created_by,
+        created_by_name=charge_request.creator.name if charge_request.creator else "",
+        paid_by=charge_request.paid_by,
+        paid_by_name=charge_request.payer.name if charge_request.payer else "",
+        created_at=charge_request.created_at,
+        paid_at=charge_request.paid_at,
+        updated_at=charge_request.updated_at,
+    )
+
+
+@router.get("", response_model=dict)
+def list_records(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1),
+    status: str = Query("", description="Filter by progress"),
+    charge_status: str = Query("", description="Filter by charge status"),
+    record_type: str = Query("", description="Filter by record type: return/exchange"),
+    search: str = Query("", description="Search in order_no/model/customer_info"),
+    start_date: str = Query("", description="Filter by apply_date >= start_date (YYYY-MM-DD)"),
+    end_date: str = Query("", description="Filter by apply_date <= end_date (YYYY-MM-DD)"),
+    all: bool = Query(False, description="Return all records (for export)"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    query = db.query(AfterSalesRecord).filter(AfterSalesRecord.company_id == current_user.company_id)
+    if status:
+        query = query.filter(AfterSalesRecord.progress == status)
+    if charge_status:
+        query = query.filter(AfterSalesRecord.charge_status == charge_status)
+    if record_type:
+        query = query.filter(AfterSalesRecord.record_type == record_type)
+    if search:
+        pattern = f"%{search}%"
+        query = query.filter(
+            (AfterSalesRecord.order_no.like(pattern))
+            | (AfterSalesRecord.model.like(pattern))
+            | (AfterSalesRecord.customer_info.like(pattern))
+        )
+    if start_date:
+        query = query.filter(AfterSalesRecord.apply_date >= start_date)
+    if end_date:
+        query = query.filter(AfterSalesRecord.apply_date <= end_date)
+    if all:
+        items = query.order_by(AfterSalesRecord.created_at.desc()).all()
+        return {"total": len(items), "page": 1, "page_size": len(items), "items": [record_to_out(r) for r in items]}
+    total = query.count()
+    items = query.order_by(AfterSalesRecord.created_at.desc()) \
+        .offset((page - 1) * page_size).limit(page_size).all()
+    return {
+        "total": total, "page": page, "page_size": page_size,
+        "items": [record_to_out(r) for r in items],
+    }
+
+
+@router.get("/{record_id}", response_model=AfterSalesOut)
+def get_record(
+    record_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    r = db.query(AfterSalesRecord).filter(AfterSalesRecord.id == record_id, AfterSalesRecord.company_id == current_user.company_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Record not found")
+    return record_to_out(r)
+
+
+@router.post("", response_model=AfterSalesOut)
+def create_record(
+    req: AfterSalesCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    r = AfterSalesRecord(
+        company_id=current_user.company_id,
+        apply_date=req.apply_date,
+        order_no=req.order_no,
+        return_reason=req.return_reason,
+        size=req.size,
+        model=req.model,
+        config=req.config,
+        computer_price=req.computer_price,
+        quantity=req.quantity,
+        accessories=req.accessories,
+        accessories_price=req.accessories_price,
+        customer_info=req.customer_info,
+        return_tracking=req.return_tracking,
+        send_tracking=req.send_tracking,
+        handle_result=req.handle_result,
+        progress=req.progress,
+        disassembly_feedback=req.disassembly_feedback,
+        shipping_fee=req.shipping_fee,
+        remark=req.remark,
+        record_type=req.record_type,
+        created_by=current_user.id,
+    )
+    db.add(r)
+    db.commit()
+    db.refresh(r)
+    audit_service.log(db, current_user, "create", "after_sales", r.id,
+                      f"创建售后登记: #{r.id} {r.order_no}")
+    return record_to_out(r)
+
+
+@router.put("/{record_id}", response_model=AfterSalesOut)
+def update_record(
+    record_id: int,
+    req: AfterSalesUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    r = db.query(AfterSalesRecord).filter(AfterSalesRecord.id == record_id, AfterSalesRecord.company_id == current_user.company_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Record not found")
+    for field, value in req.model_dump(exclude_none=True).items():
+        setattr(r, field, value)
+    db.commit()
+    db.refresh(r)
+    audit_service.log(db, current_user, "update", "after_sales", r.id,
+                      f"更新售后登记: #{r.id}")
+    return record_to_out(r)
+
+
+@router.delete("/{record_id}")
+def delete_record(
+    record_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    r = db.query(AfterSalesRecord).filter(AfterSalesRecord.id == record_id, AfterSalesRecord.company_id == current_user.company_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Record not found")
+    audit_service.log(db, current_user, "delete", "after_sales", record_id,
+                      f"删除售后登记: #{record_id}")
+    db.delete(r)
+    db.commit()
+    return {"message": "OK"}
+
+
+@router.post("/{record_id}/feedback", response_model=AfterSalesFeedbackOut)
+def add_feedback(
+    record_id: int,
+    req: AfterSalesFeedbackCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    r = db.query(AfterSalesRecord).filter(AfterSalesRecord.id == record_id, AfterSalesRecord.company_id == current_user.company_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Record not found")
+    fb = AfterSalesFeedback(
+        company_id=current_user.company_id,
+        record_id=record_id,
+        user_id=current_user.id,
+        content=req.content,
+    )
+    db.add(fb)
+    db.commit()
+    db.refresh(fb)
+    return AfterSalesFeedbackOut(
+        id=fb.id,
+        record_id=fb.record_id,
+        user_id=fb.user_id,
+        content=fb.content,
+        created_at=fb.created_at,
+        user_name=current_user.name,
+    )
+
+
+@router.get("/{record_id}/feedbacks", response_model=list[AfterSalesFeedbackOut])
+def get_feedbacks(
+    record_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    feedbacks = db.query(AfterSalesFeedback).filter(
+        AfterSalesFeedback.record_id == record_id,
+        AfterSalesFeedback.company_id == current_user.company_id,
+    ).order_by(AfterSalesFeedback.created_at.asc()).all()
+    return [
+        AfterSalesFeedbackOut(
+            id=fb.id,
+            record_id=fb.record_id,
+            user_id=fb.user_id,
+            content=fb.content,
+            created_at=fb.created_at,
+            user_name=fb.user.name if fb.user else "",
+        )
+        for fb in feedbacks
+    ]
+
+
+@router.post("/{record_id}/charge-requests", response_model=AfterSalesChargeRequestOut)
+def create_record_charge_request(
+    record_id: int,
+    req: AfterSalesChargeRequestCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    record = db.query(AfterSalesRecord).filter(AfterSalesRecord.id == record_id, AfterSalesRecord.company_id == current_user.company_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Record not found")
+    charge_request = create_charge_request(
+        db=db,
+        record=record,
+        current_user=current_user,
+        expected_amount=req.expected_amount,
+        charge_note=req.charge_note,
+    )
+    return charge_to_out(charge_request)
+
+
+@router.get("/{record_id}/charge-requests", response_model=list[AfterSalesChargeRequestOut])
+def list_record_charge_requests(
+    record_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    record = db.query(AfterSalesRecord).filter(AfterSalesRecord.id == record_id, AfterSalesRecord.company_id == current_user.company_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Record not found")
+    charge_requests = db.query(AfterSalesChargeRequest).filter(
+        AfterSalesChargeRequest.after_sales_record_id == record_id,
+        AfterSalesChargeRequest.company_id == current_user.company_id,
+    ).order_by(AfterSalesChargeRequest.created_at.desc(), AfterSalesChargeRequest.id.desc()).all()
+    return [charge_to_out(item) for item in charge_requests]
+
+
+@router.post("/charge-requests/{charge_id}/mark-paid", response_model=AfterSalesChargeRequestOut)
+def mark_record_charge_paid(
+    charge_id: int,
+    req: AfterSalesChargeRequestPaid,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    charge_request = db.query(AfterSalesChargeRequest).filter(AfterSalesChargeRequest.id == charge_id, AfterSalesChargeRequest.company_id == current_user.company_id).first()
+    if not charge_request:
+        raise HTTPException(status_code=404, detail="Charge request not found")
+    updated = mark_charge_paid(
+        db=db,
+        charge_request=charge_request,
+        current_user=current_user,
+        paid_amount=req.paid_amount,
+        amount_change_note=req.amount_change_note,
+    )
+    return charge_to_out(updated)
+
+
+@router.post("/charge-requests/{charge_id}/cancel", response_model=AfterSalesChargeRequestOut)
+def cancel_record_charge_request(
+    charge_id: int,
+    req: AfterSalesChargeRequestCancel,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    charge_request = db.query(AfterSalesChargeRequest).filter(AfterSalesChargeRequest.id == charge_id, AfterSalesChargeRequest.company_id == current_user.company_id).first()
+    if not charge_request:
+        raise HTTPException(status_code=404, detail="Charge request not found")
+    updated = cancel_charge_request(
+        db=db,
+        charge_request=charge_request,
+        current_user=current_user,
+        reason=req.reason,
+    )
+    return charge_to_out(updated)

@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.venv/
+.venv39/
+venv/
+
+# Database
+*.db
+*.sqlite
+
+# Build output
+dist/
+build/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Uploads (user data)
+uploads/
+
+# Misc project tools
+.workbuddy/
+.claude/
+.gstack/
