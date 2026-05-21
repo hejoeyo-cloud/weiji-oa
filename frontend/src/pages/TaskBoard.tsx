@@ -45,9 +45,10 @@ export default function TaskBoard() {
 
   const loadUsers = async () => {
     try {
-      const data = await getUsers(1, 100)
-      setUsers(data.items)
-    } finally { /* ignore */ }
+      const res = await getUsers()
+      const list = Array.isArray(res) ? res : (res as any).data || []
+      setUsers(list)
+    } catch { setUsers([]) }
   }
 
   useEffect(() => { loadTasks(); loadUsers() }, [])
@@ -124,7 +125,7 @@ export default function TaskBoard() {
             </select>
             <select value={formAssignee || ''} onChange={e => setFormAssignee(e.target.value ? Number(e.target.value) : undefined)} className="px-3 py-2 border rounded-lg text-sm" style={{ borderColor: '#e5e5e5' }}>
               <option value="">未分配</option>
-              {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+              {users?.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
             <input type="date" value={formDueDate} onChange={e => setFormDueDate(e.target.value)} className="px-3 py-2 border rounded-lg text-sm" style={{ borderColor: '#e5e5e5' }} />
           </div>
