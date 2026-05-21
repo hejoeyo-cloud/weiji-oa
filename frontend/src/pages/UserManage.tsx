@@ -89,7 +89,7 @@ export default function UserManage() {
   }
 
   const handleSaveUser = async () => {
-    if (!userForm.username || !userForm.name) { setUserError('账号和姓名不能为空'); return }
+    if (!userForm.name) { setUserError('姓名不能为空'); return }
     if (!editUser && !userForm.password) { setUserError('密码不能为空'); return }
     setSaving(true)
     setUserError('')
@@ -375,9 +375,9 @@ export default function UserManage() {
                     type="email" value={userForm.email} onChange={e => setUserForm(f => ({ ...f, email: e.target.value }))} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">账号（公司内唯一）</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">姓名</label>
                   <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
-                    value={userForm.username} onChange={e => setUserForm(f => ({ ...f, username: e.target.value }))} />
+                    value={userForm.name} onChange={e => setUserForm(f => ({ ...f, name: e.target.value }))} />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">{editUser ? '新密码（留空不修改）' : '密码'}</label>

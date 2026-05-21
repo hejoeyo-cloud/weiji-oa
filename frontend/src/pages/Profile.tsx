@@ -4,17 +4,14 @@ import { useAuth } from '../hooks/useAuth'
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth()
-  const [username, setUsername] = useState('')
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
 
-  // user 异步加载完成后同步到 state
   useEffect(() => {
     if (user) {
-      setUsername(user.username || '')
       setName(user.name || '')
     }
   }, [user])
@@ -46,7 +43,6 @@ export default function ProfilePage() {
   return (
     <div className="max-w-md mx-auto">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        {/* 头部 */}
         <div className="px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center text-xl font-bold text-white flex-shrink-0">
@@ -60,7 +56,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* 表单 */}
         <div className="p-6 space-y-5">
           {msg && (
             <div className="px-4 py-2.5 bg-green-50 text-green-700 text-sm rounded-lg border border-green-100">
@@ -74,10 +69,10 @@ export default function ProfilePage() {
           )}
 
           <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">登录账号</label>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">登录邮箱</label>
             <input
               className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 text-gray-500 cursor-not-allowed"
-              value={username}
+              value={user?.email || ''}
               readOnly
             />
           </div>
