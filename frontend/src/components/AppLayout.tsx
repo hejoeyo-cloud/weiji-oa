@@ -4,7 +4,8 @@ import {
   LayoutDashboard, Ticket, FilePlus, Users, BookOpen,
   Bell, LogOut, Menu, ClipboardList, Gift, DollarSign,
   Megaphone, CheckSquare, Shield, ChevronDown, Calendar, PackageCheck, User, Store,
-  ChevronLeft, ChevronRight, Warehouse, RotateCcw, Wrench, Receipt, CreditCard, Building2
+  ChevronLeft, ChevronRight, Warehouse, RotateCcw, Wrench, Receipt, CreditCard, Building2,
+  Fingerprint, Kanban
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useWebSocket } from '../hooks/useWebSocket'
@@ -58,6 +59,8 @@ const navGroups: NavGroup[] = [
   {
     label: '内部协作',
     items: [
+      { path: '/attendance', label: '考勤打卡', icon: Fingerprint, permission: ['attendance:view'] },
+      { path: '/tasks', label: '任务看板', icon: Kanban, permission: ['tasks:view'] },
       { path: '/announcements', label: '公告通知', icon: Megaphone, permission: ['announcements:view'] },
       { path: '/approvals', label: '审批管理', icon: CheckSquare, permission: ['approvals:view'] },
       { path: '/schedule', label: '排班表', icon: Calendar, permission: ['schedule:view'] },

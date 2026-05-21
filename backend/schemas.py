@@ -1624,3 +1624,93 @@ class ExpenseInvoiceOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ── 考勤打卡 ─────────────────────────────────────────────────────────
+class CheckInRequest(BaseModel):
+    location: str = ""
+    remark: str = ""
+
+
+class AttendanceRecordOut(BaseModel):
+    id: int
+    company_id: Optional[int] = None
+    user_id: int
+    user_name: str = ""
+    date: str
+    check_in: Optional[datetime] = None
+    check_out: Optional[datetime] = None
+    status: str = "normal"
+    location: str = ""
+    remark: str = ""
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class MonthlyAttendanceStats(BaseModel):
+    total_days: int = 0
+    normal_days: int = 0
+    late_days: int = 0
+    early_days: int = 0
+    absent_days: int = 0
+
+
+# ── 任务看板 ─────────────────────────────────────────────────────────
+class TaskCreate(BaseModel):
+    title: str
+    description: str = ""
+    priority: str = "normal"
+    assignee_id: Optional[int] = None
+    due_date: str = ""
+
+
+class TaskUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    assignee_id: Optional[int] = None
+    due_date: Optional[str] = None
+    sort_order: Optional[int] = None
+
+
+class TaskOut(BaseModel):
+    id: int
+    company_id: Optional[int] = None
+    title: str
+    description: str = ""
+    status: str = "todo"
+    priority: str = "normal"
+    assignee_id: Optional[int] = None
+    assignee_name: str = ""
+    due_date: str = ""
+    sort_order: int = 0
+    created_by: Optional[int] = None
+    creator_name: str = ""
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ── 统计报表 ─────────────────────────────────────────────────────────
+class TicketTrendItem(BaseModel):
+    month: str
+    count: int
+
+
+class ModuleDistributionItem(BaseModel):
+    name: str
+    count: int
+
+
+class DashboardStatsOut(BaseModel):
+    ticket_trend: list[TicketTrendItem] = []
+    module_distribution: list[ModuleDistributionItem] = []
+    ticket_status_distribution: list[ModuleDistributionItem] = []
+    today_attendance: int = 0
+    total_tasks: int = 0
+    pending_tasks: int = 0

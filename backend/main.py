@@ -26,6 +26,9 @@ from routers import warehouse_router
 from routers import return_exchange_router, repair_router
 from routers import gift_cashback_router
 from routers import billing_router, platform_router
+from routers import attendance_router
+from routers import task_router
+from routers import report_router
 import finance_router
 from seed_data import seed_knowledge
 from websocket.manager import manager
@@ -62,6 +65,9 @@ app.include_router(repair_router.router)
 app.include_router(gift_cashback_router.router)
 app.include_router(billing_router.router)
 app.include_router(platform_router.router)
+app.include_router(attendance_router.router)
+app.include_router(task_router.router)
+app.include_router(report_router.router)
 app.include_router(finance_router.router, prefix="/api")
 
 
@@ -74,6 +80,9 @@ async def subscription_write_guard(request, call_next):
         and not path.startswith("/api/auth/")
         and not path.startswith("/api/billing/")
         and not path.startswith("/api/platform/")
+        and not path.startswith("/api/attendance/")
+        and not path.startswith("/api/tasks/")
+        and not path.startswith("/api/reports/")
         and path != "/api/upload"
     ):
         auth_header = request.headers.get("authorization", "")

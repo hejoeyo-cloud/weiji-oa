@@ -638,3 +638,64 @@ export interface DashboardResponse {
   shortcuts: DashboardShortcut[]
   recent_activity: DashboardRecentActivityItem[]
 }
+
+// ── 考勤打卡 ─────────────────────────────────────────────────────────
+export interface AttendanceRecord {
+  id: number
+  company_id?: number
+  user_id: number
+  user_name: string
+  date: string
+  check_in?: string
+  check_out?: string
+  status: string
+  location: string
+  remark: string
+  created_at?: string
+}
+
+export interface MonthlyAttendanceStats {
+  total_days: number
+  normal_days: number
+  late_days: number
+  early_days: number
+  absent_days: number
+}
+
+// ── 任务看板 ─────────────────────────────────────────────────────────
+export interface TaskItem {
+  id: number
+  company_id?: number
+  title: string
+  description: string
+  status: string  // todo / in_progress / done
+  priority: string
+  assignee_id?: number
+  assignee_name: string
+  due_date: string
+  sort_order: number
+  created_by?: number
+  creator_name: string
+  created_at?: string
+  updated_at?: string
+}
+
+// ── 统计报表 ─────────────────────────────────────────────────────────
+export interface TicketTrendItem {
+  month: string
+  count: number
+}
+
+export interface ModuleDistributionItem {
+  name: string
+  count: number
+}
+
+export interface DashboardStats {
+  ticket_trend: TicketTrendItem[]
+  module_distribution: ModuleDistributionItem[]
+  ticket_status_distribution: ModuleDistributionItem[]
+  today_attendance: number
+  total_tasks: number
+  pending_tasks: number
+}

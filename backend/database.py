@@ -53,6 +53,10 @@ ALL_PERMISSIONS = [
     "finance_purchase_invoice:view", "finance_purchase_invoice:create", "finance_purchase_invoice:edit", "finance_purchase_invoice:delete",
     # 财务管理 - 报销发票
     "finance_expense_invoice:view", "finance_expense_invoice:create", "finance_expense_invoice:edit", "finance_expense_invoice:delete",
+    # 考勤打卡
+    "attendance:view", "attendance:manage",
+    # 任务看板
+    "tasks:view", "tasks:create", "tasks:edit", "tasks:delete",
 ]
 
 # 模块分组（用于 UI 展示）
@@ -77,6 +81,8 @@ PERMISSION_GROUPS = [
     {"key": "finance_sales_invoice", "label": "财务-销项台账", "perms": ["view", "create", "edit", "delete"]},
     {"key": "finance_purchase_invoice", "label": "财务-进项台账", "perms": ["view", "create", "edit", "delete"]},
     {"key": "finance_expense_invoice", "label": "财务-报销发票", "perms": ["view", "create", "edit", "delete"]},
+    {"key": "attendance", "label": "考勤打卡", "perms": ["view", "manage"]},
+    {"key": "tasks", "label": "任务看板", "perms": ["view", "create", "edit", "delete"]},
 ]
 
 # 默认角色种子数据（仅 admin 为内置角色，不可删除；其他角色可自由编辑和删除）
@@ -101,6 +107,8 @@ DEFAULT_ROLES = [
             "announcements:view",
             "approvals:view", "approvals:create",
             "schedule:view",
+            "attendance:view",
+            "tasks:view", "tasks:create", "tasks:edit",
         ],
     },
     {
@@ -119,6 +127,8 @@ DEFAULT_ROLES = [
             "announcements:view",
             "approvals:view", "approvals:create",
             "schedule:view",
+            "attendance:view",
+            "tasks:view",
         ],
     },
 ]
@@ -1074,6 +1084,46 @@ class ExpenseInvoice(Base):
     approval = relationship("ApprovalRequest", foreign_keys=[approval_id])
 
 
+# ── 考勤打卡 ─────────────────────────────────────────────────────
+class AttendanceRecord(Base):
+    __tablename__ = "attendance_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    date = Column(String(20), nullable=False, index=True)          # YYYY-MM-DD
+    check_in = Column(DateTime, nullable=True)                     # 签到时间
+    check_out = Column(DateTime, nullable=True)                    # 签退时间
+    status = Column(String(20), default="normal")                  # normal/late/early/absent
+    location = Column(String(200), default="")                     # 打卡地点
+    remark = Column(String(200), default="")                       # 备注
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    user = relationship("User", foreign_keys=[user_id])
+
+
+# ── 任务看板 ─────────────────────────────────────────────────────
+class TaskBoard(Base):
+    __tablename__ = "task_boards"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    title = Column(String(200), nullable=False)
+    description = Column(Text, default="")
+    status = Column(String(20), default="todo")                    # todo / in_progress / done
+    priority = Column(String(20), default="normal")                # low / normal / high / urgent
+    assignee_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    due_date = Column(String(20), nullable=True)                   # YYYY-MM-DD
+    sort_order = Column(Integer, default=0)                        # 看板内排序
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    assignee = relationship("User", foreign_keys=[assignee_id])
+    creator = relationship("User", foreign_keys=[created_by])
+
+
 def _migrate_db():
     from sqlalchemy import inspect, text
     inspector = inspect(engine)
@@ -1092,6 +1142,7 @@ def _migrate_db():
         "warehouse_outbound", "warehouse_inbound_feedbacks",
         "warehouse_outbound_feedbacks", "customer_invoice_requests",
         "sales_invoices", "purchase_invoices", "expense_invoices",
+        "attendance_records", "task_boards",
     ]
 
     if "companies" not in existing_tables:
@@ -1142,6 +1193,47 @@ def _migrate_db():
                     alipay_trade_no VARCHAR(100) DEFAULT '',
                     alipay_payload TEXT DEFAULT '',
                     paid_at DATETIME,
+                    created_by INTEGER REFERENCES users(id),
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+            """))
+            conn.commit()
+
+    if "attendance_records" not in existing_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE attendance_records (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER REFERENCES companies(id),
+                    user_id INTEGER NOT NULL REFERENCES users(id),
+                    date VARCHAR(20) NOT NULL,
+                    check_in DATETIME,
+                    check_out DATETIME,
+                    status VARCHAR(20) DEFAULT 'normal',
+                    location VARCHAR(200) DEFAULT '',
+                    remark VARCHAR(200) DEFAULT '',
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+            """))
+            conn.commit()
+        # Re-get existing_tables after creating new table
+        existing_tables = inspector.get_table_names()
+
+    if "task_boards" not in existing_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE task_boards (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER REFERENCES companies(id),
+                    title VARCHAR(200) NOT NULL,
+                    description TEXT DEFAULT '',
+                    status VARCHAR(20) DEFAULT 'todo',
+                    priority VARCHAR(20) DEFAULT 'normal',
+                    assignee_id INTEGER REFERENCES users(id),
+                    due_date VARCHAR(20),
+                    sort_order INTEGER DEFAULT 0,
                     created_by INTEGER REFERENCES users(id),
                     created_at DATETIME,
                     updated_at DATETIME
