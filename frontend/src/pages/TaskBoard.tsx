@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, GripVertical, AlertCircle, Clock, CheckCircle2, RefreshCw, User } from 'lucide-react'
+import { Plus, Trash2, GripVertical, AlertCircle, Clock, CheckCircle2, RefreshCw, User as UserIcon } from 'lucide-react'
 import { getTasks, createTask, updateTask, deleteTask } from '../api/tasks'
 import { getUsers } from '../api/users'
 import type { TaskItem, User } from '../types'
@@ -172,7 +172,7 @@ export default function TaskBoard() {
                           </span>
                           {task.assignee_name && (
                             <span className="text-xs text-gray-400 flex items-center gap-1">
-                              <User size={10} /> {task.assignee_name}
+                              <UserIcon size={10} /> {task.assignee_name}
                             </span>
                           )}
                           {task.due_date && (
