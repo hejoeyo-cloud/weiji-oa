@@ -63,6 +63,7 @@ def sync_attendance_for_company(db: Session, company_id: int) -> dict:
 
     synced = 0
     skipped = 0
+    overwrote = 0
     errors = []
 
     for dingtalk_uid, local_uid in user_map.items():
@@ -88,22 +89,32 @@ def sync_attendance_for_company(db: Session, company_id: int) -> dict:
                     r.get("userCheckTime", 0) / 1000
                 ).strftime("%Y-%m-%d")
 
-                # 检查是否已同步
-                existing = db.query(AttendanceRecord).filter(
+                # 检查是否已有钉钉同步记录（不重复处理）
+                existing_dt = db.query(AttendanceRecord).filter(
                     AttendanceRecord.user_id == local_uid,
                     AttendanceRecord.date == record_date,
                     AttendanceRecord.source == "dingtalk",
                     AttendanceRecord.company_id == company_id,
                 ).first()
-                if existing:
+                if existing_dt:
                     skipped += 1
                     continue
+
+                # 钉钉优先级高于手动打卡：删除同一天的手动记录
+                manual_records = db.query(AttendanceRecord).filter(
+                    AttendanceRecord.user_id == local_uid,
+                    AttendanceRecord.date == record_date,
+                    AttendanceRecord.source == "manual",
+                    AttendanceRecord.company_id == company_id,
+                ).all()
+                for mr in manual_records:
+                    db.delete(mr)
+                    overwrote += 1
 
                 check_type = r.get("checkType", "")
                 record_time = datetime.fromtimestamp(r.get("userCheckTime", 0) / 1000)
 
                 if check_type == "OnDuty":
-                    # 上班打卡
                     status = "normal"
                     if record_time.hour >= 9:
                         status = "late"
@@ -118,7 +129,6 @@ def sync_attendance_for_company(db: Session, company_id: int) -> dict:
                     ))
                     synced += 1
                 elif check_type == "OffDuty":
-                    # 下班打卡，找到当天的记录更新签退
                     day_record = db.query(AttendanceRecord).filter(
                         AttendanceRecord.user_id == local_uid,
                         AttendanceRecord.date == record_date,
@@ -151,6 +161,7 @@ def sync_attendance_for_company(db: Session, company_id: int) -> dict:
         "ok": True,
         "synced": synced,
         "skipped": skipped,
+        "overwrote": overwrote,
         "errors": errors[:5],
         "synced_at": config.last_sync_at.isoformat() if config.last_sync_at else None,
     }

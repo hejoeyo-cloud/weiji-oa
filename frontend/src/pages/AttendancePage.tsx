@@ -97,7 +97,7 @@ export default function AttendancePage() {
     setDtSyncing(true); setDtSyncResult('')
     try {
       const res = await syncDingtalk()
-      setDtSyncResult(`同步完成：新增 ${res.synced} 条，跳过 ${res.skipped} 条`); loadDtConfig()
+      setDtSyncResult(`同步完成：新增 ${res.synced} 条，覆盖 ${res.overwrote || 0} 条，跳过 ${res.skipped} 条`); loadDtConfig()
     } catch (err: any) {
       setDtSyncResult(err.response?.data?.detail || '同步失败')
     } finally { setDtSyncing(false) }
