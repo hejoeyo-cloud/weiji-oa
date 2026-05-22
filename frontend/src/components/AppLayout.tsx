@@ -5,7 +5,7 @@ import {
   Bell, LogOut, Menu, ClipboardList, Gift, DollarSign,
   Megaphone, CheckSquare, Shield, ChevronDown, Calendar, PackageCheck, User, Store,
   ChevronLeft, ChevronRight, Warehouse, RotateCcw, Wrench, Receipt, CreditCard, Building2,
-  Fingerprint, Kanban, BarChart3, Link
+  Fingerprint, Kanban, BarChart3
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useWebSocket } from '../hooks/useWebSocket'
@@ -65,7 +65,6 @@ const navGroups: NavGroup[] = [
       { path: '/announcements', label: '公告通知', icon: Megaphone, permission: ['announcements:view'] },
       { path: '/approvals', label: '审批管理', icon: CheckSquare, permission: ['approvals:view'] },
       { path: '/schedule', label: '排班表', icon: Calendar, permission: ['schedule:view'] },
-      { path: '/dingtalk', label: '钉钉考勤', icon: Link },
     ],
   },
   {
