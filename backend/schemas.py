@@ -1646,6 +1646,7 @@ class AttendanceRecordOut(BaseModel):
     check_in: Optional[datetime] = None
     check_out: Optional[datetime] = None
     status: str = "normal"
+    source: str = "manual"
     location: str = ""
     remark: str = ""
     created_at: Optional[datetime] = None
@@ -1719,3 +1720,22 @@ class DashboardStatsOut(BaseModel):
     today_attendance: int = 0
     total_tasks: int = 0
     pending_tasks: int = 0
+
+
+# ── 钉钉考勤 ─────────────────────────────────────────────────────────
+class DingtalkConfigIn(BaseModel):
+    app_key: Optional[str] = None
+    app_secret: Optional[str] = None
+    enabled: Optional[bool] = None
+
+
+class DingtalkConfigOut(BaseModel):
+    id: int
+    company_id: int
+    app_key: str = ""
+    app_secret_masked: str = ""
+    enabled: bool = False
+    last_sync_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True

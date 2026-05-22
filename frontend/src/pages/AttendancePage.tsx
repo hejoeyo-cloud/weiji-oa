@@ -204,7 +204,7 @@ export default function AttendancePage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500">
                 <tr>
-                  {['日期', '签到', '签退', '状态', '地点'].map(h => (
+                  {['日期', '签到', '签退', '状态', '来源', '地点'].map(h => (
                     <th key={h} className="px-4 py-3 text-left font-medium">{h}</th>
                   ))}
                 </tr>
@@ -218,6 +218,11 @@ export default function AttendancePage() {
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[r.status] || ''}`}>
                         {STATUS_LABELS[r.status] || r.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-0.5 rounded text-xs ${r.source === 'dingtalk' ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+                        {r.source === 'dingtalk' ? '钉钉' : '手动'}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-500">{r.location || '-'}</td>

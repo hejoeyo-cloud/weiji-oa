@@ -21,6 +21,7 @@ def _record_to_out(r: AttendanceRecord) -> AttendanceRecordOut:
         check_in=r.check_in,
         check_out=r.check_out,
         status=r.status,
+        source=r.source or "manual",
         location=r.location,
         remark=r.remark,
         created_at=r.created_at,

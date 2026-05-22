@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { updateUser } from '../api/users'
+import { bindDingtalkUser } from '../api/dingtalk'
 import { useAuth } from '../hooks/useAuth'
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth()
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
+  const [dingtalkUserId, setDingtalkUserId] = useState('')
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
@@ -85,6 +87,31 @@ export default function ProfilePage() {
               onChange={e => setName(e.target.value)}
               placeholder="输入姓名"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">钉钉用户ID <span className="text-gray-300 font-normal">（考勤数据同步用）</span></label>
+            <div className="flex gap-2">
+              <input
+                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                value={dingtalkUserId}
+                onChange={e => setDingtalkUserId(e.target.value)}
+                placeholder={user?.dingtalk_user_id || '输入钉钉 UserID'}
+              />
+              <button
+                onClick={async () => {
+                  if (!dingtalkUserId.trim()) return
+                  try {
+                    await bindDingtalkUser(dingtalkUserId.trim())
+                    setMsg('钉钉账号绑定成功')
+                    setDingtalkUserId('')
+                  } catch (e: any) {
+                    setError(e.response?.data?.detail || '绑定失败')
+                  }
+                }}
+                className="px-4 py-2.5 bg-blue-600 text-white text-sm rounded-xl whitespace-nowrap"
+              >绑定</button>
+            </div>
           </div>
 
           <div>

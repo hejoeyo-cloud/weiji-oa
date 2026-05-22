@@ -261,6 +261,7 @@ class User(Base):
     role_id = Column(Integer, ForeignKey("roles.id"), nullable=True)
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
     is_manager = Column(Boolean, default=False)
+    dingtalk_user_id = Column(String(64), nullable=True)            # 钉钉用户ID，用于考勤数据匹配
     created_at = Column(DateTime, default=datetime.now)
 
     company = relationship("Company", back_populates="users", foreign_keys=[company_id])
@@ -1096,12 +1097,29 @@ class AttendanceRecord(Base):
     check_in = Column(DateTime, nullable=True)                     # 签到时间
     check_out = Column(DateTime, nullable=True)                    # 签退时间
     status = Column(String(20), default="normal")                  # normal/late/early/absent
+    source = Column(String(20), default="manual")                  # manual / dingtalk
     location = Column(String(200), default="")                     # 打卡地点
     remark = Column(String(200), default="")                       # 备注
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
     user = relationship("User", foreign_keys=[user_id])
+
+
+# ── 钉钉配置 ─────────────────────────────────────────────────────
+class DingtalkConfig(Base):
+    __tablename__ = "dingtalk_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, unique=True, index=True)
+    app_key = Column(String(100), default="")
+    app_secret = Column(String(200), default="")
+    enabled = Column(Boolean, default=False)
+    last_sync_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    company = relationship("Company")
 
 
 # ── 任务看板 ─────────────────────────────────────────────────────
@@ -1290,6 +1308,35 @@ def _migrate_db():
                     conn.commit()
             except:
                 pass
+
+        if "dingtalk_user_id" not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE users ADD COLUMN dingtalk_user_id VARCHAR(64)"))
+                conn.commit()
+
+    if "attendance_records" in existing_tables:
+        columns = [c["name"] for c in inspect(engine).get_columns("attendance_records")]
+        if "source" not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE attendance_records ADD COLUMN source VARCHAR(20) DEFAULT 'manual'"))
+                conn.commit()
+
+    new_tables = inspect(engine).get_table_names()
+    if "dingtalk_configs" not in new_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE dingtalk_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER NOT NULL UNIQUE REFERENCES companies(id),
+                    app_key VARCHAR(100) DEFAULT '',
+                    app_secret VARCHAR(200) DEFAULT '',
+                    enabled INTEGER DEFAULT 0,
+                    last_sync_at DATETIME,
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+            """))
+            conn.commit()
 
     with engine.connect() as conn:
         sub = conn.execute(text("SELECT id FROM subscriptions WHERE company_id = :company_id"), {"company_id": default_company_id}).fetchone()

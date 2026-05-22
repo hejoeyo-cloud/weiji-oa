@@ -27,6 +27,7 @@ import PlatformPage from './pages/PlatformPage'
 import AttendancePage from './pages/AttendancePage'
 import TaskBoard from './pages/TaskBoard'
 import ReportsPage from './pages/ReportsPage'
+import DingtalkConfigPage from './pages/DingtalkConfigPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('token')
@@ -73,6 +74,7 @@ export default function App() {
           <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/tasks" element={<TaskBoard />} />
           <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/dingtalk" element={<DingtalkConfigPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

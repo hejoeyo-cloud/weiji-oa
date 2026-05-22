@@ -14,6 +14,7 @@ export interface User {
   department_id?: number
   department_name?: string
   is_manager?: boolean
+  dingtalk_user_id?: string
   created_at?: string
   subscription?: SubscriptionInfo
 }
@@ -650,6 +651,7 @@ export interface AttendanceRecord {
   check_in?: string
   check_out?: string
   status: string
+  source: string
   location: string
   remark: string
   created_at?: string
@@ -699,4 +701,14 @@ export interface DashboardStats {
   today_attendance: number
   total_tasks: number
   pending_tasks: number
+}
+
+// ── 钉钉 ─────────────────────────────────────────────────────────
+export interface DingtalkConfig {
+  id: number
+  company_id: number
+  app_key: string
+  app_secret_masked: string
+  enabled: boolean
+  last_sync_at?: string
 }
