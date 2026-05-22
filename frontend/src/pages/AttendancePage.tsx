@@ -25,7 +25,7 @@ export default function AttendancePage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
   })
   const [monthSelect, setMonthSelect] = useState(currentMonth)
-  const [activeTab, setActiveTab] = useState<'today' | 'records' | 'dingtalk'>('today')
+  const [activeTab, setActiveTab] = useState<'records' | 'dingtalk'>('records')
 
   // ── 钉钉配置 ──
   const [dtConfig, setDtConfig] = useState<DingtalkConfig | null>(null)
@@ -110,7 +110,6 @@ export default function AttendancePage() {
   const dateStr = now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
 
   const tabs = [
-    { key: 'today' as const, label: '今日打卡' },
     { key: 'records' as const, label: '考勤记录' },
   ]
   if (isAdmin) tabs.push({ key: 'dingtalk' as const, label: '钉钉同步' })
