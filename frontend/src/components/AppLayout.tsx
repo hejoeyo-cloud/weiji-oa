@@ -5,7 +5,7 @@ import {
   Bell, LogOut, Menu, ClipboardList, Gift, DollarSign,
   Megaphone, CheckSquare, Shield, ChevronDown, Calendar, PackageCheck, User, Store,
   ChevronLeft, ChevronRight, Warehouse, RotateCcw, Wrench, Receipt, CreditCard, Building2,
-  Fingerprint, Kanban
+  Fingerprint, Kanban, BarChart3
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useWebSocket } from '../hooks/useWebSocket'
@@ -29,6 +29,7 @@ const navGroups: NavGroup[] = [
     label: '主要功能',
     items: [
       { path: '/', label: '工作台', icon: LayoutDashboard },
+      { path: '/reports', label: '数据报表', icon: BarChart3 },
       { path: '/knowledge', label: '知识库', icon: BookOpen },
     ],
   },

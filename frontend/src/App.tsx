@@ -26,6 +26,7 @@ import BillingPage from './pages/BillingPage'
 import PlatformPage from './pages/PlatformPage'
 import AttendancePage from './pages/AttendancePage'
 import TaskBoard from './pages/TaskBoard'
+import ReportsPage from './pages/ReportsPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('token')
@@ -71,6 +72,7 @@ export default function App() {
           <Route path="/audit-logs" element={<AuditLogPage />} />
           <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/tasks" element={<TaskBoard />} />
+          <Route path="/reports" element={<ReportsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2, TrendingUp } from 'lucide-react'
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { Loader2 } from 'lucide-react'
 import { markAnnouncementRead } from '../api/announcements'
 import { getDashboard } from '../api/dashboard'
-import { getDashboardStats } from '../api/reports'
-import type { DashboardResponse, DashboardStats } from '../types'
+import type { DashboardResponse } from '../types'
 import DashboardHero from '../components/dashboard/DashboardHero'
 import AnnouncementPanel from '../components/dashboard/AnnouncementPanel'
 import SchedulePanel from '../components/dashboard/SchedulePanel'
@@ -14,7 +12,6 @@ import RecentActivity from '../components/dashboard/RecentActivity'
 
 export default function Dashboard() {
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null)
-  const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const navigate = useNavigate()
@@ -22,13 +19,9 @@ export default function Dashboard() {
   useEffect(() => {
     setLoading(true)
     setError('')
-    Promise.all([
-      getDashboard(),
-      getDashboardStats().catch(() => null),
-    ])
-      .then(([dashData, statsData]) => {
-        setDashboard(dashData)
-        setStats(statsData as DashboardStats | null)
+    getDashboard()
+      .then(data => {
+        setDashboard(data)
       })
       .catch((err: any) => {
         console.error('Dashboard fetch failed:', err)
@@ -104,89 +97,6 @@ export default function Dashboard() {
       <OverviewCards cards={dashboard.overview_cards} onOpen={(path) => path && navigate(path)} />
 
       <RecentActivity items={dashboard.recent_activity} onOpen={(path) => navigate(path)} />
-
-      {/* 数据报表图表 */}
-      {stats && (
-        <div className="space-y-6">
-          <div className="flex items-center gap-2 text-gray-600">
-            <TrendingUp size={18} />
-            <span className="text-lg font-semibold text-gray-800">数据报表</span>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            {/* 工单月度趋势 */}
-            <div className="bg-white border rounded-xl p-5" style={{ borderColor: '#f0f0f0' }}>
-              <h3 className="text-sm font-semibold text-gray-600 mb-4">工单月度趋势（近12个月）</h3>
-              <ResponsiveContainer width="100%" height={260}>
-                <LineChart data={stats.ticket_trend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9ca3af' }} />
-                  <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} />
-                  <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #f0f0f0' }} />
-                  <Line type="monotone" dataKey="count" stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} name="工单数" />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* 工单状态分布 */}
-            <div className="bg-white border rounded-xl p-5" style={{ borderColor: '#f0f0f0' }}>
-              <h3 className="text-sm font-semibold text-gray-600 mb-4">工单状态分布</h3>
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie
-                    data={stats.ticket_status_distribution}
-                    dataKey="count"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={90}
-                    label={({ name, count }) => `${name}: ${count}`}
-                    labelLine={false}
-                  >
-                    {stats.ticket_status_distribution.map((_, i) => (
-                      <Cell key={i} fill={['#f59e0b', '#2563eb', '#16a34a'][i % 3]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* 业务模块分布 */}
-            <div className="bg-white border rounded-xl p-5" style={{ borderColor: '#f0f0f0' }}>
-              <h3 className="text-sm font-semibold text-gray-600 mb-4">业务模块分布</h3>
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={stats.module_distribution}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#9ca3af' }} />
-                  <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} />
-                  <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #f0f0f0' }} />
-                  <Bar dataKey="count" fill="#8b5cf6" radius={[6, 6, 0, 0]} name="记录数" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* 今日概览 */}
-            <div className="bg-white border rounded-xl p-5" style={{ borderColor: '#f0f0f0' }}>
-              <h3 className="text-sm font-semibold text-gray-600 mb-4">今日概览</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-4 rounded-xl" style={{ background: '#eff6ff' }}>
-                  <div className="text-3xl font-bold text-blue-600">{stats.today_attendance}</div>
-                  <div className="text-xs text-gray-500 mt-1">今日已打卡</div>
-                </div>
-                <div className="text-center p-4 rounded-xl" style={{ background: '#f0fdf4' }}>
-                  <div className="text-3xl font-bold text-green-600">{stats.total_tasks}</div>
-                  <div className="text-xs text-gray-500 mt-1">任务总数</div>
-                </div>
-                <div className="text-center p-4 rounded-xl col-span-2" style={{ background: '#fefce8' }}>
-                  <div className="text-3xl font-bold text-yellow-600">{stats.pending_tasks}</div>
-                  <div className="text-xs text-gray-500 mt-1">待处理任务</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
