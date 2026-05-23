@@ -249,8 +249,8 @@ export default function AppLayout() {
               <div key={group.label} className="mb-3">
                 <button
                   onClick={() => toggleGroup(group.label)}
-                  className={`w-full flex items-center justify-between px-3 py-1.5 text-sm font-semibold mb-2 transition-colors ${sidebarCollapsed ? 'justify-center px-0' : ''}`}
-                  style={{ color: '#a1a1aa', letterSpacing: '0.02em' }}
+                  className={`w-full flex items-center justify-between px-3 py-1.5 text-sm font-semibold mb-2 rounded transition-colors hover:bg-white/5 ${sidebarCollapsed ? 'justify-center px-0' : ''}`}
+                  style={{ color: '#a1a1aa', letterSpacing: '0.02em', background: 'rgba(255,255,255,0.04)' }}
                 >
                   {!sidebarCollapsed && <span>{group.label}</span>}
                   <ChevronDown size={12} style={{ color: '#52525b', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
