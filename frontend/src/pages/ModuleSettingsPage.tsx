@@ -3,7 +3,6 @@ import { Save } from 'lucide-react'
 import { getModuleConfigs, updateModuleConfigs, getFieldLabels, setFieldLabel, deleteFieldLabel } from '../api/moduleConfig'
 import type { ModuleConfigItem, FieldLabel } from '../types'
 
-// 每个模块的已知数据库字段
 const MODULE_FIELDS: Record<string, string[]> = {
   return_exchange: ['model', 'config', 'size', 'computer_price', 'accessories', 'accessories_price', 'return_tracking', 'send_tracking', 'shipping_fee', 'record_type'],
   repair: ['model', 'config', 'computer_price', 'accessories', 'return_tracking', 'send_tracking', 'shipping_fee'],
@@ -12,7 +11,6 @@ const MODULE_FIELDS: Record<string, string[]> = {
   gift_resend: ['shop_name', 'type', 'gift_detail', 'express_company', 'tracking_no'],
 }
 
-// 默认字段显示名
 const FIELD_DEFAULTS: Record<string, string> = {
   model: '型号', config: '配置', size: '规格', computer_price: '电脑价格',
   accessories: '配件', accessories_price: '配件价格',
@@ -35,10 +33,12 @@ export default function ModuleSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
   const [editMap, setEditMap] = useState<Record<string, string>>({})
+  const [renameMap, setRenameMap] = useState<Record<string, string>>({})
 
   const load = async () => {
     const mods = await getModuleConfigs()
     setModules(mods)
+    setRenameMap(Object.fromEntries(mods.map(m => [m.module_key, m.display_name || ''])))
     if (!mods.find(m => m.module_key === activeModule)) {
       setActiveModule(mods[0]?.module_key || 'return_exchange')
     }
@@ -47,7 +47,6 @@ export default function ModuleSettingsPage() {
   const loadLabels = async (key: string) => {
     const lbs = await getFieldLabels(key)
     setLabels(lbs)
-    // Initialize edit map with current labels for this module's fields
     const map: Record<string, string> = {}
     for (const f of MODULE_FIELDS[key] || []) {
       const lab = lbs.find(l => l.field_name === f)
@@ -62,107 +61,104 @@ export default function ModuleSettingsPage() {
   const toggleModule = async (mod: ModuleConfigItem) => {
     const updated = modules.map(m => m.module_key === mod.module_key ? { ...m, enabled: !m.enabled } : m)
     setModules(updated)
-    await updateModuleConfigs(updated.map(m => ({ module_key: m.module_key, enabled: m.enabled, display_name: m.display_name })))
+    await updateModuleConfigs(updated.map(m => ({ module_key: m.module_key, enabled: m.enabled, display_name: renameMap[m.module_key] })))
+  }
+
+  const handleRename = async (mod: ModuleConfigItem) => {
+    await updateModuleConfigs([{ module_key: mod.module_key, display_name: renameMap[mod.module_key] }])
   }
 
   const handleSaveLabels = async () => {
-    setSaving(true)
-    setMsg('')
+    setSaving(true); setMsg('')
     for (const [fieldName, label] of Object.entries(editMap)) {
-      if (label) {
-        await setFieldLabel({ module_key: activeModule, field_name: fieldName, label })
-      }
+      if (label) await setFieldLabel({ module_key: activeModule, field_name: fieldName, label })
     }
-    setSaving(false)
-    setMsg('保存成功')
+    setSaving(false); setMsg('保存成功')
     setTimeout(() => setMsg(''), 2000)
     loadLabels(activeModule)
   }
 
-  const handleClearLabel = async (id: number) => {
-    await deleteFieldLabel(id)
-    loadLabels(activeModule)
-  }
+  const handleClearLabel = async (id: number) => { await deleteFieldLabel(id); loadLabels(activeModule) }
 
   const currentFields = MODULE_FIELDS[activeModule] || []
   const activeConfig = modules.find(m => m.module_key === activeModule)
 
   return (
-    <div className="p-6 space-y-5 max-w-4xl">
-      <h2 className="text-xl font-semibold text-gray-800">模块配置</h2>
-      <p className="text-sm text-gray-500 -mt-3">管理业务模块的开关、名称和字段显示标签</p>
+    <div className="p-4 space-y-3 max-w-4xl">
+      <h2 className="text-lg font-semibold text-gray-800">模块配置</h2>
 
-      {/* 模块开关 */}
-      <div className="bg-white border rounded-xl overflow-hidden" style={{ borderColor: '#f0f0f0' }}>
-        <div className="divide-y">
+      {/* 模块开关 + 别名编辑器 — 双栏布局 */}
+      <div className="grid grid-cols-[300px_1fr] gap-4 items-start">
+        {/* 左侧：模块列表 */}
+        <div className="bg-white border rounded-lg overflow-hidden" style={{ borderColor: '#f0f0f0' }}>
           {modules.map(mod => (
             <div
               key={mod.module_key}
               onClick={() => setActiveModule(mod.module_key)}
-              className={`flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-gray-50 transition-colors ${
+              className={`flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors border-b last:border-b-0 ${
                 activeModule === mod.module_key ? 'bg-blue-50/50' : ''
               }`}
+              style={activeModule !== mod.module_key ? {} : { borderColor: '#f0f0f0' }}
             >
-              <div className="flex items-center gap-3">
-                <div className={`w-2 h-2 rounded-full ${mod.enabled ? 'bg-green-500' : 'bg-gray-300'}`} />
-                <span className="text-sm font-medium text-gray-700">
-                  {mod.display_name || MODULE_LABELS[mod.module_key] || mod.module_key}
-                </span>
+              <div className="min-w-0 flex-1">
+                <input
+                  value={renameMap[mod.module_key] || ''}
+                  onChange={e => {
+                    setRenameMap({ ...renameMap, [mod.module_key]: e.target.value })
+                    handleRename({ ...mod, display_name: e.target.value })
+                  }}
+                  placeholder={MODULE_LABELS[mod.module_key]}
+                  onClick={e => e.stopPropagation()}
+                  className="w-full text-xs font-medium text-gray-700 bg-transparent outline-none placeholder-gray-400"
+                />
               </div>
               <button
                 onClick={e => { e.stopPropagation(); toggleModule(mod) }}
-                className={`w-11 h-6 rounded-full transition-colors ${mod.enabled ? 'bg-blue-600' : 'bg-gray-300'}`}
+                className={`w-9 h-5 rounded-full transition-colors flex-shrink-0 ml-2 ${mod.enabled ? 'bg-blue-600' : 'bg-gray-300'}`}
               >
-                <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${mod.enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${mod.enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
               </button>
             </div>
           ))}
         </div>
-      </div>
 
-      {/* 字段别名编辑 */}
-      {activeModule && (
-        <div className="bg-white border rounded-xl p-5 space-y-4" style={{ borderColor: '#f0f0f0' }}>
+        {/* 右侧：字段别名 */}
+        <div className="bg-white border rounded-lg p-3 space-y-2" style={{ borderColor: '#f0f0f0' }}>
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-700">
-              {activeConfig?.display_name || MODULE_LABELS[activeModule]} — 字段显示名
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              {activeConfig?.display_name || MODULE_LABELS[activeModule]} 字段标签
             </h3>
-            {msg && <span className="text-xs text-green-600">{msg}</span>}
+            <div className="flex items-center gap-2">
+              {msg && <span className="text-xs text-green-600">{msg}</span>}
+              <button onClick={handleSaveLabels} disabled={saving}
+                className="px-3 py-1 bg-blue-600 text-white text-xs rounded flex items-center gap-1 disabled:opacity-50">
+                <Save size={11} /> {saving ? '...' : '保存'}
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1">
             {currentFields.map(fieldName => {
               const label = labels.find(l => l.field_name === fieldName)
               return (
-                <div key={fieldName} className="flex items-center gap-3">
-                  <span className="w-28 text-xs text-gray-500 truncate">{fieldName}</span>
-                  <span className="text-xs text-gray-300">→</span>
+                <div key={fieldName} className="flex items-center gap-1.5 py-0.5 border-b border-dashed" style={{ borderColor: '#f5f5f5' }}>
+                  <span className="text-[11px] text-gray-400 w-24 flex-shrink-0 truncate" title={fieldName}>{fieldName}</span>
                   <input
                     value={editMap[fieldName] || ''}
                     onChange={e => setEditMap({ ...editMap, [fieldName]: e.target.value })}
-                    placeholder={FIELD_DEFAULTS[fieldName] || fieldName}
-                    className="flex-1 border rounded-lg px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                    placeholder={FIELD_DEFAULTS[fieldName] || ''}
+                    className="flex-1 border rounded px-1.5 py-1 text-xs outline-none focus:ring-1 focus:ring-blue-200"
                     style={{ borderColor: '#e5e5e5' }}
                   />
                   {label && (
-                    <button onClick={() => handleClearLabel(label.id)} className="text-xs text-red-400 hover:text-red-600">
-                      重置
-                    </button>
+                    <button onClick={() => handleClearLabel(label.id)} className="text-[10px] text-red-400 hover:text-red-600 flex-shrink-0">重置</button>
                   )}
                 </div>
               )
             })}
           </div>
-
-          <button
-            onClick={handleSaveLabels}
-            disabled={saving}
-            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg flex items-center gap-2 disabled:opacity-50"
-          >
-            <Save size={14} /> {saving ? '保存中...' : '保存字段别名'}
-          </button>
         </div>
-      )}
+      </div>
     </div>
   )
 }
