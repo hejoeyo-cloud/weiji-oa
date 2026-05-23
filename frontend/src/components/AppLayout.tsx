@@ -91,7 +91,8 @@ export default function AppLayout() {
   const [unreadAnnCount, setUnreadAnnCount] = useState(0)
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0)
   const [announcementPopup, setAnnouncementPopup] = useState<Announcement | null>(null)
-  const [dynamicNavItems, setDynamicNavItems] = useState<NavGroup[]>([])
+  const [moduleItems, setModuleItems] = useState<{ path: string; label: string; icon: React.ElementType; permission: string[] }[]>([])
+  const [warehouseModuleItems, setWarehouseModuleItems] = useState<{ path: string; label: string; icon: React.ElementType; permission: string[] }[]>([])
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -150,14 +151,8 @@ export default function AppLayout() {
           icon: iconMap[m.module_key] || PackageCheck,
           permission: [`${m.module_key}:view` as any],
         }))
-      // Split: gift goes to 仓储业务, the rest to 客服业务
-      const serviceItems = items.filter(i => !i.path.startsWith('/gifts'))
-      const warehouseItems = items.filter(i => i.path.startsWith('/gifts'))
-      
-      const businessNav: NavGroup[] = []
-      if (serviceItems.length > 0) businessNav.push({ label: '客服业务', items: serviceItems })
-      if (warehouseItems.length > 0) businessNav.push({ label: '仓储业务', items: warehouseItems })
-      setDynamicNavItems(businessNav)
+      setModuleItems(items.filter(i => !i.path.startsWith('/gifts')))
+      setWarehouseModuleItems(items.filter(i => i.path.startsWith('/gifts')))
     }).catch(() => {})
   }, [])
 
@@ -185,12 +180,21 @@ export default function AppLayout() {
       .catch(console.error)
   }, [user?.id])
 
-  const visibleGroups = [...navGroups, ...dynamicNavItems]
+  const visibleGroups = navGroups
     .filter(g => !g.permission || hasPermission(...g.permission))
-    .map(g => ({
-      ...g,
-      items: g.items.filter(item => (!item.platformOnly || user?.is_platform_admin) && (!item.permission || hasPermission(...item.permission))),
-    }))
+    .map(g => {
+      let items = [...g.items]
+      // Merge dynamic module items into 客服业务 / 仓储业务
+      if (g.label === '客服业务') {
+        items = [...items, ...moduleItems]
+      } else if (g.label === '仓储业务') {
+        items = [...items, ...warehouseModuleItems]
+      }
+      return {
+        ...g,
+        items: items.filter(item => (!item.platformOnly || user?.is_platform_admin) && (!item.permission || hasPermission(...item.permission))),
+      }
+    })
     .filter(g => g.items.length > 0)
 
   return (
