@@ -92,7 +92,6 @@ export default function AppLayout() {
   const [unreadAnnCount, setUnreadAnnCount] = useState(0)
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0)
   const [announcementPopup, setAnnouncementPopup] = useState<Announcement | null>(null)
-  const [branding, setBranding] = useState({ display_name: '', logo_url: '' })
   const [moduleItems, setModuleItems] = useState<{ path: string; label: string; icon: React.ElementType; permission: string[] }[]>([])
   const [warehouseModuleItems, setWarehouseModuleItems] = useState<{ path: string; label: string; icon: React.ElementType; permission: string[] }[]>([])
 
@@ -134,10 +133,6 @@ export default function AppLayout() {
       return !prev
     })
   }
-
-  useEffect(() => {
-    client.get('/company/branding').then(r => setBranding(r.data)).catch(()=>{})
-  }, [])
 
   useEffect(() => {
     getModuleConfigs().then(mods => {
@@ -225,15 +220,11 @@ export default function AppLayout() {
             </button>
           ) : (
             <>
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: '#3f3f46' }}>
-                {branding.logo_url ? (
-                  <img src={branding.logo_url} alt="logo" className="w-full h-full object-cover" />
-                ) : (
-                  <Store className="w-5 h-5 text-white" />
-                )}
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#3f3f46' }}>
+                <Store className="w-5 h-5 text-white" />
               </div>
               <div className="ml-3">
-                <h1 className="text-base font-bold text-white">{branding.display_name || 'Fries OA'}</h1>
+                <h1 className="text-base font-bold text-white">Fries OA</h1>
                 <p className="text-[10px]" style={{ color: '#71717a' }}>管理系统</p>
               </div>
               <button

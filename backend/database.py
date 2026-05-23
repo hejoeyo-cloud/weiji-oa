@@ -163,8 +163,6 @@ class Company(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), unique=True, nullable=False, index=True)
-    display_name = Column(String(100), default="")
-    logo_url = Column(String(500), default="")
     status = Column(String(30), default="active")          # active/disabled
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
