@@ -744,4 +744,5 @@ export interface Message {
 export interface UserBrief {
   id: number
   name: string
+  email?: string
 }

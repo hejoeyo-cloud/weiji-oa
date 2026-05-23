@@ -5,8 +5,9 @@ import 'react-quill-new/dist/quill.snow.css'
 import { getInbox, getSent, getDrafts, getTrash, getCounts, sendMessage, saveDraft, markRead,
          toggleStar, softDelete, restore, permanentDelete, replyMessage, forwardMessage, getAttachments } from '../api/messages'
 import OrgTreePicker from '../components/OrgTreePicker'
+import { getUsers } from '../api/users'
 import client from '../api/client'
-import type { Message } from '../types'
+import type { Message, UserBrief } from '../types'
 
 type Folder = 'inbox' | 'sent' | 'drafts' | 'starred' | 'trash'
 type Mode = 'view' | 'compose' | 'reply' | 'forward'
@@ -32,6 +33,9 @@ export default function MessagesPage() {
   const [attachments, setAttachments] = useState<{id:number;filename:string;size:number}[]>([])
   const [detailAtts, setDetailAtts] = useState<{id:number;filename:string;size:number;mime_type:string}[]>([])
   const [uploading, setUploading] = useState(false)
+  const [users, setUsers] = useState<UserBrief[]>([])
+  const [recipientSearch, setRecipientSearch] = useState('')
+  const [showUserDropdown, setShowUserDropdown] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const load = async (f: Folder) => {
@@ -40,8 +44,24 @@ export default function MessagesPage() {
   }
   const loadCounts = async () => { try { setCounts(await getCounts()) } catch {} }
 
-  useEffect(() => { load('inbox'); loadCounts() }, [])
+  useEffect(() => { load('inbox'); loadCounts(); loadUsers() }, [])
   useEffect(() => { if (folder === 'inbox' || folder === 'starred') load(folder) }, [search])
+
+  const loadUsers = async () => {
+    try { const r = await getUsers(); setUsers((r.data || r || []).map((u:any)=>({id:u.id,name:u.name,email:u.email}))) } catch {}
+  }
+
+  const filteredUsers = recipientSearch
+    ? users.filter(u => 
+        u.name.includes(recipientSearch) || 
+        (u.email||'').includes(recipientSearch) ||
+        String(u.id).includes(recipientSearch)
+      ).slice(0, 8)
+    : []
+
+  const selectRecipient = (u: UserBrief) => {
+    setRecipientId(u.id); setRecipientName(u.name); setRecipientSearch(u.name); setShowUserDropdown(false)
+  }
 
   const handleSelect = async (m: Message) => {
     setSelected(m); setMode('view')
@@ -166,8 +186,33 @@ export default function MessagesPage() {
             <div className="flex-1 flex flex-col overflow-hidden">
               <div className="px-5 pt-4 space-y-3">
                 {mode!=='reply' && (
-                  <div><label className="block text-xs text-gray-500 mb-1">
-                    收件人 {recipientName&&<span className="text-blue-600 font-medium">{recipientName}</span>}</label></div>
+                  <div className="relative">
+                    <label className="block text-xs text-gray-500 mb-1">收件人</label>
+                    <input
+                      value={recipientSearch}
+                      onChange={e => { setRecipientSearch(e.target.value); setShowUserDropdown(true); if (!e.target.value) { setRecipientId(0); setRecipientName('') } }}
+                      onFocus={() => setShowUserDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowUserDropdown(false), 200)}
+                      placeholder="输入姓名、邮箱或工号搜索"
+                      className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                      style={{ borderColor: recipientId ? '#3b82f6' : '#e5e5e5', background: recipientId ? '#eff6ff' : '#fff' }}
+                    />
+                    {recipientId > 0 && (
+                      <button onClick={() => { setRecipientId(0); setRecipientName(''); setRecipientSearch('') }}
+                        className="absolute right-2 top-7 p-1 hover:bg-red-50 rounded text-red-400"><X size={14} /></button>
+                    )}
+                    {showUserDropdown && filteredUsers.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 bg-white border rounded-lg mt-1 max-h-48 overflow-auto z-20 shadow-lg">
+                        {filteredUsers.map(u => (
+                          <div key={u.id} onMouseDown={() => selectRecipient(u)}
+                            className="px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer flex items-center justify-between">
+                            <span className="font-medium text-gray-700">{u.name}</span>
+                            <span className="text-xs text-gray-400">{u.email || `#${u.id}`}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
                 {mode==='reply' && <div className="text-xs text-gray-500">收件人: <b>{recipientName}</b></div>}
                 <div><label className="block text-xs text-gray-500 mb-1">主题</label>
