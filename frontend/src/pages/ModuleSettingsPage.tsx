@@ -84,21 +84,19 @@ export default function ModuleSettingsPage() {
   const activeConfig = modules.find(m => m.module_key === activeModule)
 
   return (
-    <div className="p-4 space-y-3 max-w-4xl">
+    <div className="p-6 space-y-4 max-w-4xl">
       <h2 className="text-lg font-semibold text-gray-800">模块配置</h2>
 
-      {/* 模块开关 + 别名编辑器 — 双栏布局 */}
-      <div className="grid grid-cols-[300px_1fr] gap-4 items-start">
+      <div className="grid grid-cols-[280px_1fr] gap-4 items-start">
         {/* 左侧：模块列表 */}
-        <div className="bg-white border rounded-lg overflow-hidden" style={{ borderColor: '#f0f0f0' }}>
+        <div className="bg-white border rounded-xl overflow-hidden" style={{ borderColor: '#f0f0f0' }}>
           {modules.map(mod => (
             <div
               key={mod.module_key}
               onClick={() => setActiveModule(mod.module_key)}
-              className={`flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors border-b last:border-b-0 ${
+              className={`flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors border-b last:border-b-0 ${
                 activeModule === mod.module_key ? 'bg-blue-50/50' : ''
               }`}
-              style={activeModule !== mod.module_key ? {} : { borderColor: '#f0f0f0' }}
             >
               <div className="min-w-0 flex-1">
                 <input
@@ -109,54 +107,62 @@ export default function ModuleSettingsPage() {
                   }}
                   placeholder={MODULE_LABELS[mod.module_key]}
                   onClick={e => e.stopPropagation()}
-                  className="w-full text-xs font-medium text-gray-700 bg-transparent outline-none placeholder-gray-400"
+                  className="w-full text-sm text-gray-700 bg-transparent outline-none placeholder-gray-400"
                 />
               </div>
               <button
                 onClick={e => { e.stopPropagation(); toggleModule(mod) }}
-                className={`w-9 h-5 rounded-full transition-colors flex-shrink-0 ml-2 ${mod.enabled ? 'bg-blue-600' : 'bg-gray-300'}`}
+                className={`w-10 h-5.5 rounded-full transition-colors flex-shrink-0 ml-3 ${mod.enabled ? 'bg-blue-600' : 'bg-gray-300'}`}
               >
-                <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${mod.enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                <div className={`w-4.5 h-4.5 bg-white rounded-full shadow transition-transform mt-px ${mod.enabled ? 'translate-x-[18px]' : 'translate-x-[2px]'}`} />
               </button>
             </div>
           ))}
         </div>
 
         {/* 右侧：字段别名 */}
-        <div className="bg-white border rounded-lg p-3 space-y-2" style={{ borderColor: '#f0f0f0' }}>
+        <div className="bg-white border rounded-xl p-4 space-y-3" style={{ borderColor: '#f0f0f0' }}>
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            <h3 className="text-sm font-medium text-gray-600">
               {activeConfig?.display_name || MODULE_LABELS[activeModule]} 字段标签
             </h3>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {msg && <span className="text-xs text-green-600">{msg}</span>}
               <button onClick={handleSaveLabels} disabled={saving}
-                className="px-3 py-1 bg-blue-600 text-white text-xs rounded flex items-center gap-1 disabled:opacity-50">
-                <Save size={11} /> {saving ? '...' : '保存'}
+                className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg flex items-center gap-1 disabled:opacity-50">
+                <Save size={12} /> {saving ? '保存中' : '保存'}
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
             {currentFields.map(fieldName => {
               const label = labels.find(l => l.field_name === fieldName)
               return (
-                <div key={fieldName} className="flex items-center gap-1.5 py-0.5 border-b border-dashed" style={{ borderColor: '#f5f5f5' }}>
-                  <span className="text-[11px] text-gray-400 w-24 flex-shrink-0 truncate" title={fieldName}>{fieldName}</span>
+                <div key={fieldName} className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 w-20 flex-shrink-0 truncate" title={fieldName}>
+                    {fieldName}
+                  </span>
                   <input
                     value={editMap[fieldName] || ''}
                     onChange={e => setEditMap({ ...editMap, [fieldName]: e.target.value })}
                     placeholder={FIELD_DEFAULTS[fieldName] || ''}
-                    className="flex-1 border rounded px-1.5 py-1 text-xs outline-none focus:ring-1 focus:ring-blue-200"
+                    className="flex-1 border rounded-lg px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-100"
                     style={{ borderColor: '#e5e5e5' }}
                   />
                   {label && (
-                    <button onClick={() => handleClearLabel(label.id)} className="text-[10px] text-red-400 hover:text-red-600 flex-shrink-0">重置</button>
+                    <button onClick={() => handleClearLabel(label.id)} className="text-xs text-red-400 hover:text-red-600 flex-shrink-0">
+                      重置
+                    </button>
                   )}
                 </div>
               )
             })}
           </div>
+
+          <p className="text-xs text-gray-400">
+            修改左侧模块名或右侧字段标签后点击保存。留空则使用默认名称。
+          </p>
         </div>
       </div>
     </div>
