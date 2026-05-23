@@ -132,7 +132,7 @@ export default function ModuleSettingsPage() {
                     </span>
                     <button
                       onClick={e => { e.stopPropagation(); startRename(mod) }}
-                      className="p-0.5 hover:bg-gray-100 rounded opacity-0 hover:opacity-100 group-hover:opacity-100 text-gray-400"
+                      className="p-0.5 hover:bg-gray-100 rounded text-gray-400"
                     ><Edit2 size={12} /></button>
                   </>
                 )}
