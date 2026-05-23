@@ -224,7 +224,7 @@ export default function AppLayout() {
                 <Store className="w-5 h-5 text-white" />
               </div>
               <div className="ml-3 min-w-0">
-                <h1 className="text-sm font-bold text-white leading-tight truncate">
+                <h1 className="text-sm font-bold text-white leading-tight line-clamp-2 break-all">
                   {user?.company_name || 'Fries OA'}
                 </h1>
                 <p className="text-[10px]" style={{ color: '#71717a' }}>管理系统</p>
