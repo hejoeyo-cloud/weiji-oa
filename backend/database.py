@@ -706,6 +706,25 @@ class Announcement(Base):
     author = relationship("User", foreign_keys=[created_by])
 
 
+class Message(Base):
+    """内部邮件"""
+    __tablename__ = "messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    recipient_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    content = Column(Text, default="")
+    is_read = Column(Boolean, default=False)
+    is_draft = Column(Boolean, default=False)
+    reply_to_id = Column(Integer, ForeignKey("messages.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    sender = relationship("User", foreign_keys=[sender_id])
+    recipient = relationship("User", foreign_keys=[recipient_id])
+
+
 class GiftResendRecord(Base):
     """礼品补发登记"""
     __tablename__ = "gift_resend_records"

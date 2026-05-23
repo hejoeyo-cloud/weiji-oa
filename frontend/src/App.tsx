@@ -27,6 +27,7 @@ import AttendancePage from './pages/AttendancePage'
 import TaskBoard from './pages/TaskBoard'
 import ReportsPage from './pages/ReportsPage'
 import ModuleSettingsPage from './pages/ModuleSettingsPage'
+import MessagesPage from './pages/MessagesPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('token')
@@ -73,6 +74,7 @@ export default function App() {
           <Route path="/tasks" element={<TaskBoard />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/module-settings" element={<ModuleSettingsPage />} />
+          <Route path="/messages" element={<MessagesPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -31,6 +31,7 @@ from routers import task_router
 from routers import report_router
 from routers import dingtalk_router
 from routers import module_config_router
+from routers import messages_router
 import finance_router
 from seed_data import seed_knowledge
 from websocket.manager import manager
@@ -71,6 +72,7 @@ app.include_router(task_router.router)
 app.include_router(report_router.router)
 app.include_router(dingtalk_router.router)
 app.include_router(module_config_router.router)
+app.include_router(messages_router.router)
 app.include_router(finance_router.router, prefix="/api")
 
 
