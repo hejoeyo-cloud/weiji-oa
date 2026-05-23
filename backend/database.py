@@ -714,6 +714,7 @@ class Message(Base):
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
     sender_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     recipient_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    subject = Column(String(200), default="")
     content = Column(Text, default="")
     is_read = Column(Boolean, default=False)
     is_draft = Column(Boolean, default=False)

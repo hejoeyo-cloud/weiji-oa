@@ -730,20 +730,13 @@ export interface FieldLabel {
 }
 
 // ── 内部邮件 ─────────────────────────────────────────────────────────
-export interface Conversation {
-  partner_id: number
-  partner_name: string
-  last_content: string
-  last_time: string
-  unread_count: number
-}
-
 export interface Message {
   id: number
   sender_id: number
   sender_name: string
   recipient_id: number
   recipient_name: string
+  subject: string
   content: string
   is_read: boolean
   is_draft: boolean
