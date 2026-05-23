@@ -741,6 +741,7 @@ class MessageAttachment(Base):
     filepath = Column(String(500), default="")
     size = Column(Integer, default=0)          # 字节
     mime_type = Column(String(100), default="")
+    hash = Column(String(64), default="")      # SHA-256 内容指纹，用于去重
     created_at = Column(DateTime, default=datetime.now)
 
     message = relationship("Message")

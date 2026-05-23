@@ -4,7 +4,7 @@ from sqlalchemy import or_
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
-import os, uuid, shutil
+import os, uuid, shutil, hashlib
 
 from database import get_db, User, Message, MessageAttachment
 from auth import get_current_user
@@ -188,6 +188,19 @@ def restore(msg_id: int, current_user: User = Depends(get_current_user), db: Ses
 def permanent_delete(msg_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     msg = db.query(Message).filter(Message.id == msg_id, Message.company_id == current_user.company_id).first()
     if not msg: raise HTTPException(404)
+    
+    # Delete orphaned attachments
+    atts = db.query(MessageAttachment).filter(MessageAttachment.message_id == msg_id).all()
+    for att in atts:
+        # Check if any other record references same hash
+        other_count = db.query(MessageAttachment).filter(
+            MessageAttachment.hash == att.hash, MessageAttachment.id != att.id
+        ).count()
+        if other_count == 0:
+            filepath = os.path.join(MAIL_UPLOAD, att.filepath)
+            if os.path.exists(filepath): os.remove(filepath)
+        db.delete(att)
+    
     db.delete(msg); db.commit()
     return {"ok": True}
 
@@ -204,11 +217,39 @@ def mark_read(msg_id: int, current_user: User = Depends(get_current_user), db: S
 @router.post("/upload", response_model=AttachmentOut)
 def upload(file: UploadFile = File(...), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if file.size and file.size > 150 * 1024 * 1024: raise HTTPException(400, "≤150MB")
-    ext = os.path.splitext(file.filename or "")[1]; save_name = f"{uuid.uuid4().hex}{ext}"
-    save_path = os.path.join(MAIL_UPLOAD, save_name)
-    with open(save_path, "wb") as f: shutil.copyfileobj(file.file, f)
-    att = MessageAttachment(company_id=current_user.company_id, message_id=0,
-        filename=file.filename or "file", filepath=save_name, size=os.path.getsize(save_path), mime_type=file.content_type or "")
+    
+    # Read content and compute SHA-256 hash for dedup
+    content = file.file.read()
+    file_hash = hashlib.sha256(content).hexdigest()
+    
+    # Check if same hash already exists in this company
+    existing = db.query(MessageAttachment).filter(
+        MessageAttachment.hash == file_hash,
+        MessageAttachment.company_id == current_user.company_id,
+    ).first()
+    
+    if existing:
+        # Dedup: reuse existing file, just create new DB record
+        att = MessageAttachment(
+            company_id=current_user.company_id, message_id=0,
+            filename=file.filename or "file", filepath=existing.filepath,
+            size=len(content), mime_type=file.content_type or "",
+            hash=file_hash,
+        )
+    else:
+        # New file: save to disk with hash-based name
+        ext = os.path.splitext(file.filename or "")[1]
+        save_name = f"{file_hash[:16]}{ext}"
+        save_path = os.path.join(MAIL_UPLOAD, save_name)
+        if not os.path.exists(save_path):
+            with open(save_path, "wb") as f: f.write(content)
+        att = MessageAttachment(
+            company_id=current_user.company_id, message_id=0,
+            filename=file.filename or "file", filepath=save_name,
+            size=len(content), mime_type=file.content_type or "",
+            hash=file_hash,
+        )
+    
     db.add(att); db.commit(); db.refresh(att)
     return att
 
