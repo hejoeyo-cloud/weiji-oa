@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
-from database import get_db, User, ModuleConfig, ModuleFieldConfig
+from database import get_db, User, ModuleConfig, FieldLabel
 from auth import get_current_user, require_admin
 
 router = APIRouter(prefix="/api/module-config", tags=["module_config"])
@@ -21,25 +21,17 @@ class ModuleConfigUpdate(BaseModel):
     enabled: Optional[bool] = None
     display_name: Optional[str] = None
 
-class FieldConfigOut(BaseModel):
+class FieldLabelOut(BaseModel):
     id: int
     module_key: str
-    field_key: str
-    field_label: str = ""
-    field_type: str = "text"
-    field_options: str = "[]"
-    required: bool = False
-    sort_order: int = 0
-    enabled: bool = True
+    field_name: str
+    label: str = ""
     class Config: from_attributes = True
 
-class FieldConfigIn(BaseModel):
+class FieldLabelIn(BaseModel):
     module_key: str
-    field_key: str = ""
-    field_label: str = ""
-    field_type: str = "text"
-    field_options: str = "[]"
-    required: bool = False
+    field_name: str
+    label: str
 
 # ── 模块配置 ──
 @router.get("", response_model=list[ModuleConfigOut])
@@ -65,42 +57,42 @@ def update_modules(reqs: list[ModuleConfigUpdate], current_user: User = Depends(
     return {"ok": True}
 
 # ── 字段配置 ──
-@router.get("/fields", response_model=list[FieldConfigOut])
+@router.get("/fields", response_model=list[FieldLabelOut])
 def list_fields(module_key: str = "", current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    q = db.query(ModuleFieldConfig).filter(ModuleFieldConfig.company_id == current_user.company_id)
+    q = db.query(FieldLabel).filter(FieldLabel.company_id == current_user.company_id)
     if module_key:
-        q = q.filter(ModuleFieldConfig.module_key == module_key)
-    return q.order_by(ModuleFieldConfig.sort_order).all()
+        q = q.filter(FieldLabel.module_key == module_key)
+    return q.all()
 
-@router.post("/fields", response_model=FieldConfigOut)
-def create_field(req: FieldConfigIn, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
-    key = req.field_key or f"custom_{req.field_label.lower().replace(' ', '_')}"
-    max_order = db.query(ModuleFieldConfig.sort_order).filter(
-        ModuleFieldConfig.company_id == current_user.company_id,
-        ModuleFieldConfig.module_key == req.module_key,
-    ).order_by(ModuleFieldConfig.sort_order.desc()).first()
-    order = (max_order[0] + 1) if max_order and max_order[0] is not None else 1
+@router.post("/fields", response_model=FieldLabelOut)
+def create_field(req: FieldLabelIn, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    existing = db.query(FieldLabel).filter(
+        FieldLabel.company_id == current_user.company_id,
+        FieldLabel.module_key == req.module_key,
+        FieldLabel.field_name == req.field_name,
+    ).first()
+    if existing:
+        existing.label = req.label
+        db.commit()
+        db.refresh(existing)
+        return existing
 
-    field = ModuleFieldConfig(
+    field = FieldLabel(
         company_id=current_user.company_id,
         module_key=req.module_key,
-        field_key=key,
-        field_label=req.field_label,
-        field_type=req.field_type,
-        field_options=req.field_options,
-        required=req.required,
-        sort_order=order,
+        field_name=req.field_name,
+        label=req.label,
     )
     db.add(field)
     db.commit()
     db.refresh(field)
     return field
 
-@router.put("/fields/{field_id}", response_model=FieldConfigOut)
-def update_field(field_id: int, req: FieldConfigIn, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
-    field = db.query(ModuleFieldConfig).filter(
-        ModuleFieldConfig.id == field_id,
-        ModuleFieldConfig.company_id == current_user.company_id,
+@router.put("/fields/{field_id}", response_model=FieldLabelOut)
+def update_field(field_id: int, req: FieldLabelIn, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    field = db.query(FieldLabel).filter(
+        FieldLabel.id == field_id,
+        FieldLabel.company_id == current_user.company_id,
     ).first()
     if not field:
         raise HTTPException(status_code=404, detail="字段不存在")
@@ -115,9 +107,9 @@ def update_field(field_id: int, req: FieldConfigIn, current_user: User = Depends
 
 @router.delete("/fields/{field_id}")
 def delete_field(field_id: int, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
-    field = db.query(ModuleFieldConfig).filter(
-        ModuleFieldConfig.id == field_id,
-        ModuleFieldConfig.company_id == current_user.company_id,
+    field = db.query(FieldLabel).filter(
+        FieldLabel.id == field_id,
+        FieldLabel.company_id == current_user.company_id,
     ).first()
     if not field:
         raise HTTPException(status_code=404, detail="字段不存在")

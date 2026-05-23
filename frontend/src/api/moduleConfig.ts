@@ -1,5 +1,5 @@
 import client from './client'
-import type { ModuleConfigItem, ModuleFieldConfig } from '../types'
+import type { ModuleConfigItem, FieldLabel } from '../types'
 
 export function getModuleConfigs() {
   return client.get<ModuleConfigItem[]>('/module-config').then(r => r.data)
@@ -9,18 +9,14 @@ export function updateModuleConfigs(reqs: { module_key: string; enabled?: boolea
   return client.put<{ ok: boolean }>('/module-config', reqs).then(r => r.data)
 }
 
-export function getModuleFieldConfigs(moduleKey: string) {
-  return client.get<ModuleFieldConfig[]>('/module-config/fields', { params: { module_key: moduleKey } }).then(r => r.data)
+export function getFieldLabels(moduleKey: string) {
+  return client.get<FieldLabel[]>('/module-config/fields', { params: { module_key: moduleKey } }).then(r => r.data)
 }
 
-export function createModuleField(data: { module_key: string; field_key?: string; field_label: string; field_type: string; field_options?: string; required?: boolean }) {
-  return client.post<ModuleFieldConfig>('/module-config/fields', data).then(r => r.data)
+export function setFieldLabel(data: { module_key: string; field_name: string; label: string }) {
+  return client.post<FieldLabel>('/module-config/fields', data).then(r => r.data)
 }
 
-export function updateModuleField(id: number, data: { module_key: string; field_label: string; field_type: string; field_options?: string; required?: boolean }) {
-  return client.put<ModuleFieldConfig>(`/module-config/fields/${id}`, data).then(r => r.data)
-}
-
-export function deleteModuleField(id: number) {
+export function deleteFieldLabel(id: number) {
   return client.delete(`/module-config/fields/${id}`).then(r => r.data)
 }

@@ -3,7 +3,6 @@ import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Eye, Gift, D
 import { useSearchParams } from 'react-router-dom'
 import { getGiftResendList, createGiftResend, updateGiftResend, deleteGiftResend, addGiftResendFeedback, getGiftResendFeedbacks } from '../api/giftResend'
 import { GiftResendRecord, GiftResendFeedback } from '../types'
-import DynamicFormFields from '../components/DynamicFormFields'
 import * as XLSX from 'xlsx'
 
 /** 通用 Excel 导出（浏览器端） */
@@ -56,7 +55,6 @@ export default function GiftResendList() {
   const [showDetail, setShowDetail] = useState(false)
   const [detailRecord, setDetailRecord] = useState<GiftResendRecord | null>(null)
   const [editRecord, setEditRecord] = useState<GiftResendRecord | null>(null)
-  const [customData, setCustomData] = useState<Record<string,any>>({})
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   // 处理记录
@@ -144,7 +142,7 @@ export default function GiftResendList() {
 
   const handleSave = () => {
     setSaving(true)
-    const promise = editRecord ? updateGiftResend(editRecord.id, { ...form, custom_data: customData }) : createGiftResend({ ...form, custom_data: customData })
+    const promise = editRecord ? updateGiftResend(editRecord.id, form) : createGiftResend(form)
     promise.then((saved) => {
       const newId = saved?.id || editRecord?.id
       const changes: string[] = []
@@ -388,7 +386,6 @@ export default function GiftResendList() {
             <div className="flex items-center justify-end gap-3 p-5 border-t border-gray-100">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
               <button onClick={handleSave} disabled={saving}
-
                 className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg disabled:opacity-60">
                 {saving ? '保存中...' : '保存'}
               </button>

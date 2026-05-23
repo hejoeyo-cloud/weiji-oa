@@ -1,28 +1,40 @@
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, Save, Check } from 'lucide-react'
-import { getModuleConfigs, updateModuleConfigs, getModuleFieldConfigs, createModuleField, updateModuleField, deleteModuleField } from '../api/moduleConfig'
-import type { ModuleConfigItem, ModuleFieldConfig } from '../types'
+import { Save } from 'lucide-react'
+import { getModuleConfigs, updateModuleConfigs, getFieldLabels, setFieldLabel, deleteFieldLabel } from '../api/moduleConfig'
+import type { ModuleConfigItem, FieldLabel } from '../types'
+
+// 每个模块的已知数据库字段
+const MODULE_FIELDS: Record<string, string[]> = {
+  return_exchange: ['model', 'config', 'size', 'computer_price', 'accessories', 'accessories_price', 'return_tracking', 'send_tracking', 'shipping_fee', 'record_type'],
+  repair: ['model', 'config', 'computer_price', 'accessories', 'return_tracking', 'send_tracking', 'shipping_fee'],
+  gift: ['model', 'config', 'color', 'size', 'cost', 'order_amount', 'send_tracking', 'shipping_fee', 'ship_date'],
+  gift_cashback: ['cashback_amount', 'reason', 'applicant'],
+  gift_resend: ['shop_name', 'type', 'gift_detail', 'express_company', 'tracking_no'],
+}
+
+// 默认字段显示名
+const FIELD_DEFAULTS: Record<string, string> = {
+  model: '型号', config: '配置', size: '规格', computer_price: '电脑价格',
+  accessories: '配件', accessories_price: '配件价格',
+  return_tracking: '寄回单号', send_tracking: '寄出单号', shipping_fee: '运费',
+  record_type: '类型', color: '颜色', cost: '成本', order_amount: '订单金额',
+  ship_date: '出货日期', cashback_amount: '返现金额', reason: '原因',
+  applicant: '申请人', shop_name: '店铺', type: '类型', gift_detail: '礼品明细',
+  express_company: '快递公司', tracking_no: '快递单号',
+}
 
 const MODULE_LABELS: Record<string, string> = {
-  return_exchange: '退换登记',
-  repair: '维修登记',
-  gift: '发货登记',
-  gift_cashback: '返现登记',
-  gift_resend: '礼品补发',
+  return_exchange: '退换登记', repair: '维修登记', gift: '发货登记',
+  gift_cashback: '返现登记', gift_resend: '礼品补发',
 }
 
 export default function ModuleSettingsPage() {
   const [modules, setModules] = useState<ModuleConfigItem[]>([])
-  const [fields, setFields] = useState<Record<string, ModuleFieldConfig[]>>({})
+  const [labels, setLabels] = useState<FieldLabel[]>([])
   const [activeModule, setActiveModule] = useState('return_exchange')
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
-
-  // New field form
-  const [newLabel, setNewLabel] = useState('')
-  const [newType, setNewType] = useState('text')
-  const [newOptions, setNewOptions] = useState('')
-  const [newRequired, setNewRequired] = useState(false)
+  const [editMap, setEditMap] = useState<Record<string, string>>({})
 
   const load = async () => {
     const mods = await getModuleConfigs()
@@ -32,13 +44,20 @@ export default function ModuleSettingsPage() {
     }
   }
 
-  const loadFields = async (key: string) => {
-    const f = await getModuleFieldConfigs(key)
-    setFields(prev => ({ ...prev, [key]: f }))
+  const loadLabels = async (key: string) => {
+    const lbs = await getFieldLabels(key)
+    setLabels(lbs)
+    // Initialize edit map with current labels for this module's fields
+    const map: Record<string, string> = {}
+    for (const f of MODULE_FIELDS[key] || []) {
+      const lab = lbs.find(l => l.field_name === f)
+      map[f] = lab?.label || ''
+    }
+    setEditMap(map)
   }
 
   useEffect(() => { load() }, [])
-  useEffect(() => { if (activeModule) loadFields(activeModule) }, [activeModule])
+  useEffect(() => { if (activeModule) loadLabels(activeModule) }, [activeModule])
 
   const toggleModule = async (mod: ModuleConfigItem) => {
     const updated = modules.map(m => m.module_key === mod.module_key ? { ...m, enabled: !m.enabled } : m)
@@ -46,36 +65,34 @@ export default function ModuleSettingsPage() {
     await updateModuleConfigs(updated.map(m => ({ module_key: m.module_key, enabled: m.enabled, display_name: m.display_name })))
   }
 
-  const handleAddField = async () => {
-    if (!newLabel.trim()) return
-    await createModuleField({
-      module_key: activeModule,
-      field_label: newLabel,
-      field_type: newType,
-      field_options: newType === 'select' ? JSON.stringify(newOptions.split(',').map(s => s.trim()).filter(Boolean)) : '[]',
-      required: newRequired,
-    })
-    setNewLabel(''); setNewType('text'); setNewOptions(''); setNewRequired(false)
-    loadFields(activeModule)
-    setMsg('字段已添加')
+  const handleSaveLabels = async () => {
+    setSaving(true)
+    setMsg('')
+    for (const [fieldName, label] of Object.entries(editMap)) {
+      if (label) {
+        await setFieldLabel({ module_key: activeModule, field_name: fieldName, label })
+      }
+    }
+    setSaving(false)
+    setMsg('保存成功')
     setTimeout(() => setMsg(''), 2000)
+    loadLabels(activeModule)
   }
 
-  const handleDeleteField = async (id: number) => {
-    if (!confirm('删除此字段？已有数据不会丢失，只是不再显示。')) return
-    await deleteModuleField(id)
-    loadFields(activeModule)
+  const handleClearLabel = async (id: number) => {
+    await deleteFieldLabel(id)
+    loadLabels(activeModule)
   }
 
-  const currentFields = fields[activeModule] || []
+  const currentFields = MODULE_FIELDS[activeModule] || []
   const activeConfig = modules.find(m => m.module_key === activeModule)
 
   return (
     <div className="p-6 space-y-5 max-w-4xl">
       <h2 className="text-xl font-semibold text-gray-800">模块配置</h2>
-      <p className="text-sm text-gray-500 -mt-3">管理各业务模块的开关、名称和自定义字段</p>
+      <p className="text-sm text-gray-500 -mt-3">管理业务模块的开关、名称和字段显示标签</p>
 
-      {/* 模块开关列表 */}
+      {/* 模块开关 */}
       <div className="bg-white border rounded-xl overflow-hidden" style={{ borderColor: '#f0f0f0' }}>
         <div className="divide-y">
           {modules.map(mod => (
@@ -91,7 +108,6 @@ export default function ModuleSettingsPage() {
                 <span className="text-sm font-medium text-gray-700">
                   {mod.display_name || MODULE_LABELS[mod.module_key] || mod.module_key}
                 </span>
-                <span className="text-xs text-gray-400">({mod.module_key})</span>
               </div>
               <button
                 onClick={e => { e.stopPropagation(); toggleModule(mod) }}
@@ -104,68 +120,47 @@ export default function ModuleSettingsPage() {
         </div>
       </div>
 
-      {/* 字段配置 */}
+      {/* 字段别名编辑 */}
       {activeModule && (
         <div className="bg-white border rounded-xl p-5 space-y-4" style={{ borderColor: '#f0f0f0' }}>
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-700">
-              {activeConfig?.display_name || MODULE_LABELS[activeModule]} — 自定义字段
+              {activeConfig?.display_name || MODULE_LABELS[activeModule]} — 字段显示名
             </h3>
             {msg && <span className="text-xs text-green-600">{msg}</span>}
           </div>
 
-          {/* 已有字段列表 */}
-          {currentFields.length > 0 ? (
-            <div className="divide-y border rounded-lg" style={{ borderColor: '#f0f0f0' }}>
-              {currentFields.map(f => (
-                <div key={f.id} className="flex items-center justify-between px-4 py-3 text-sm">
-                  <div className="flex items-center gap-3">
-                    <span className="font-medium text-gray-700">{f.field_label}</span>
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{f.field_type}</span>
-                    {f.required && <span className="text-xs text-red-400">必填</span>}
-                  </div>
-                  <button onClick={() => handleDeleteField(f.id)} className="p-1 hover:bg-red-50 rounded text-red-400">
-                    <Trash2 size={14} />
-                  </button>
+          <div className="grid grid-cols-2 gap-3">
+            {currentFields.map(fieldName => {
+              const label = labels.find(l => l.field_name === fieldName)
+              return (
+                <div key={fieldName} className="flex items-center gap-3">
+                  <span className="w-28 text-xs text-gray-500 truncate">{fieldName}</span>
+                  <span className="text-xs text-gray-300">→</span>
+                  <input
+                    value={editMap[fieldName] || ''}
+                    onChange={e => setEditMap({ ...editMap, [fieldName]: e.target.value })}
+                    placeholder={FIELD_DEFAULTS[fieldName] || fieldName}
+                    className="flex-1 border rounded-lg px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                    style={{ borderColor: '#e5e5e5' }}
+                  />
+                  {label && (
+                    <button onClick={() => handleClearLabel(label.id)} className="text-xs text-red-400 hover:text-red-600">
+                      重置
+                    </button>
+                  )}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-400 py-4 text-center">暂无自定义字段，在下方添加</p>
-          )}
-
-          {/* 添加字段 */}
-          <div className="flex items-end gap-3 pt-2 border-t" style={{ borderColor: '#f0f0f0' }}>
-            <div className="flex-1">
-              <label className="block text-xs text-gray-500 mb-1">字段名</label>
-              <input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="如：型号"
-                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100" style={{ borderColor: '#e5e5e5' }} />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">类型</label>
-              <select value={newType} onChange={e => setNewType(e.target.value)}
-                className="border rounded-lg px-3 py-2 text-sm outline-none" style={{ borderColor: '#e5e5e5' }}>
-                <option value="text">文本</option>
-                <option value="number">数字</option>
-                <option value="date">日期</option>
-                <option value="select">下拉</option>
-              </select>
-            </div>
-            {newType === 'select' && (
-              <div className="flex-1">
-                <label className="block text-xs text-gray-500 mb-1">选项（逗号分隔）</label>
-                <input value={newOptions} onChange={e => setNewOptions(e.target.value)} placeholder="选项1,选项2"
-                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none" style={{ borderColor: '#e5e5e5' }} />
-              </div>
-            )}
-            <label className="flex items-center gap-1 pb-2">
-              <input type="checkbox" checked={newRequired} onChange={e => setNewRequired(e.target.checked)} />
-              <span className="text-xs text-gray-500">必填</span>
-            </label>
-            <button onClick={handleAddField} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm flex items-center gap-1 whitespace-nowrap">
-              <Plus size={14} /> 添加
-            </button>
+              )
+            })}
           </div>
+
+          <button
+            onClick={handleSaveLabels}
+            disabled={saving}
+            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg flex items-center gap-2 disabled:opacity-50"
+          >
+            <Save size={14} /> {saving ? '保存中...' : '保存字段别名'}
+          </button>
         </div>
       )}
     </div>

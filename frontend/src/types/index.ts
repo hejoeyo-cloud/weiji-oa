@@ -713,7 +713,7 @@ export interface DingtalkConfig {
   last_sync_at?: string
 }
 
-// ── 模块配置 ─────────────────────────────────────────────────────
+// ── 模块配置 ─────────────────────────────────────────────────────────
 export interface ModuleConfigItem {
   id: number
   module_key: string
@@ -722,14 +722,9 @@ export interface ModuleConfigItem {
   sort_order: number
 }
 
-export interface ModuleFieldConfig {
+export interface FieldLabel {
   id: number
   module_key: string
-  field_key: string
-  field_label: string
-  field_type: string
-  field_options: string
-  required: boolean
-  sort_order: number
-  enabled: boolean
+  field_name: string
+  label: string
 }

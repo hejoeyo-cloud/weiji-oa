@@ -4,7 +4,6 @@ import { useSearchParams } from 'react-router-dom'
 import { getGiftList, createGift, updateGift, deleteGift, addGiftFeedback, getGiftFeedbacks } from '../api/gifts'
 import { useAuth } from '../hooks/useAuth'
 import { GiftRecord, GiftFeedback } from '../types'
-import DynamicFormFields from '../components/DynamicFormFields'
 import * as XLSX from 'xlsx'
 
 /** 通用 Excel 导出（浏览器端） */
@@ -74,7 +73,6 @@ export default function GiftList() {
   const [showDetail, setShowDetail] = useState(false)
   const [detailRecord, setDetailRecord] = useState<GiftRecord | null>(null)
   const [editRecord, setEditRecord] = useState<GiftRecord | null>(null)
-  const [customData, setCustomData] = useState<Record<string,any>>({})
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   // 处理记录
@@ -180,7 +178,7 @@ export default function GiftList() {
 
   const handleSave = () => {
     setSaving(true)
-    const promise = editRecord ? updateGift(editRecord.id, { ...form, custom_data: customData }) : createGift({ ...form, custom_data: customData })
+    const promise = editRecord ? updateGift(editRecord.id, form) : createGift(form)
     promise.then((saved) => {
       const newId = saved?.id || editRecord?.id
       const changes: string[] = []
@@ -504,7 +502,6 @@ export default function GiftList() {
                 取消
               </button>
               <button onClick={handleSave} disabled={saving}
-
                 className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 text-sm disabled:opacity-50">
                 {saving ? '保存中...' : '保存'}
               </button>
