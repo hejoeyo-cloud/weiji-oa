@@ -112,9 +112,9 @@ export default function ModuleSettingsPage() {
               </div>
               <button
                 onClick={e => { e.stopPropagation(); toggleModule(mod) }}
-                className={`w-10 h-5.5 rounded-full transition-colors flex-shrink-0 ml-3 ${mod.enabled ? 'bg-blue-600' : 'bg-gray-300'}`}
+                className={`w-11 h-6 rounded-full transition-colors flex-shrink-0 ml-3 ${mod.enabled ? 'bg-blue-600' : 'bg-gray-300'}`}
               >
-                <div className={`w-4.5 h-4.5 bg-white rounded-full shadow transition-transform mt-px ${mod.enabled ? 'translate-x-[18px]' : 'translate-x-[2px]'}`} />
+                <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${mod.enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
               </button>
             </div>
           ))}
