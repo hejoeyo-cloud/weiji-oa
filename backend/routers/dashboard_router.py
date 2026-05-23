@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 from auth import get_current_user
 from database import (
     ALL_PERMISSIONS,
-    AfterSalesRecord,
     Announcement,
     AnnouncementRead,
     ApprovalRequest,
@@ -185,10 +184,6 @@ def build_overview_cards(
         ApprovalStep.status == "pending",
         ApprovalStep.company_id == current_user.company_id,
     ).scalar() or 0
-    after_sales_followup_count = db.query(AfterSalesRecord).filter(
-        AfterSalesRecord.progress.in_(["pending", "processing"])
-        , AfterSalesRecord.company_id == current_user.company_id
-    ).count()
     month_schedule_coverage = len([
         slot for slot in schedule_summary["slots"]
         if not slot.get("shift_is_rest")
@@ -249,14 +244,6 @@ def build_overview_cards(
                 "path": "/tickets",
             },
             {
-                "key": "after_sales_followup",
-                "title": "待跟进售后",
-                "value": after_sales_followup_count,
-                "subtext": "售后登记中待处理或处理中记录",
-                "status": "warning",
-                "path": "/after-sales",
-            },
-            {
                 "key": "pending_my_approval",
                 "title": "待我审批",
                 "value": pending_my_approval_count,
@@ -311,14 +298,6 @@ def build_shortcuts(user_perms: list[str]) -> list[dict]:
             "path": "/tickets/create",
             "icon": "ticket",
             "permissions": ["tickets:create"],
-        },
-        {
-            "key": "after_sales",
-            "label": "售后登记",
-            "description": "录入售后处理申请",
-            "path": "/after-sales",
-            "icon": "after_sales",
-            "permissions": ["after_sales:view"],
         },
         {
             "key": "gifts",
@@ -441,7 +420,6 @@ def build_recent_activity(db: Session, current_user: User) -> list[dict]:
         })
 
     for model, kind, title_prefix, path in [
-        (AfterSalesRecord, "after_sales", "售后登记", "/after-sales"),
         (GiftRecord, "gift", "发货登记", "/gifts"),
         (GiftResendRecord, "gift_resend", "礼品补发", "/gift-resend"),
     ]:
