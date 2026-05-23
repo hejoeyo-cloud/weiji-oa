@@ -726,6 +726,22 @@ class Message(Base):
     recipient = relationship("User", foreign_keys=[recipient_id])
 
 
+class MessageAttachment(Base):
+    """邮件附件"""
+    __tablename__ = "message_attachments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    message_id = Column(Integer, ForeignKey("messages.id"), nullable=False, index=True)
+    filename = Column(String(200), default="")
+    filepath = Column(String(500), default="")
+    size = Column(Integer, default=0)          # 字节
+    mime_type = Column(String(100), default="")
+    created_at = Column(DateTime, default=datetime.now)
+
+    message = relationship("Message")
+
+
 class GiftResendRecord(Base):
     """礼品补发登记"""
     __tablename__ = "gift_resend_records"
