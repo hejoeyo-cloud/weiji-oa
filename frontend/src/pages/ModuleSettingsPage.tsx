@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Save } from 'lucide-react'
+import { Save, Edit2, Check, X } from 'lucide-react'
 import { getModuleConfigs, updateModuleConfigs, getFieldLabels, setFieldLabel, deleteFieldLabel } from '../api/moduleConfig'
 import type { ModuleConfigItem, FieldLabel } from '../types'
 
@@ -34,6 +34,8 @@ export default function ModuleSettingsPage() {
   const [msg, setMsg] = useState('')
   const [editMap, setEditMap] = useState<Record<string, string>>({})
   const [renameMap, setRenameMap] = useState<Record<string, string>>({})
+  const [editingName, setEditingName] = useState<string | null>(null)
+  const [tempName, setTempName] = useState('')
 
   const load = async () => {
     const mods = await getModuleConfigs()
@@ -64,9 +66,17 @@ export default function ModuleSettingsPage() {
     await updateModuleConfigs(updated.map(m => ({ module_key: m.module_key, enabled: m.enabled, display_name: renameMap[m.module_key] })))
   }
 
-  const handleRename = async (mod: ModuleConfigItem) => {
-    await updateModuleConfigs([{ module_key: mod.module_key, display_name: renameMap[mod.module_key] }])
+  const startRename = (mod: ModuleConfigItem) => {
+    setEditingName(mod.module_key)
+    setTempName(renameMap[mod.module_key] || MODULE_LABELS[mod.module_key] || '')
   }
+  const confirmRename = async (mod: ModuleConfigItem) => {
+    const name = tempName.trim()
+    setRenameMap({ ...renameMap, [mod.module_key]: name })
+    await updateModuleConfigs([{ module_key: mod.module_key, display_name: name }])
+    setEditingName(null)
+  }
+  const cancelRename = () => { setEditingName(null) }
 
   const handleSaveLabels = async () => {
     setSaving(true); setMsg('')
@@ -98,17 +108,34 @@ export default function ModuleSettingsPage() {
                 activeModule === mod.module_key ? 'bg-blue-50/50' : ''
               }`}
             >
-              <div className="min-w-0 flex-1">
-                <input
-                  value={renameMap[mod.module_key] || ''}
-                  onChange={e => {
-                    setRenameMap({ ...renameMap, [mod.module_key]: e.target.value })
-                    handleRename({ ...mod, display_name: e.target.value })
-                  }}
-                  placeholder={MODULE_LABELS[mod.module_key]}
-                  onClick={e => e.stopPropagation()}
-                  className="w-full text-sm text-gray-700 bg-transparent outline-none placeholder-gray-400"
-                />
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                {editingName === mod.module_key ? (
+                  <>
+                    <input
+                      value={tempName}
+                      onChange={e => setTempName(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') confirmRename(mod); if (e.key === 'Escape') cancelRename() }}
+                      autoFocus
+                      onClick={e => e.stopPropagation()}
+                      className="flex-1 border rounded px-2 py-0.5 text-sm outline-none focus:ring-1 focus:ring-blue-200"
+                      style={{ borderColor: '#d1d5db' }}
+                    />
+                    <button onClick={e => { e.stopPropagation(); confirmRename(mod) }}
+                      className="p-0.5 hover:bg-green-50 rounded text-green-500"><Check size={14} /></button>
+                    <button onClick={e => { e.stopPropagation(); cancelRename() }}
+                      className="p-0.5 hover:bg-red-50 rounded text-red-400"><X size={14} /></button>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-sm font-medium text-gray-700">
+                      {renameMap[mod.module_key] || MODULE_LABELS[mod.module_key] || mod.module_key}
+                    </span>
+                    <button
+                      onClick={e => { e.stopPropagation(); startRename(mod) }}
+                      className="p-0.5 hover:bg-gray-100 rounded opacity-0 hover:opacity-100 group-hover:opacity-100 text-gray-400"
+                    ><Edit2 size={12} /></button>
+                  </>
+                )}
               </div>
               <button
                 onClick={e => { e.stopPropagation(); toggleModule(mod) }}
