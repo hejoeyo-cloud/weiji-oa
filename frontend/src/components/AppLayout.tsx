@@ -227,7 +227,7 @@ export default function AppLayout() {
                 <h1 className="text-sm font-bold text-white leading-tight line-clamp-2 break-all">
                   {user?.company_name || 'Fries OA'}
                 </h1>
-                <p className="text-[10px]" style={{ color: '#71717a' }}>管理系统</p>
+                <p className="text-[10px]" style={{ color: '#71717a' }}>内部智能管理系统</p>
               </div>
               <button
                 onClick={toggleSidebarCollapse}
