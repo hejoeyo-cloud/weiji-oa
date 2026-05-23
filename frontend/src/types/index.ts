@@ -731,17 +731,14 @@ export interface FieldLabel {
 
 // ── 内部邮件 ─────────────────────────────────────────────────────────
 export interface Message {
-  id: number
-  sender_id: number
-  sender_name: string
-  recipient_id: number
-  recipient_name: string
-  subject: string
-  content: string
-  is_read: boolean
-  is_draft: boolean
-  reply_to_id?: number
-  created_at?: string
+  id: number; sender_id: number; sender_name: string;
+  recipient_id: number; recipient_name: string;
+  subject: string; content: string;
+  is_read: boolean; is_draft: boolean;
+  is_starred: boolean; is_forward: boolean;
+  has_attachments: boolean;
+  thread_id?: number; reply_to_id?: number;
+  created_at?: string;
 }
 
 export interface UserBrief {
