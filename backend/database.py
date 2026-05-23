@@ -1123,7 +1123,7 @@ def _migrate_db():
                 )
             """))
             conn.commit()
-    if "module_configs" not in new_tables:
+    if "module_configs" not in existing_tables:
         with engine.connect() as conn:
             conn.execute(text("""
                 CREATE TABLE module_configs (
@@ -1138,9 +1138,9 @@ def _migrate_db():
                 )
             """))
             conn.commit()
-        new_tables = inspector.get_table_names()
+        existing_tables = inspector.get_table_names()
 
-    if "module_field_configs" not in new_tables:
+    if "module_field_configs" not in existing_tables:
         with engine.connect() as conn:
             conn.execute(text("""
                 CREATE TABLE module_field_configs (
@@ -1159,6 +1159,7 @@ def _migrate_db():
                 )
             """))
             conn.commit()
+
 
 
     if "subscriptions" not in existing_tables:
@@ -1180,7 +1181,7 @@ def _migrate_db():
                 )
             """))
             conn.commit()
-    if "module_configs" not in new_tables:
+    if "module_configs" not in existing_tables:
         with engine.connect() as conn:
             conn.execute(text("""
                 CREATE TABLE module_configs (
@@ -1195,9 +1196,9 @@ def _migrate_db():
                 )
             """))
             conn.commit()
-        new_tables = inspector.get_table_names()
+        existing_tables = inspector.get_table_names()
 
-    if "module_field_configs" not in new_tables:
+    if "module_field_configs" not in existing_tables:
         with engine.connect() as conn:
             conn.execute(text("""
                 CREATE TABLE module_field_configs (
@@ -1216,6 +1217,7 @@ def _migrate_db():
                 )
             """))
             conn.commit()
+
 
 
     if "payment_orders" not in existing_tables:
@@ -1239,7 +1241,7 @@ def _migrate_db():
                 )
             """))
             conn.commit()
-    if "module_configs" not in new_tables:
+    if "module_configs" not in existing_tables:
         with engine.connect() as conn:
             conn.execute(text("""
                 CREATE TABLE module_configs (
@@ -1254,9 +1256,9 @@ def _migrate_db():
                 )
             """))
             conn.commit()
-        new_tables = inspector.get_table_names()
+        existing_tables = inspector.get_table_names()
 
-    if "module_field_configs" not in new_tables:
+    if "module_field_configs" not in existing_tables:
         with engine.connect() as conn:
             conn.execute(text("""
                 CREATE TABLE module_field_configs (
@@ -1275,6 +1277,7 @@ def _migrate_db():
                 )
             """))
             conn.commit()
+
 
 
     if "attendance_records" not in existing_tables:
@@ -1295,7 +1298,7 @@ def _migrate_db():
                 )
             """))
             conn.commit()
-    if "module_configs" not in new_tables:
+    if "module_configs" not in existing_tables:
         with engine.connect() as conn:
             conn.execute(text("""
                 CREATE TABLE module_configs (
@@ -1310,9 +1313,9 @@ def _migrate_db():
                 )
             """))
             conn.commit()
-        new_tables = inspector.get_table_names()
+        existing_tables = inspector.get_table_names()
 
-    if "module_field_configs" not in new_tables:
+    if "module_field_configs" not in existing_tables:
         with engine.connect() as conn:
             conn.execute(text("""
                 CREATE TABLE module_field_configs (
@@ -1331,6 +1334,7 @@ def _migrate_db():
                 )
             """))
             conn.commit()
+
 
         # Re-get existing_tables after creating new table
         existing_tables = inspector.get_table_names()
@@ -1354,7 +1358,7 @@ def _migrate_db():
                 )
             """))
             conn.commit()
-    if "module_configs" not in new_tables:
+    if "module_configs" not in existing_tables:
         with engine.connect() as conn:
             conn.execute(text("""
                 CREATE TABLE module_configs (
@@ -1369,9 +1373,9 @@ def _migrate_db():
                 )
             """))
             conn.commit()
-        new_tables = inspector.get_table_names()
+        existing_tables = inspector.get_table_names()
 
-    if "module_field_configs" not in new_tables:
+    if "module_field_configs" not in existing_tables:
         with engine.connect() as conn:
             conn.execute(text("""
                 CREATE TABLE module_field_configs (
@@ -1390,6 +1394,7 @@ def _migrate_db():
                 )
             """))
             conn.commit()
+
 
 
     with engine.connect() as conn:
@@ -1469,7 +1474,7 @@ def _migrate_db():
                 )
             """))
             conn.commit()
-    if "module_configs" not in new_tables:
+    if "module_configs" not in existing_tables:
         with engine.connect() as conn:
             conn.execute(text("""
                 CREATE TABLE module_configs (
@@ -1484,9 +1489,9 @@ def _migrate_db():
                 )
             """))
             conn.commit()
-        new_tables = inspector.get_table_names()
+        existing_tables = inspector.get_table_names()
 
-    if "module_field_configs" not in new_tables:
+    if "module_field_configs" not in existing_tables:
         with engine.connect() as conn:
             conn.execute(text("""
                 CREATE TABLE module_field_configs (
@@ -1505,6 +1510,7 @@ def _migrate_db():
                 )
             """))
             conn.commit()
+
 
 
     with engine.connect() as conn:
@@ -1629,7 +1635,7 @@ def _migrate_db():
                 )
             """))
             conn.commit()
-    if "module_configs" not in new_tables:
+    if "module_configs" not in existing_tables:
         with engine.connect() as conn:
             conn.execute(text("""
                 CREATE TABLE module_configs (
@@ -1644,9 +1650,9 @@ def _migrate_db():
                 )
             """))
             conn.commit()
-        new_tables = inspector.get_table_names()
+        existing_tables = inspector.get_table_names()
 
-    if "module_field_configs" not in new_tables:
+    if "module_field_configs" not in existing_tables:
         with engine.connect() as conn:
             conn.execute(text("""
                 CREATE TABLE module_field_configs (
@@ -1665,6 +1671,7 @@ def _migrate_db():
                 )
             """))
             conn.commit()
+
 
 
     # ── 退换登记表 record_type 字段迁移 ───────────────────────────
@@ -1773,7 +1780,7 @@ def _migrate_db():
                 )
             """))
             conn.commit()
-    if "module_configs" not in new_tables:
+    if "module_configs" not in existing_tables:
         with engine.connect() as conn:
             conn.execute(text("""
                 CREATE TABLE module_configs (
@@ -1788,9 +1795,9 @@ def _migrate_db():
                 )
             """))
             conn.commit()
-        new_tables = inspector.get_table_names()
+        existing_tables = inspector.get_table_names()
 
-    if "module_field_configs" not in new_tables:
+    if "module_field_configs" not in existing_tables:
         with engine.connect() as conn:
             conn.execute(text("""
                 CREATE TABLE module_field_configs (
@@ -1809,6 +1816,7 @@ def _migrate_db():
                 )
             """))
             conn.commit()
+
 
 
     # ── 迁移：users 表新增 role_id 列 ──────────────────────────────
