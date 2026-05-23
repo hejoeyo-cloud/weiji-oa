@@ -223,8 +223,10 @@ export default function AppLayout() {
               <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#3f3f46' }}>
                 <Store className="w-5 h-5 text-white" />
               </div>
-              <div className="ml-3">
-                <h1 className="text-base font-bold text-white">Fries OA</h1>
+              <div className="ml-3 min-w-0">
+                <h1 className="text-sm font-bold text-white leading-tight truncate">
+                  {user?.company_name || 'Fries OA'}
+                </h1>
                 <p className="text-[10px]" style={{ color: '#71717a' }}>管理系统</p>
               </div>
               <button
