@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from config import TRIAL_DAYS, SUBSCRIPTION_GRACE_DAYS
-from database import get_db, User, Role, Company, Subscription, ALL_PERMISSIONS
+from database import get_db, User, Role, Company, Subscription, ModuleConfig, ALL_PERMISSIONS
 from schemas import LoginRequest, LoginResponse, UserInfo, RegisterRequest
 from auth import (
     verify_password, create_access_token, get_current_user, require_admin,
@@ -77,6 +77,16 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
     company = Company(name=company_name, status="active")
     db.add(company)
     db.flush()
+
+    # Create default module configs for new company
+    default_modules = [
+        ModuleConfig(company_id=company.id, module_key="return_exchange", enabled=True, display_name="退换登记", sort_order=1),
+        ModuleConfig(company_id=company.id, module_key="repair", enabled=True, display_name="维修登记", sort_order=2),
+        ModuleConfig(company_id=company.id, module_key="gift", enabled=True, display_name="发货登记", sort_order=3),
+        ModuleConfig(company_id=company.id, module_key="gift_cashback", enabled=True, display_name="返现登记", sort_order=4),
+        ModuleConfig(company_id=company.id, module_key="gift_resend", enabled=True, display_name="礼品补发", sort_order=5),
+    ]
+    db.add_all(default_modules)
 
     admin_role = Role(
         company_id=company.id,
