@@ -17,7 +17,7 @@ from routers import (
     upload_router, knowledge_router,
     notification_router,
 )
-from routers import department_router, after_sales_router, gift_router
+from routers import department_router, gift_router
 from routers import audit_log_router, announcement_router, approval_router
 from routers import schedule_router, gift_resend_router
 from routers import role_router
@@ -30,6 +30,7 @@ from routers import attendance_router
 from routers import task_router
 from routers import report_router
 from routers import dingtalk_router
+from routers import module_config_router
 import finance_router
 from seed_data import seed_knowledge
 from websocket.manager import manager
@@ -51,7 +52,6 @@ app.include_router(upload_router.router)
 app.include_router(knowledge_router.router)
 app.include_router(notification_router.router)
 app.include_router(department_router.router)
-app.include_router(after_sales_router.router)
 app.include_router(gift_router.router)
 app.include_router(audit_log_router.router)
 app.include_router(announcement_router.router)
@@ -70,6 +70,7 @@ app.include_router(attendance_router.router)
 app.include_router(task_router.router)
 app.include_router(report_router.router)
 app.include_router(dingtalk_router.router)
+app.include_router(module_config_router.router)
 app.include_router(finance_router.router, prefix="/api")
 
 

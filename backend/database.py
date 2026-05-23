@@ -328,35 +328,18 @@ class AfterSalesFeedback(Base):
 
 
 # ── 发货登记处理记录 ─────────────────────────────────────────────────
-class GiftFeedback(Base):
-    """发货登记的处理记录（工作留痕）"""
-    __tablename__ = "gift_feedbacks"
 
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
-    record_id = Column(Integer, ForeignKey("gift_records.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    ticket_id = Column(Integer, ForeignKey("tickets.id"), nullable=True)
+    resource_type = Column(String(50), default="")
+    resource_id = Column(Integer, nullable=True)
+    title = Column(String(100), default="")
     content = Column(Text, default="")
+    is_read = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.now)
 
-    record = relationship("GiftRecord", back_populates="feedbacks")
-    user = relationship("User")
-
-
-# ── 礼品补发处理记录 ─────────────────────────────────────────────────
-class GiftResendFeedback(Base):
-    """礼品补发的处理记录（工作留痕）"""
-    __tablename__ = "gift_resend_feedbacks"
-
-    id = Column(Integer, primary_key=True, index=True)
-    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
-    record_id = Column(Integer, ForeignKey("gift_resend_records.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    content = Column(Text, default="")
-    created_at = Column(DateTime, default=datetime.now)
-
-    record = relationship("GiftResendRecord", back_populates="feedbacks")
-    user = relationship("User")
 
 
 class Notification(Base):
@@ -442,65 +425,39 @@ class AfterSalesRecord(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
-    apply_date = Column(String(20), default="")          # 申请日期
-    order_no = Column(String(100), default="")           # 订单编号
-    return_reason = Column(Text, default="")             # 退货原因
-    size = Column(String(50), default="")                # 尺寸
-    model = Column(String(200), default="")              # 型号
-    config = Column(String(200), default="")             # 配置
-    computer_price = Column(Float, default=0)             # 电脑价格
-    quantity = Column(Integer, default=1)                # 数量
-    accessories = Column(String(500), default="")        # 配件
-    accessories_price = Column(Float, default=0)          # 配件价格
-    customer_info = Column(Text, default="")             # 客户信息（姓名/手机/地址合并）
-    return_tracking = Column(String(100), default="")    # 寄回单号
-    send_tracking = Column(String(100), default="")      # 寄出新单号
-    handle_result = Column(Text, default="")             # 处理结果
-    progress = Column(String(50), default="pending")     # 处理进度 pending/processing/completed
-    charge_required = Column(Boolean, default=False)     # 是否需要收费维修
-    charge_status = Column(String(30), default="none")   # none/pending_charge/paid
-    current_expected_amount = Column(Float, default=0)
-    current_paid_amount = Column(Float, default=0)
-    last_charge_request_id = Column(Integer, nullable=True)
-    disassembly_feedback = Column(Text, default="")      # 拆件反馈
-    shipping_fee = Column(Float, default=0)              # 运费
-    remark = Column(Text, default="")                    # 备注
-    record_type = Column(String(20), default="")          # 登记类型：return(退货)/exchange(换货)
+    apply_date = Column(String(20), default="")
+    order_no = Column(String(100), default="")
+    description = Column(Text, default="")
+    quantity = Column(Integer, default=1)
+    customer_info = Column(Text, default="")
+    handle_result = Column(Text, default="")
+    progress = Column(String(50), default="pending")
+    remark = Column(Text, default="")
+    custom_data = Column(Text, default="{}")
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
     creator = relationship("User", foreign_keys=[created_by])
     feedbacks = relationship("AfterSalesFeedback", back_populates="record", cascade="all, delete-orphan")
-    charge_requests = relationship("AfterSalesChargeRequest", back_populates="record", cascade="all, delete-orphan")
 
 
 # ── 退换登记 ─────────────────────────────────────────────────────────
 class ReturnExchangeRecord(Base):
-    """退换登记表（退货/换货）"""
+    """退换登记（通用化）"""
     __tablename__ = "return_exchange_records"
 
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
-    apply_date = Column(String(20), default="")          # 申请日期
-    order_no = Column(String(100), default="")           # 订单编号
-    return_reason = Column(Text, default="")             # 退货原因
-    size = Column(String(50), default="")                # 尺寸
-    model = Column(String(200), default="")              # 型号
-    config = Column(String(200), default="")             # 配置
-    computer_price = Column(Float, default=0)            # 电脑价格
-    quantity = Column(Integer, default=1)                # 数量
-    accessories = Column(String(500), default="")         # 配件
-    accessories_price = Column(Float, default=0)         # 配件价格
-    customer_info = Column(Text, default="")              # 客户信息（姓名/手机/地址合并）
-    return_tracking = Column(String(100), default="")    # 寄回单号
-    send_tracking = Column(String(100), default="")      # 寄出新单号
-    handle_result = Column(Text, default="")             # 处理结果
-    progress = Column(String(50), default="pending")     # 处理进度 pending/processing/completed
-    disassembly_feedback = Column(Text, default="")      # 拆件反馈
-    shipping_fee = Column(Float, default=0)              # 运费
-    remark = Column(Text, default="")                    # 备注
-    record_type = Column(String(20), default="")          # 登记类型：return(退货)/exchange(换货)
+    apply_date = Column(String(20), default="")
+    order_no = Column(String(100), default="")
+    description = Column(Text, default="")
+    quantity = Column(Integer, default=1)
+    customer_info = Column(Text, default="")
+    handle_result = Column(Text, default="")
+    progress = Column(String(50), default="pending")
+    remark = Column(Text, default="")
+    custom_data = Column(Text, default="{}")
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
@@ -510,139 +467,68 @@ class ReturnExchangeRecord(Base):
 
 
 class ReturnExchangeFeedback(Base):
-    """退换登记的处理记录（工作留痕）"""
     __tablename__ = "return_exchange_feedbacks"
-
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
     record_id = Column(Integer, ForeignKey("return_exchange_records.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     content = Column(Text, default="")
     created_at = Column(DateTime, default=datetime.now)
-
     record = relationship("ReturnExchangeRecord", back_populates="feedbacks")
     user = relationship("User")
 
 
 # ── 维修登记 ─────────────────────────────────────────────────────────
 class RepairRecord(Base):
-    """维修登记表"""
+    """维修登记（通用化）"""
     __tablename__ = "repair_records"
 
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
-    apply_date = Column(String(20), default="")          # 申请日期
-    order_no = Column(String(100), default="")           # 订单编号
-    return_reason = Column(Text, default="")             # 故障描述
-    model = Column(String(200), default="")              # 型号
-    config = Column(String(200), default="")             # 配置
-    quantity = Column(Integer, default=1)                # 数量
-    accessories = Column(String(500), default="")         # 配件
-    customer_info = Column(Text, default="")              # 客户信息（姓名/手机/地址合并）
-    return_tracking = Column(String(100), default="")    # 寄回单号
-    send_tracking = Column(String(100), default="")      # 寄出新单号
-    handle_result = Column(Text, default="")             # 维修结果
-    repair_status = Column(String(50), default="pending_repair")  # 维修状态 pending_repair/processing_repair/completed_repair
-    charge_required = Column(Boolean, default=False)     # 是否需要收费
-    charge_status = Column(String(30), default="none")   # none/pending_charge/paid
-    current_expected_amount = Column(Float, default=0)
-    current_paid_amount = Column(Float, default=0)
-    last_charge_request_id = Column(Integer, nullable=True)
-    disassembly_feedback = Column(Text, default="")      # 拆件反馈
-    shipping_fee = Column(Float, default=0)              # 运费
-    remark = Column(Text, default="")                    # 备注
+    apply_date = Column(String(20), default="")
+    order_no = Column(String(100), default="")
+    description = Column(Text, default="")
+    quantity = Column(Integer, default=1)
+    customer_info = Column(Text, default="")
+    handle_result = Column(Text, default="")
+    repair_status = Column(String(50), default="pending_repair")
+    remark = Column(Text, default="")
+    custom_data = Column(Text, default="{}")
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
     creator = relationship("User", foreign_keys=[created_by])
     feedbacks = relationship("RepairFeedback", back_populates="record", cascade="all, delete-orphan")
-    charge_requests = relationship("RepairChargeRequest", back_populates="record", cascade="all, delete-orphan")
 
 
 class RepairFeedback(Base):
-    """维修登记的处理记录（工作留痕）"""
     __tablename__ = "repair_feedbacks"
-
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
     record_id = Column(Integer, ForeignKey("repair_records.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     content = Column(Text, default="")
     created_at = Column(DateTime, default=datetime.now)
-
     record = relationship("RepairRecord", back_populates="feedbacks")
     user = relationship("User")
 
 
-class RepairChargeRequest(Base):
-    """维修收费请求"""
-    __tablename__ = "repair_charge_requests"
-
-    id = Column(Integer, primary_key=True, index=True)
-    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
-    repair_record_id = Column(Integer, ForeignKey("repair_records.id"), nullable=False)
-    status = Column(String(30), default="pending_charge")    # pending_charge/paid/cancelled
-    expected_amount = Column(Float, default=0)
-    paid_amount = Column(Float, default=0)
-    charge_note = Column(Text, default="")
-    amount_change_note = Column(Text, default="")
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    paid_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    created_at = Column(DateTime, default=datetime.now)
-    paid_at = Column(DateTime, nullable=True)
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-
-    record = relationship("RepairRecord", back_populates="charge_requests")
-    creator = relationship("User", foreign_keys=[created_by])
-    payer = relationship("User", foreign_keys=[paid_by])
-
-
-class AfterSalesChargeRequest(Base):
-    __tablename__ = "after_sales_charge_requests"
-
-    id = Column(Integer, primary_key=True, index=True)
-    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
-    after_sales_record_id = Column(Integer, ForeignKey("after_sales_records.id"), nullable=False)
-    status = Column(String(30), default="pending_charge")    # pending_charge/paid/cancelled
-    expected_amount = Column(Float, default=0)
-    paid_amount = Column(Float, default=0)
-    charge_note = Column(Text, default="")
-    amount_change_note = Column(Text, default="")
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    paid_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    created_at = Column(DateTime, default=datetime.now)
-    paid_at = Column(DateTime, nullable=True)
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-
-    record = relationship("AfterSalesRecord", back_populates="charge_requests")
-    creator = relationship("User", foreign_keys=[created_by])
-    payer = relationship("User", foreign_keys=[paid_by])
-
-
-# ── 赠品登记 ─────────────────────────────────────────────────────────
+# ── 发货登记 ─────────────────────────────────────────────────────────
 class GiftRecord(Base):
-    """发货登记（原赠品登记）"""
+    """发货登记（通用化）"""
     __tablename__ = "gift_records"
 
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
-    date = Column(String(20), default="")               # 日期
-    order_no = Column(String(100), default="")           # 订单编号
-    size = Column(String(50), default="")                # 尺寸
-    model = Column(String(200), default="")              # 型号
-    config = Column(String(200), default="")             # 配置
-    color = Column(String(50), default="")               # 颜色
-    quantity = Column(Integer, default=1)                # 数量
-    accessories = Column(String(500), default="")        # 配件
-    customer_info = Column(Text, default="")             # 客户信息（姓名/手机/地址合并）
-    send_tracking = Column(String(100), default="")      # 发出单号
-    shipping_fee = Column(Float, default=0)              # 运费
-    order_amount = Column(Float, default=0)              # 订单金额
-    cost = Column(Float, default=0)                       # 产品成本
-    remark = Column(Text, default="")                    # 备注
-    ship_date = Column(String(20), default="")           # 出货日期
-    status = Column(String(20), default="pending")       # pending/sent
+    date = Column(String(20), default="")
+    order_no = Column(String(100), default="")
+    quantity = Column(Integer, default=1)
+    customer_info = Column(Text, default="")
+    description = Column(Text, default="")
+    remark = Column(Text, default="")
+    status = Column(String(20), default="pending")
+    custom_data = Column(Text, default="{}")
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
@@ -651,23 +537,69 @@ class GiftRecord(Base):
     feedbacks = relationship("GiftFeedback", back_populates="record", cascade="all, delete-orphan")
 
 
+class GiftFeedback(Base):
+    __tablename__ = "gift_feedbacks"
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    record_id = Column(Integer, ForeignKey("gift_records.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.now)
+    record = relationship("GiftRecord", back_populates="feedbacks")
+    user = relationship("User")
+
+
 # ── 返现登记 ─────────────────────────────────────────────────────────
 class GiftCashback(Base):
-    """返现登记表（关联发货订单）"""
+    """返现登记"""
     __tablename__ = "gift_cashbacks"
 
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
-    order_no = Column(String(100), default="", index=True)   # 关联订单号
-    cashback_amount = Column(Float, default=0)              # 返现金额
-    reason = Column(Text, default="")                        # 返现原因
-    remark = Column(Text, default="")                       # 备注
-    applicant = Column(String(100), default="")             # 申请人
+    order_no = Column(String(100), default="", index=True)
+    cashback_amount = Column(Float, default=0)
+    reason = Column(Text, default="")
+    remark = Column(Text, default="")
+    applicant = Column(String(100), default="")
+    custom_data = Column(Text, default="{}")
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
     creator = relationship("User", foreign_keys=[created_by])
+
+
+# ── 礼品补发 ─────────────────────────────────────────────────────────
+class GiftResendRecord(Base):
+    """礼品补发（通用化）"""
+    __tablename__ = "gift_resend_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    apply_date = Column(String(20), default="")
+    order_no = Column(String(100), default="")
+    description = Column(Text, default="")
+    customer_info = Column(Text, default="")
+    remark = Column(Text, default="")
+    custom_data = Column(Text, default="{}")
+    created_by = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    creator = relationship("User", foreign_keys=[created_by])
+    feedbacks = relationship("GiftResendFeedback", back_populates="record", cascade="all, delete-orphan")
+
+
+class GiftResendFeedback(Base):
+    __tablename__ = "gift_resend_feedbacks"
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    record_id = Column(Integer, ForeignKey("gift_resend_records.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.now)
+    record = relationship("GiftResendRecord", back_populates="feedbacks")
+    user = relationship("User")
 
 
 # ── 操作日志 ─────────────────────────────────────────────────────────
@@ -705,28 +637,6 @@ class Announcement(Base):
 
     author = relationship("User", foreign_keys=[created_by])
 
-
-class GiftResendRecord(Base):
-    """礼品补发登记"""
-    __tablename__ = "gift_resend_records"
-
-    id = Column(Integer, primary_key=True, index=True)
-    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
-    apply_date = Column(String(20), default="")          # 申请时间
-    order_no = Column(String(100), default="")           # 订单编号
-    shop_name = Column(String(200), default="")          # 店铺名称
-    type = Column(String(100), default="")               # 类型
-    gift_detail = Column(Text, default="")               # 礼品明细
-    customer_info = Column(Text, default="")             # 客户信息
-    express_company = Column(String(100), default="")    # 快递公司
-    tracking_no = Column(String(100), default="")        # 礼品寄出单号
-    remark = Column(Text, default="")                    # 备注
-    created_by = Column(Integer, ForeignKey("users.id"))
-    created_at = Column(DateTime, default=datetime.now)
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-
-    creator = relationship("User", foreign_keys=[created_by])
-    feedbacks = relationship("GiftResendFeedback", back_populates="record", cascade="all, delete-orphan")
 
 
 class AnnouncementRead(Base):
@@ -1122,7 +1032,44 @@ class DingtalkConfig(Base):
     company = relationship("Company")
 
 
-# ── 任务看板 ─────────────────────────────────────────────────────
+# ── 任务看板
+
+# ── 模块配置 ─────────────────────────────────────────────────────
+class ModuleConfig(Base):
+    __tablename__ = "module_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    module_key = Column(String(50), nullable=False)       # return_exchange / repair / gift / gift_cashback / gift_resend
+    enabled = Column(Boolean, default=True)
+    display_name = Column(String(50), default="")
+    sort_order = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    company = relationship("Company")
+
+
+class ModuleFieldConfig(Base):
+    __tablename__ = "module_field_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    module_key = Column(String(50), nullable=False)       # 对应 ModuleConfig.module_key
+    field_key = Column(String(50), nullable=False)        # 存储到 custom_data 的 key
+    field_label = Column(String(50), default="")          # 显示名
+    field_type = Column(String(20), default="text")       # text / number / date / select
+    field_options = Column(Text, default="[]")            # JSON — select类型时的选项列表
+    required = Column(Boolean, default=False)
+    sort_order = Column(Integer, default=0)
+    enabled = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    company = relationship("Company")
+
+
+# ─────────────────────────────────────────────────────
 class TaskBoard(Base):
     __tablename__ = "task_boards"
 
@@ -1176,6 +1123,43 @@ def _migrate_db():
                 )
             """))
             conn.commit()
+    if "module_configs" not in new_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE module_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER NOT NULL REFERENCES companies(id),
+                    module_key VARCHAR(50) NOT NULL,
+                    enabled INTEGER DEFAULT 1,
+                    display_name VARCHAR(50) DEFAULT '',
+                    sort_order INTEGER DEFAULT 0,
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+            """))
+            conn.commit()
+        new_tables = inspector.get_table_names()
+
+    if "module_field_configs" not in new_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE module_field_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER NOT NULL REFERENCES companies(id),
+                    module_key VARCHAR(50) NOT NULL,
+                    field_key VARCHAR(50) NOT NULL,
+                    field_label VARCHAR(50) DEFAULT '',
+                    field_type VARCHAR(20) DEFAULT 'text',
+                    field_options TEXT DEFAULT '[]',
+                    required INTEGER DEFAULT 0,
+                    sort_order INTEGER DEFAULT 0,
+                    enabled INTEGER DEFAULT 1,
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+            """))
+            conn.commit()
+
 
     if "subscriptions" not in existing_tables:
         with engine.connect() as conn:
@@ -1196,6 +1180,43 @@ def _migrate_db():
                 )
             """))
             conn.commit()
+    if "module_configs" not in new_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE module_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER NOT NULL REFERENCES companies(id),
+                    module_key VARCHAR(50) NOT NULL,
+                    enabled INTEGER DEFAULT 1,
+                    display_name VARCHAR(50) DEFAULT '',
+                    sort_order INTEGER DEFAULT 0,
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+            """))
+            conn.commit()
+        new_tables = inspector.get_table_names()
+
+    if "module_field_configs" not in new_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE module_field_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER NOT NULL REFERENCES companies(id),
+                    module_key VARCHAR(50) NOT NULL,
+                    field_key VARCHAR(50) NOT NULL,
+                    field_label VARCHAR(50) DEFAULT '',
+                    field_type VARCHAR(20) DEFAULT 'text',
+                    field_options TEXT DEFAULT '[]',
+                    required INTEGER DEFAULT 0,
+                    sort_order INTEGER DEFAULT 0,
+                    enabled INTEGER DEFAULT 1,
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+            """))
+            conn.commit()
+
 
     if "payment_orders" not in existing_tables:
         with engine.connect() as conn:
@@ -1218,6 +1239,43 @@ def _migrate_db():
                 )
             """))
             conn.commit()
+    if "module_configs" not in new_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE module_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER NOT NULL REFERENCES companies(id),
+                    module_key VARCHAR(50) NOT NULL,
+                    enabled INTEGER DEFAULT 1,
+                    display_name VARCHAR(50) DEFAULT '',
+                    sort_order INTEGER DEFAULT 0,
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+            """))
+            conn.commit()
+        new_tables = inspector.get_table_names()
+
+    if "module_field_configs" not in new_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE module_field_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER NOT NULL REFERENCES companies(id),
+                    module_key VARCHAR(50) NOT NULL,
+                    field_key VARCHAR(50) NOT NULL,
+                    field_label VARCHAR(50) DEFAULT '',
+                    field_type VARCHAR(20) DEFAULT 'text',
+                    field_options TEXT DEFAULT '[]',
+                    required INTEGER DEFAULT 0,
+                    sort_order INTEGER DEFAULT 0,
+                    enabled INTEGER DEFAULT 1,
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+            """))
+            conn.commit()
+
 
     if "attendance_records" not in existing_tables:
         with engine.connect() as conn:
@@ -1237,6 +1295,43 @@ def _migrate_db():
                 )
             """))
             conn.commit()
+    if "module_configs" not in new_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE module_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER NOT NULL REFERENCES companies(id),
+                    module_key VARCHAR(50) NOT NULL,
+                    enabled INTEGER DEFAULT 1,
+                    display_name VARCHAR(50) DEFAULT '',
+                    sort_order INTEGER DEFAULT 0,
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+            """))
+            conn.commit()
+        new_tables = inspector.get_table_names()
+
+    if "module_field_configs" not in new_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE module_field_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER NOT NULL REFERENCES companies(id),
+                    module_key VARCHAR(50) NOT NULL,
+                    field_key VARCHAR(50) NOT NULL,
+                    field_label VARCHAR(50) DEFAULT '',
+                    field_type VARCHAR(20) DEFAULT 'text',
+                    field_options TEXT DEFAULT '[]',
+                    required INTEGER DEFAULT 0,
+                    sort_order INTEGER DEFAULT 0,
+                    enabled INTEGER DEFAULT 1,
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+            """))
+            conn.commit()
+
         # Re-get existing_tables after creating new table
         existing_tables = inspector.get_table_names()
 
@@ -1259,6 +1354,43 @@ def _migrate_db():
                 )
             """))
             conn.commit()
+    if "module_configs" not in new_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE module_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER NOT NULL REFERENCES companies(id),
+                    module_key VARCHAR(50) NOT NULL,
+                    enabled INTEGER DEFAULT 1,
+                    display_name VARCHAR(50) DEFAULT '',
+                    sort_order INTEGER DEFAULT 0,
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+            """))
+            conn.commit()
+        new_tables = inspector.get_table_names()
+
+    if "module_field_configs" not in new_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE module_field_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER NOT NULL REFERENCES companies(id),
+                    module_key VARCHAR(50) NOT NULL,
+                    field_key VARCHAR(50) NOT NULL,
+                    field_label VARCHAR(50) DEFAULT '',
+                    field_type VARCHAR(20) DEFAULT 'text',
+                    field_options TEXT DEFAULT '[]',
+                    required INTEGER DEFAULT 0,
+                    sort_order INTEGER DEFAULT 0,
+                    enabled INTEGER DEFAULT 1,
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+            """))
+            conn.commit()
+
 
     with engine.connect() as conn:
         default_company = conn.execute(text("SELECT id FROM companies WHERE name = '默认公司'")).fetchone()
@@ -1337,6 +1469,43 @@ def _migrate_db():
                 )
             """))
             conn.commit()
+    if "module_configs" not in new_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE module_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER NOT NULL REFERENCES companies(id),
+                    module_key VARCHAR(50) NOT NULL,
+                    enabled INTEGER DEFAULT 1,
+                    display_name VARCHAR(50) DEFAULT '',
+                    sort_order INTEGER DEFAULT 0,
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+            """))
+            conn.commit()
+        new_tables = inspector.get_table_names()
+
+    if "module_field_configs" not in new_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE module_field_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER NOT NULL REFERENCES companies(id),
+                    module_key VARCHAR(50) NOT NULL,
+                    field_key VARCHAR(50) NOT NULL,
+                    field_label VARCHAR(50) DEFAULT '',
+                    field_type VARCHAR(20) DEFAULT 'text',
+                    field_options TEXT DEFAULT '[]',
+                    required INTEGER DEFAULT 0,
+                    sort_order INTEGER DEFAULT 0,
+                    enabled INTEGER DEFAULT 1,
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+            """))
+            conn.commit()
+
 
     with engine.connect() as conn:
         sub = conn.execute(text("SELECT id FROM subscriptions WHERE company_id = :company_id"), {"company_id": default_company_id}).fetchone()
@@ -1460,6 +1629,43 @@ def _migrate_db():
                 )
             """))
             conn.commit()
+    if "module_configs" not in new_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE module_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER NOT NULL REFERENCES companies(id),
+                    module_key VARCHAR(50) NOT NULL,
+                    enabled INTEGER DEFAULT 1,
+                    display_name VARCHAR(50) DEFAULT '',
+                    sort_order INTEGER DEFAULT 0,
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+            """))
+            conn.commit()
+        new_tables = inspector.get_table_names()
+
+    if "module_field_configs" not in new_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE module_field_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER NOT NULL REFERENCES companies(id),
+                    module_key VARCHAR(50) NOT NULL,
+                    field_key VARCHAR(50) NOT NULL,
+                    field_label VARCHAR(50) DEFAULT '',
+                    field_type VARCHAR(20) DEFAULT 'text',
+                    field_options TEXT DEFAULT '[]',
+                    required INTEGER DEFAULT 0,
+                    sort_order INTEGER DEFAULT 0,
+                    enabled INTEGER DEFAULT 1,
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+            """))
+            conn.commit()
+
 
     # ── 退换登记表 record_type 字段迁移 ───────────────────────────
     if 'return_exchange_records' in existing_tables:
@@ -1567,6 +1773,43 @@ def _migrate_db():
                 )
             """))
             conn.commit()
+    if "module_configs" not in new_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE module_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER NOT NULL REFERENCES companies(id),
+                    module_key VARCHAR(50) NOT NULL,
+                    enabled INTEGER DEFAULT 1,
+                    display_name VARCHAR(50) DEFAULT '',
+                    sort_order INTEGER DEFAULT 0,
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+            """))
+            conn.commit()
+        new_tables = inspector.get_table_names()
+
+    if "module_field_configs" not in new_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE module_field_configs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER NOT NULL REFERENCES companies(id),
+                    module_key VARCHAR(50) NOT NULL,
+                    field_key VARCHAR(50) NOT NULL,
+                    field_label VARCHAR(50) DEFAULT '',
+                    field_type VARCHAR(20) DEFAULT 'text',
+                    field_options TEXT DEFAULT '[]',
+                    required INTEGER DEFAULT 0,
+                    sort_order INTEGER DEFAULT 0,
+                    enabled INTEGER DEFAULT 1,
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+            """))
+            conn.commit()
+
 
     # ── 迁移：users 表新增 role_id 列 ──────────────────────────────
     if 'users' in existing_tables:
@@ -1701,6 +1944,39 @@ def init_db():
         ]
         db.add_all(default_shifts)
         db.commit()
+    # 种子数据：默认模块配置
+    if db.query(ModuleConfig).count() == 0:
+        default_modules = [
+            ModuleConfig(company_id=default_company.id, module_key="return_exchange", enabled=True, display_name="退换登记", sort_order=1),
+            ModuleConfig(company_id=default_company.id, module_key="repair", enabled=True, display_name="维修登记", sort_order=2),
+            ModuleConfig(company_id=default_company.id, module_key="gift", enabled=True, display_name="发货登记", sort_order=3),
+            ModuleConfig(company_id=default_company.id, module_key="gift_cashback", enabled=True, display_name="返现登记", sort_order=4),
+            ModuleConfig(company_id=default_company.id, module_key="gift_resend", enabled=True, display_name="礼品补发", sort_order=5),
+        ]
+        db.add_all(default_modules)
+        db.commit()
+
+    # 种子数据：默认为退换/维修模块预置电脑行业字段
+    if db.query(ModuleFieldConfig).count() == 0:
+        default_fields = [
+            ModuleFieldConfig(company_id=default_company.id, module_key="return_exchange", field_key="model", field_label="型号", field_type="text", sort_order=1),
+            ModuleFieldConfig(company_id=default_company.id, module_key="return_exchange", field_key="config", field_label="配置", field_type="text", sort_order=2),
+            ModuleFieldConfig(company_id=default_company.id, module_key="return_exchange", field_key="size", field_label="规格", field_type="text", sort_order=3),
+            ModuleFieldConfig(company_id=default_company.id, module_key="return_exchange", field_key="price", field_label="价格", field_type="number", sort_order=4),
+            ModuleFieldConfig(company_id=default_company.id, module_key="return_exchange", field_key="accessories", field_label="配件", field_type="text", sort_order=5),
+            ModuleFieldConfig(company_id=default_company.id, module_key="repair", field_key="model", field_label="型号", field_type="text", sort_order=1),
+            ModuleFieldConfig(company_id=default_company.id, module_key="repair", field_key="config", field_label="配置", field_type="text", sort_order=2),
+            ModuleFieldConfig(company_id=default_company.id, module_key="repair", field_key="size", field_label="规格", field_type="text", sort_order=3),
+            ModuleFieldConfig(company_id=default_company.id, module_key="repair", field_key="price", field_label="价格", field_type="number", sort_order=4),
+            ModuleFieldConfig(company_id=default_company.id, module_key="repair", field_key="accessories", field_label="配件", field_type="text", sort_order=5),
+            ModuleFieldConfig(company_id=default_company.id, module_key="gift", field_key="model", field_label="型号", field_type="text", sort_order=1),
+            ModuleFieldConfig(company_id=default_company.id, module_key="gift", field_key="color", field_label="颜色", field_type="text", sort_order=2),
+            ModuleFieldConfig(company_id=default_company.id, module_key="gift", field_key="cost", field_label="成本", field_type="number", sort_order=3),
+            ModuleFieldConfig(company_id=default_company.id, module_key="gift", field_key="order_amount", field_label="售价", field_type="number", sort_order=4),
+        ]
+        db.add_all(default_fields)
+        db.commit()
+
     db.close()
 
 

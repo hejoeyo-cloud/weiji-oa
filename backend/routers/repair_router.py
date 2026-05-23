@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from database import get_db, RepairRecord, User, RepairFeedback, RepairChargeRequest
+from database import get_db, RepairRecord, User, RepairFeedback
 from schemas import (
     RepairCreate,
     RepairUpdate,
@@ -15,11 +15,6 @@ from schemas import (
 )
 from auth import get_current_user, require_permission
 from services import audit_service
-from services.repair_charge_service import (
-    cancel_charge_request,
-    create_charge_request,
-    mark_charge_paid,
-)
 
 router = APIRouter(prefix="/api/repair", tags=["repair"])
 
