@@ -3,6 +3,7 @@ import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Eye, Gift, D
 import { getGiftCashbackList, createGiftCashback, updateGiftCashback, deleteGiftCashback } from '../api/giftCashback'
 import { useAuth } from '../hooks/useAuth'
 import { GiftCashback } from '../types'
+import DynamicFormFields from '../components/DynamicFormFields'
 import * as XLSX from 'xlsx'
 
 /** 通用 Excel 导出（浏览器端） */
@@ -47,6 +48,7 @@ export default function GiftCashbackList() {
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [editRecord, setEditRecord] = useState<GiftCashback | null>(null)
+  const [customData, setCustomData] = useState<Record<string,any>>({})
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   const pageSize = 15
@@ -100,7 +102,7 @@ export default function GiftCashbackList() {
     if (!form.order_no.trim()) { alert('请填写订单编号'); return }
     if (form.cashback_amount <= 0) { alert('请填写返现金额'); return }
     setSaving(true)
-    const promise = editRecord ? updateGiftCashback(editRecord.id, form) : createGiftCashback(form)
+    const promise = editRecord ? updateGiftCashback(editRecord.id, { ...form, custom_data: customData }) : createGiftCashback({ ...form, custom_data: customData })
     promise.then(() => {
       setShowModal(false)
       load()
@@ -259,6 +261,7 @@ export default function GiftCashbackList() {
                 取消
               </button>
               <button onClick={handleSave} disabled={saving}
+
                 className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 text-sm disabled:opacity-50">
                 {saving ? '保存中...' : '保存'}
               </button>

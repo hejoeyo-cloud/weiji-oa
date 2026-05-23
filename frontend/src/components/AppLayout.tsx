@@ -5,7 +5,7 @@ import {
   Bell, LogOut, Menu, ClipboardList, Gift, DollarSign,
   Megaphone, CheckSquare, Shield, ChevronDown, Calendar, PackageCheck, User, Store,
   ChevronLeft, ChevronRight, Warehouse, RotateCcw, Wrench, Receipt, CreditCard, Building2,
-  Fingerprint, Kanban, BarChart3
+  Fingerprint, Kanban, BarChart3, Settings
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useWebSocket } from '../hooks/useWebSocket'
@@ -13,6 +13,7 @@ import { markNotificationRead, markAllNotificationsRead, getNotifications } from
 import { getUnreadAnnouncementCount, getAnnouncements, markAnnouncementRead } from '../api/announcements'
 import { getApprovals } from '../api/approvals'
 import type { Notification, Announcement } from '../types'
+import { getModuleConfigs } from '../api/moduleConfig'
 
 const ROLE_LABELS: Record<string, string> = {
   admin: '管理员', technician: '技术员', customer: '客服',
@@ -38,16 +39,11 @@ const navGroups: NavGroup[] = [
     items: [
       { path: '/tickets', label: '工单池', icon: Ticket, permission: ['tickets:view'] },
       { path: '/tickets/create', label: '创建工单', icon: FilePlus, permission: ['tickets:create'] },
-      { path: '/return-exchange', label: '退换登记', icon: RotateCcw, permission: ['return_exchange:view'] },
-      { path: '/repair', label: '维修登记', icon: Wrench, permission: ['repair:view'] },
-      { path: '/gift-cashback', label: '返现登记', icon: DollarSign, permission: ['gift_cashback:view'] },
-      { path: '/gift-resend', label: '礼品补发', icon: PackageCheck, permission: ['gift_resend:view'] },
     ],
   },
   {
     label: '仓储业务',
     items: [
-      { path: '/gifts', label: '发货登记', icon: Gift, permission: ['gifts:view'] },
       { path: '/warehouse', label: '仓储管理', icon: Warehouse, permission: ['warehouse_products:view', 'warehouse_inbound:view', 'warehouse_outbound:view'] },
     ],
   },
@@ -75,6 +71,7 @@ const navGroups: NavGroup[] = [
       { path: '/billing', label: '订阅续费', icon: CreditCard },
       { path: '/platform', label: '平台管理', icon: Building2, platformOnly: true },
       { path: '/audit-logs', label: '操作日志', icon: Shield, permission: ['audit_logs:view'] },
+      { path: '/module-settings', label: '模块配置', icon: Settings },
     ],
   },
 ]
@@ -94,6 +91,7 @@ export default function AppLayout() {
   const [unreadAnnCount, setUnreadAnnCount] = useState(0)
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0)
   const [announcementPopup, setAnnouncementPopup] = useState<Announcement | null>(null)
+  const [dynamicNavItems, setDynamicNavItems] = useState<NavGroup[]>([])
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -135,8 +133,33 @@ export default function AppLayout() {
   }
 
   useEffect(() => {
-    localStorage.setItem('sidebarCollapsed', String(sidebarCollapsed))
-  }, [sidebarCollapsed])
+    getModuleConfigs().then(mods => {
+      const iconMap: Record<string, React.ElementType> = {
+        return_exchange: RotateCcw, repair: Wrench, gift: Gift,
+        gift_cashback: DollarSign, gift_resend: PackageCheck,
+      }
+      const pathMap: Record<string, string> = {
+        return_exchange: '/return-exchange', repair: '/repair', gift: '/gifts',
+        gift_cashback: '/gift-cashback', gift_resend: '/gift-resend',
+      }
+      const items = mods
+        .filter(m => m.enabled)
+        .map(m => ({
+          path: pathMap[m.module_key] || `/module/${m.module_key}`,
+          label: m.display_name || m.module_key,
+          icon: iconMap[m.module_key] || PackageCheck,
+          permission: [`${m.module_key}:view` as any],
+        }))
+      // Split: gift goes to 仓储业务, the rest to 客服业务
+      const serviceItems = items.filter(i => !i.path.startsWith('/gifts'))
+      const warehouseItems = items.filter(i => i.path.startsWith('/gifts'))
+      
+      const businessNav: NavGroup[] = []
+      if (serviceItems.length > 0) businessNav.push({ label: '客服业务', items: serviceItems })
+      if (warehouseItems.length > 0) businessNav.push({ label: '仓储业务', items: warehouseItems })
+      setDynamicNavItems(businessNav)
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (!user?.id) return
@@ -162,7 +185,7 @@ export default function AppLayout() {
       .catch(console.error)
   }, [user?.id])
 
-  const visibleGroups = navGroups
+  const visibleGroups = [...navGroups, ...dynamicNavItems]
     .filter(g => !g.permission || hasPermission(...g.permission))
     .map(g => ({
       ...g,

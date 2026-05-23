@@ -10,6 +10,7 @@ import {
   getReturnExchangeFeedbacks,
 } from '../api/returnExchange'
 import { ReturnExchangeRecord, ReturnExchangeFeedback } from '../types'
+import DynamicFormFields from '../components/DynamicFormFields'
 import { useAuth } from '../hooks/useAuth'
 import * as XLSX from 'xlsx'
 
@@ -89,6 +90,7 @@ export default function ReturnExchangeList() {
   const [showDetail, setShowDetail] = useState(false)
   const [detailRecord, setDetailRecord] = useState<ReturnExchangeRecord | null>(null)
   const [editRecord, setEditRecord] = useState<ReturnExchangeRecord | null>(null)
+  const [customData, setCustomData] = useState<Record<string,any>>({})
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   const [feedbacks, setFeedbacks] = useState<ReturnExchangeFeedback[]>([])
@@ -203,12 +205,13 @@ export default function ReturnExchangeList() {
     setSaving(true)
     try {
       if (editRecord) {
-        await updateReturnExchange(editRecord.id, form)
+        await updateReturnExchange(editRecord.id, { ...form, custom_data: customData })
       } else {
-        await createReturnExchange(form)
+        await createReturnExchange({ ...form, custom_data: customData })
       }
       setShowModal(false)
       load()
+
     } catch (e) {
       alert('保存失败')
       console.error(e)
@@ -490,6 +493,9 @@ export default function ReturnExchangeList() {
                     className="w-full border rounded-lg px-3 py-2" />
                 </div>
               </div>
+            </div>
+            <div className="mt-4 pt-4 border-t" style={{ borderColor: '#f0f0f0' }}>
+              <DynamicFormFields moduleKey="return_exchange" value={customData} onChange={setCustomData} />
             </div>
             <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 border rounded-lg hover:bg-gray-100">取消</button>

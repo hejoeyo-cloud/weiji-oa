@@ -114,6 +114,7 @@ export default function RepairList() {
   const [showDetail, setShowDetail] = useState(false)
   const [detailRecord, setDetailRecord] = useState<RepairRecord | null>(null)
   const [editRecord, setEditRecord] = useState<RepairRecord | null>(null)
+  const [customData, setCustomData] = useState<Record<string,any>>({})
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   const [feedbacks, setFeedbacks] = useState<RepairFeedback[]>([])
@@ -283,12 +284,13 @@ export default function RepairList() {
     setSaving(true)
     try {
       if (editRecord) {
-        await updateRepair(editRecord.id, form)
+        await updateRepair(editRecord.id, { ...form, custom_data: customData })
       } else {
-        await createRepair(form)
+        await createRepair({ ...form, custom_data: customData })
       }
       setShowModal(false)
       load()
+
     } catch (e) {
       alert('保存失败')
       console.error(e)
@@ -603,6 +605,9 @@ export default function RepairList() {
                     className="w-full border rounded-lg px-3 py-2" />
                 </div>
               </div>
+            </div>
+            <div className="mt-4 pt-4 border-t" style={{ borderColor: '#f0f0f0' }}>
+              <DynamicFormFields moduleKey="repair" value={{customData}} onChange={{setCustomData}} />
             </div>
             <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 border rounded-lg hover:bg-gray-100">取消</button>

@@ -9,7 +9,6 @@ import UserManage from './pages/UserManage'
 import KnowledgeList from './pages/KnowledgeList'
 import KnowledgeDetail from './pages/KnowledgeDetail'
 import KnowledgeEdit from './pages/KnowledgeEdit'
-import AfterSalesList from './pages/AfterSalesList'
 import ReturnExchangeList from './pages/ReturnExchangeList'
 import RepairList from './pages/RepairList'
 import GiftList from './pages/GiftList'
@@ -27,6 +26,7 @@ import PlatformPage from './pages/PlatformPage'
 import AttendancePage from './pages/AttendancePage'
 import TaskBoard from './pages/TaskBoard'
 import ReportsPage from './pages/ReportsPage'
+import ModuleSettingsPage from './pages/ModuleSettingsPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('token')
@@ -56,7 +56,6 @@ export default function App() {
           <Route path="/knowledge/new" element={<KnowledgeEdit />} />
           <Route path="/knowledge/:id" element={<KnowledgeDetail />} />
           <Route path="/knowledge/:id/edit" element={<KnowledgeEdit />} />
-          <Route path="/after-sales" element={<AfterSalesList />} />
           <Route path="/return-exchange" element={<ReturnExchangeList />} />
           <Route path="/repair" element={<RepairList />} />
           <Route path="/gifts" element={<GiftList />} />
@@ -73,6 +72,7 @@ export default function App() {
           <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/tasks" element={<TaskBoard />} />
           <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/module-settings" element={<ModuleSettingsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
