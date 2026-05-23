@@ -14,6 +14,7 @@ import { getUnreadAnnouncementCount, getAnnouncements, markAnnouncementRead } fr
 import { getApprovals } from '../api/approvals'
 import type { Notification, Announcement } from '../types'
 import { getModuleConfigs } from '../api/moduleConfig'
+import client from '../api/client'
 
 const ROLE_LABELS: Record<string, string> = {
   admin: '管理员', technician: '技术员', customer: '客服',
