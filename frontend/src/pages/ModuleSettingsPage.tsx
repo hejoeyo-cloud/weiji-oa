@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
-import { Save, Edit2, Check, X } from 'lucide-react'
+import { useEffect, useState, useRef } from 'react'
+import { Save, Upload, Store, Edit2, Check, X } from 'lucide-react'
 import { getModuleConfigs, updateModuleConfigs, getFieldLabels, setFieldLabel, deleteFieldLabel } from '../api/moduleConfig'
 import type { ModuleConfigItem, FieldLabel } from '../types'
+import client from '../api/client'
 
 const MODULE_FIELDS: Record<string, string[]> = {
   return_exchange: ['model', 'config', 'size', 'computer_price', 'accessories', 'accessories_price', 'return_tracking', 'send_tracking', 'shipping_fee', 'record_type'],
@@ -34,6 +35,9 @@ export default function ModuleSettingsPage() {
   const [msg, setMsg] = useState('')
   const [editMap, setEditMap] = useState<Record<string, string>>({})
   const [renameMap, setRenameMap] = useState<Record<string, string>>({})
+  const [brandName, setBrandName] = useState('')
+  const [logoPreview, setLogoPreview] = useState('')
+  const logoRef = useRef<HTMLInputElement>(null)
   const [editingName, setEditingName] = useState<string | null>(null)
   const [tempName, setTempName] = useState('')
 
@@ -44,6 +48,28 @@ export default function ModuleSettingsPage() {
     if (!mods.find(m => m.module_key === activeModule)) {
       setActiveModule(mods[0]?.module_key || 'return_exchange')
     }
+    // Load branding
+    try {
+      const b = await client.get('/company/branding')
+      setBrandName(b.data.display_name || '')
+      setLogoPreview(b.data.logo_url || '')
+    } catch {}
+  }
+
+  const handleLogoUpload = async () => {
+    const file = logoRef.current?.files?.[0]
+    if (!file || file.size > 5*1024*1024) { alert('LOGO不能超过5MB'); return }
+    const form = new FormData(); form.append('file', file)
+    try {
+      const r = await client.post('/company/logo', form)
+      setLogoPreview(r.data.logo_url)
+    } catch { alert('上传失败') }
+  }
+
+  const handleSaveBrand = async () => {
+    await client.put('/company/branding', null, { params: { display_name: brandName } })
+    setMsg('品牌信息已保存')
+    setTimeout(() => setMsg(''), 2000)
   }
 
   const loadLabels = async (key: string) => {
@@ -96,6 +122,30 @@ export default function ModuleSettingsPage() {
   return (
     <div className="p-6 space-y-4 max-w-4xl">
       <h2 className="text-lg font-semibold text-gray-800">模块配置</h2>
+
+      {/* 公司品牌 */}
+      <div className="bg-white border rounded-lg p-4 flex items-center gap-4" style={{ borderColor: '#f0f0f0' }}>
+        <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0" style={{ background: '#f5f5f5' }}>
+          {logoPreview ? (
+            <img src={logoPreview} alt="logo" className="w-full h-full object-cover" />
+          ) : (
+            <Store className="w-6 h-6 text-gray-400" />
+          )}
+        </div>
+        <div className="flex-1">
+          <label className="block text-xs text-gray-500 mb-1">公司名称</label>
+          <input value={brandName} onChange={e => setBrandName(e.target.value)} placeholder="默认公司"
+            className="w-full border rounded px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-100" style={{ borderColor: '#e5e5e5' }} />
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="px-3 py-1.5 border rounded text-xs cursor-pointer hover:bg-gray-50 flex items-center gap-1">
+            <Upload size={12} /> 上传LOGO
+            <input ref={logoRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+          </label>
+          <button onClick={handleSaveBrand}
+            className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded">保存</button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-[280px_1fr] gap-4 items-start">
         {/* 左侧：模块列表 */}
