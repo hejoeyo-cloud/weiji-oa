@@ -156,7 +156,10 @@ class JSONType(TypeDecorator):
             return json.loads(value)
         return value
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False}, use_insertmanyvalues=False)
+# 数据库引擎 — SQLite 默认，PostgreSQL 通过环境变量切换
+_is_sqlite = "sqlite" in DATABASE_URL
+_engine_args = {"connect_args": {"check_same_thread": False}} if _is_sqlite else {}
+engine = create_engine(DATABASE_URL, **_engine_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

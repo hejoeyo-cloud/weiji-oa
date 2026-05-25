@@ -3,14 +3,16 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(BASE_DIR)
 
-DATABASE_URL = f"sqlite:///{os.path.join(PROJECT_DIR, 'data.db')}"
+# 数据库：默认 SQLite，设 DATABASE_URL 环境变量可切换 PostgreSQL
+# 示例: export DATABASE_URL=postgresql://user:pass@host:5432/fries_oa
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{os.path.join(PROJECT_DIR, 'data.db')}")
 
 UPLOAD_DIR = os.path.join(PROJECT_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-JWT_SECRET = "laptop-support-secret-key-2024-change-in-production"
+JWT_SECRET = os.getenv("JWT_SECRET", "fries-oa-secret-change-in-production")
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRE_MINUTES = 480
+JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "480"))
 
 # 内网部署时，修改为你的内网IP地址，例如：
 CORS_ORIGINS = [
