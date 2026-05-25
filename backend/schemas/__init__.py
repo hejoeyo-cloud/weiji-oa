@@ -14,3 +14,7 @@ from .role import *
 from .schedule import *
 from .ticket import *
 from .warehouse import *
+
+# Rebuild models with forward references
+from .auth import UserInfo
+UserInfo.model_rebuild()
