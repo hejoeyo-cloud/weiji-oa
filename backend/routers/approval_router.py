@@ -148,48 +148,98 @@ def handle_approval(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """当前审批人审批通过或拒绝"""
-    approval = db.query(ApprovalRequest).filter(ApprovalRequest.id == req_id, ApprovalRequest.company_id == current_user.company_id).first()
+    """审批动作: approve/reject/return/countersign/reassign"""
+    approval = db.query(ApprovalRequest).filter(
+        ApprovalRequest.id == req_id, ApprovalRequest.company_id == current_user.company_id
+    ).first()
     if not approval:
-        raise HTTPException(status_code=404, detail="Approval request not found")
+        raise HTTPException(status_code=404, detail="审批不存在")
     if approval.status != "pending":
-        raise HTTPException(status_code=400, detail="Request is not in pending status")
+        raise HTTPException(status_code=400, detail="该申请已处理完毕")
 
-    # 找到当前轮到该用户的步骤
     current_step = db.query(ApprovalStep).filter(
-        ApprovalStep.request_id == req_id,
-        ApprovalStep.approver_id == current_user.id,
-        ApprovalStep.status == "pending",
-        ApprovalStep.company_id == current_user.company_id,
+        ApprovalStep.request_id == req_id, ApprovalStep.approver_id == current_user.id,
+        ApprovalStep.status == "pending", ApprovalStep.company_id == current_user.company_id,
     ).order_by(ApprovalStep.step_order).first()
-
     if not current_step:
-        raise HTTPException(status_code=403, detail="No pending step for you")
+        raise HTTPException(status_code=403, detail="没有待你处理的审批步骤")
 
-    current_step.status = body.action  # approve / reject
+    action = body.action
+    current_step.action_type = action
     current_step.comment = body.comment
     current_step.approved_at = datetime.now()
 
-    if body.action == "reject":
-        approval.status = "rejected"
-    else:
-        # 检查是否还有下一级
+    if action == "approve":
+        current_step.status = "approved"
         next_step = db.query(ApprovalStep).filter(
             ApprovalStep.request_id == req_id,
             ApprovalStep.step_order == current_step.step_order + 1,
             ApprovalStep.company_id == current_user.company_id,
         ).first()
         if next_step:
-            next_step.status = "pending"  # 激活下一级
+            next_step.status = "pending"
         else:
-            approval.status = "approved"  # 全部通过
+            approval.status = "approved"
+        _notify(db, approval.applicant_id, f"审批通过: {approval.title}", current_user.company_id)
+
+    elif action == "reject":
+        current_step.status = "rejected"
+        approval.status = "rejected"
+        _notify(db, approval.applicant_id, f"审批被拒绝: {approval.title}", current_user.company_id)
+
+    elif action == "return":
+        current_step.status = "returned"
+        approval.status = "returned"
+        _notify(db, approval.applicant_id, f"审批被退回修改: {approval.title} — {body.comment}", current_user.company_id)
+
+    elif action == "reassign":
+        if not body.reassign_to:
+            raise HTTPException(400, "转审需要指定 reassign_to")
+        current_step.status = "reassigned"
+        current_step.reassigned_to = body.reassign_to
+        # Create new step for the reassigned person
+        new_step = ApprovalStep(
+            company_id=current_user.company_id, request_id=req_id,
+            step_order=current_step.step_order, approver_id=body.reassign_to, status="pending",
+        )
+        db.add(new_step)
+        _notify(db, body.reassign_to, f"收到转审: {approval.title}", current_user.company_id)
+
+    elif action == "countersign":
+        if not body.reassign_to:
+            raise HTTPException(400, "加签需要指定 reassign_to")
+        current_step.status = "approved"
+        # Add counter-sign step between current and next
+        next_order = current_step.step_order + 1
+        db.query(ApprovalStep).filter(
+            ApprovalStep.request_id == req_id,
+            ApprovalStep.step_order >= next_order,
+            ApprovalStep.company_id == current_user.company_id,
+        ).update({"step_order": ApprovalStep.step_order + 1}, synchronize_session=False)
+        new_step = ApprovalStep(
+            company_id=current_user.company_id, request_id=req_id,
+            step_order=next_order, approver_id=body.reassign_to, status="pending",
+        )
+        db.add(new_step)
+        _notify(db, body.reassign_to, f"收到加签审批: {approval.title}", current_user.company_id)
+
+    else:
+        raise HTTPException(400, f"未知操作: {action}")
 
     db.commit()
     db.refresh(approval)
-    action_label = "通过" if body.action == "approve" else "拒绝"
-    audit_service.log(db, current_user, "update", "approval", req_id,
-                      f"审批{action_label}: {approval.title}")
+    audit_service.log(db, current_user, "update", "approval", req_id, f"审批操作 {action}: {approval.title}")
     return req_to_out(approval)
+
+
+def _notify(db, user_id: int, content: str, company_id: int):
+    """发送系统通知"""
+    try:
+        from database import Notification
+        n = Notification(company_id=company_id, user_id=user_id, title="审批通知", content=content, is_read=False)
+        db.add(n)
+    except:
+        pass
 
 
 @router.delete("/{req_id}")

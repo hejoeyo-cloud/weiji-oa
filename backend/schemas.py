@@ -780,8 +780,9 @@ class ApprovalRequestOut(BaseModel):
 
 
 class ApprovalAction(BaseModel):
-    action: str = "approve"   # approve / reject
+    action: str = "approve"   # approve / reject / return / countersign / reassign
     comment: str = ""
+    reassign_to: Optional[int] = None
 
 
 # ── 排班管理 ─────────────────────────────────────────────────────────

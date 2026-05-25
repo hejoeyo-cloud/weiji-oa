@@ -843,7 +843,9 @@ class ApprovalStep(Base):
     request_id = Column(Integer, ForeignKey("approval_requests.id"), nullable=False)
     step_order = Column(Integer, default=1)          # 第几级审批
     approver_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # 审批人
-    status = Column(String(20), default="pending")   # pending/approved/rejected
+    status = Column(String(20), default="pending")   # pending/approved/rejected/returned
+    action_type = Column(String(20), default="")     # approve/reject/return/countersign/reassign
+    reassigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)  # 转审目标人
     comment = Column(Text, default="")
     approved_at = Column(DateTime, nullable=True)
 
