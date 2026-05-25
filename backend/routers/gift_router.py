@@ -4,7 +4,7 @@ from sqlalchemy import func
 
 from database import get_db, GiftRecord, GiftCashback, GiftFeedback, User
 from schemas import GiftRecordCreate, GiftRecordUpdate, GiftRecordOut, GiftFeedbackCreate, GiftFeedbackOut
-from auth import get_current_user
+from auth import apply_owner_filter,  get_current_user
 from services import audit_service
 
 router = APIRouter(prefix="/api/gifts", tags=["gifts"])
@@ -77,6 +77,7 @@ def list_records(
     has_cost_permission = "gifts:cost_view" in (current_user.role_obj.permissions if current_user.role_obj else [])
     
     query = db.query(GiftRecord).filter(GiftRecord.company_id == current_user.company_id)
+    query = apply_owner_filter(query, GiftRecord, current_user)
     if status:
         query = query.filter(GiftRecord.status == status)
     if search:

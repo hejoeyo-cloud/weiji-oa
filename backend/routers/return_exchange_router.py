@@ -9,7 +9,7 @@ from schemas import (
     ReturnExchangeFeedbackCreate,
     ReturnExchangeFeedbackOut,
 )
-from auth import get_current_user, require_permission
+from auth import apply_owner_filter,  get_current_user, require_permission
 from services import audit_service
 
 router = APIRouter(prefix="/api/return-exchange", tags=["return_exchange"])
@@ -58,6 +58,7 @@ def list_records(
     current_user: User = Depends(require_permission("return_exchange:view")),
 ):
     query = db.query(ReturnExchangeRecord).filter(ReturnExchangeRecord.company_id == current_user.company_id)
+    query = apply_owner_filter(query, ReturnExchangeRecord, current_user)
     if status:
         query = query.filter(ReturnExchangeRecord.progress == status)
     if record_type:

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db, GiftResendRecord, User, GiftResendFeedback
 from schemas import GiftResendCreate, GiftResendUpdate, GiftResendOut, GiftResendFeedbackCreate, GiftResendFeedbackOut
-from auth import get_current_user
+from auth import apply_owner_filter,  get_current_user
 from services import audit_service
 
 router = APIRouter(prefix="/api/gift-resend", tags=["gift_resend"])
@@ -40,6 +40,7 @@ def list_records(
     current_user: User = Depends(get_current_user),
 ):
     query = db.query(GiftResendRecord).filter(GiftResendRecord.company_id == current_user.company_id)
+    query = apply_owner_filter(query, GiftResendRecord, current_user)
     if search:
         pattern = f"%{search}%"
         query = query.filter(

@@ -152,3 +152,26 @@ def require_permission(*permissions: str):
             detail=f"Permission denied. Required: {', '.join(permissions)}",
         )
     return checker
+
+
+def owner_filter(user: User) -> bool:
+    """行级权限：管理员看全部，普通用户只看自己创建的"""
+    if user.is_platform_admin:
+        return True
+    # Check by role name
+    for perm in _get_user_permissions(user):
+        if perm.startswith("admin:") or perm == "*":
+            return True
+    # Check role name starts with admin
+    if hasattr(user, 'roles') and user.roles:
+        for role in user.roles:
+            if role.name and role.name.startswith("admin"):
+                return True
+    return False
+
+
+def apply_owner_filter(query, model, user: User):
+    """对查询应用行级权限过滤 — 非管理员只返回自己创建的数据"""
+    if owner_filter(user):
+        return query
+    return query.filter(model.created_by == user.id)

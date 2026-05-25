@@ -13,7 +13,7 @@ from schemas import (
     RepairChargeRequestCancel,
     RepairChargeRequestOut,
 )
-from auth import get_current_user, require_permission
+from auth import apply_owner_filter,  get_current_user, require_permission
 from services import audit_service
 
 router = APIRouter(prefix="/api/repair", tags=["repair"])
@@ -82,6 +82,7 @@ def list_records(
     current_user: User = Depends(require_permission("repair:view")),
 ):
     query = db.query(RepairRecord).filter(RepairRecord.company_id == current_user.company_id)
+    query = apply_owner_filter(query, RepairRecord, current_user)
     if repair_status:
         query = query.filter(RepairRecord.repair_status == repair_status)
     if charge_status:

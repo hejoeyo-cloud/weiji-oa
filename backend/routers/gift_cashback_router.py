@@ -4,7 +4,7 @@ from sqlalchemy import func
 
 from database import get_db, GiftCashback, GiftRecord, User
 from schemas import GiftCashbackCreate, GiftCashbackUpdate, GiftCashbackOut
-from auth import get_current_user
+from auth import get_current_user, apply_owner_filter
 from services import audit_service
 
 router = APIRouter(prefix="/api/gift-cashback", tags=["gift-cashback"])
@@ -37,6 +37,7 @@ def list_cashbacks(
     current_user: User = Depends(get_current_user),
 ):
     query = db.query(GiftCashback).filter(GiftCashback.company_id == current_user.company_id)
+    query = apply_owner_filter(query, GiftCashback, current_user)
     if search:
         pattern = f"%{search}%"
         query = query.filter(
