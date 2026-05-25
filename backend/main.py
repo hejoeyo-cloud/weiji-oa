@@ -57,7 +57,7 @@ from contextlib import asynccontextmanager
 
 app = FastAPI(title="Fries OA 内部系统", version="1.0.0", lifespan=lifespan)
 
-app.add_middleware(RateLimitMiddleware, max_requests=60, window_seconds=60)
+app.add_middleware(RateLimitMiddleware, max_requests=120, window_seconds=60)
 app.middleware("http")(request_log_middleware)
 app.middleware("http")(company_guard)
 
