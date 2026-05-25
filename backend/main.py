@@ -5,7 +5,17 @@ from datetime import datetime
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    from models.init_db import init_db, seed_knowledge
+    init_db()
+    seed_knowledge()
+    yield
+
 from middleware.rate_limit import RateLimitMiddleware
+from middleware.company_guard import company_guard
 from middleware.request_log import request_log_middleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -41,17 +51,12 @@ from websocket.manager import manager
 
 from contextlib import asynccontextmanager
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    from models.init_db import init_db, seed_knowledge
-    init_db()
-    seed_knowledge()
-    yield
 
 app = FastAPI(title="Fries OA 内部系统", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(RateLimitMiddleware, max_requests=60, window_seconds=60)
 app.middleware("http")(request_log_middleware)
+app.middleware("http")(company_guard)
 
 app.add_middleware(
     CORSMiddleware,
@@ -178,12 +183,6 @@ if os.path.exists(frontend_dist):
 
 from contextlib import asynccontextmanager
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    from models.init_db import init_db, seed_knowledge
-    init_db()
-    seed_knowledge()
-    yield
 
 
 if __name__ == "__main__":

@@ -16,6 +16,7 @@ from schemas import (
 from auth import apply_owner_filter,  get_current_user, require_permission
 from services import audit_service
 from services.charge_service import create_repair_charge_request
+from routers.approval_rules_router import evaluate_rules
 
 router = APIRouter(prefix="/api/repair", tags=["repair"])
 
@@ -258,6 +259,8 @@ def create_record_charge_request(
     record = db.query(RepairRecord).filter(RepairRecord.id == record_id, RepairRecord.company_id == current_user.company_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="Record not found")
+    # 调用审批规则引擎
+    evaluate_rules("repair", {"amount": req.expected_amount or 0}, db, current_user.company_id)
     charge_request = create_charge_request(
         db=db,
         record=record,
