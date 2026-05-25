@@ -15,6 +15,7 @@ from schemas import (
 )
 from auth import apply_owner_filter,  get_current_user, require_permission
 from services import audit_service
+from services.charge_service import create_repair_charge_request
 
 router = APIRouter(prefix="/api/repair", tags=["repair"])
 
