@@ -8,6 +8,7 @@ from database import get_db, ApprovalRequest, ApprovalStep, User
 from schemas import ApprovalRequestCreate, ApprovalRequestOut, ApprovalStepOut, ApprovalAction
 from auth import get_current_user
 from services import audit_service
+from routers.approval_rules_router import evaluate_rules
 
 router = APIRouter(prefix="/api/approvals", tags=["approvals"])
 
@@ -99,8 +100,24 @@ def create_request(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if not req.approver_ids:
-        raise HTTPException(status_code=400, detail="At least one approver required")
+    # 1. 审批规则引擎：自动匹配审批人
+    field_values = {
+        "type": req.type,
+        "amount": req.amount or 0,
+        "start_date": req.start_date,
+    }
+    module_map = {"leave": "attendance", "reimbursement": "finance", "purchase": "finance"}
+    matched = evaluate_rules(module_map.get(req.type, req.type), field_values, db, current_user.company_id)
+    
+    # 2. 合并规则引擎结果 + 手动指定的审批人
+    rule_approvers = []
+    for m in matched:
+        rule_approvers.extend(m["approver_ids"])
+    all_approvers = list(dict.fromkeys(rule_approvers + req.approver_ids))  # 去重保序
+    
+    if not all_approvers:
+        raise HTTPException(status_code=400, detail="未匹配到审批人，请检查审批规则或手动指定")
+
     approval = ApprovalRequest(
         company_id=current_user.company_id,
         type=req.type, title=req.title, description=req.description,
@@ -108,8 +125,8 @@ def create_request(
         attachments=req.attachments, applicant_id=current_user.id,
     )
     db.add(approval)
-    db.flush()  # 获取 id
-    for idx, approver_id in enumerate(req.approver_ids, start=1):
+    db.flush()
+    for idx, approver_id in enumerate(all_approvers, start=1):
         step = ApprovalStep(
             company_id=current_user.company_id,
             request_id=approval.id, step_order=idx,
