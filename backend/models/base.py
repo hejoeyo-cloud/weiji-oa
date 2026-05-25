@@ -11,6 +11,12 @@ class JSONType(TypeDecorator):
     """JSON storage, auto-selects JSONB on PostgreSQL"""
     impl = Text
     cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "postgresql":
+            from sqlalchemy.dialects.postgresql import JSONB
+            return dialect.type_descriptor(JSONB())
+        return dialect.type_descriptor(Text())
     def process_bind_param(self, value, dialect):
         if value is None: return None
         return json.dumps(value, ensure_ascii=False)

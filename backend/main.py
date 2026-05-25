@@ -43,6 +43,7 @@ from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from models.init_db import init_db, seed_knowledge
     init_db()
     seed_knowledge()
     yield
@@ -51,6 +52,7 @@ app = FastAPI(title="Fries OA 内部系统", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(RateLimitMiddleware, max_requests=60, window_seconds=60)
 app.middleware("http")(request_log_middleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
@@ -87,7 +89,6 @@ app.include_router(dingtalk_router.router)
 app.include_router(module_config_router.router)
 app.include_router(messages_router.router)
 app.include_router(approval_rules_router.router)
-
 # ── WebSocket 实时推送 ──────────────────────────────────────────────
 from websocket.manager import manager as ws_manager
 
@@ -179,6 +180,7 @@ from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from models.init_db import init_db, seed_knowledge
     init_db()
     seed_knowledge()
     yield
