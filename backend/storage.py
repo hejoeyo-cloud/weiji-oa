@@ -74,8 +74,11 @@ class S3Storage(StorageBackend):
         except ImportError:
             raise RuntimeError("boto3 is required for S3 storage. Install: pip install boto3")
 
-    def save(self, content: bytes, filename: str) -> str:
-        self.client.put_object(Bucket=self.bucket, Key=filename, Body=content)
+    def save(self, content: bytes, filename: str, content_type: str = None) -> str:
+        kwargs = {"Bucket": self.bucket, "Key": filename, "Body": content}
+        if content_type:
+            kwargs["ContentType"] = content_type
+        self.client.put_object(**kwargs)
         return filename
 
     def read(self, filepath: str) -> bytes:

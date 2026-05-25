@@ -293,7 +293,7 @@ class Ticket(Base):
     diagnosis_result = Column(String(20), default="")
     diagnosis_log = Column(JSONType, default=list)
     created_by = Column(Integer, ForeignKey("users.id"))
-    assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
+    assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     completed_at = Column(DateTime, nullable=True)
@@ -588,7 +588,7 @@ class RepairChargeRequest(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
-    repair_record_id = Column(Integer, ForeignKey("repair_records.id"), nullable=False)
+    repair_record_id = Column(Integer, ForeignKey("repair_records.id"), nullable=False, index=True)
     status = Column(String(30), default="pending_charge")    # pending_charge/paid/cancelled
     expected_amount = Column(Float, default=0)
     paid_amount = Column(Float, default=0)
@@ -610,7 +610,7 @@ class AfterSalesChargeRequest(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
-    after_sales_record_id = Column(Integer, ForeignKey("after_sales_records.id"), nullable=False)
+    after_sales_record_id = Column(Integer, ForeignKey("after_sales_records.id"), nullable=False, index=True)
     status = Column(String(30), default="pending_charge")    # pending_charge/paid/cancelled
     expected_amount = Column(Float, default=0)
     paid_amount = Column(Float, default=0)
@@ -828,7 +828,7 @@ class ApprovalRequest(Base):
     start_date = Column(String(20), default="")      # 日期字符串（请假起止）
     end_date = Column(String(20), default="")
     attachments = Column(JSONType, default=list)     # 附件图片
-    status = Column(String(20), default="pending")   # pending/approved/rejected/cancelled
+    status = Column(String(20), default="pending", index=True)   # pending/approved/rejected/cancelled
     applicant_id = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
@@ -848,7 +848,7 @@ class ApprovalStep(Base):
     approver_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # 审批人
     status = Column(String(20), default="pending")   # pending/approved/rejected/returned
     action_type = Column(String(20), default="")     # approve/reject/return/countersign/reassign
-    reassigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)  # 转审目标人
+    reassigned_to = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)  # 转审目标人
     comment = Column(Text, default="")
     approved_at = Column(DateTime, nullable=True)
 
@@ -896,7 +896,7 @@ class ShiftSwapRequest(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
-    applicant_id = Column(Integer, ForeignKey("users.id"), nullable=False)   # 申请人
+    applicant_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)   # 申请人
     target_user_id = Column(Integer, ForeignKey("users.id"), nullable=False) # 目标换班人
     applicant_date = Column(String(10), nullable=False)  # 申请人想换出的日期
     target_date = Column(String(10), nullable=False)     # 目标人的日期（换入）
@@ -941,7 +941,7 @@ class WarehouseInbound(Base):
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
     date = Column(String(20), default="")                    # 日期
-    product_id = Column(Integer, ForeignKey("warehouse_products.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("warehouse_products.id"), nullable=False, index=True)
     product_code = Column(String(50), default="")           # 产品编码（冗余，方便查询）
     category = Column(String(50), default="")               # 类别
     product_name = Column(String(200), default="")          # 产品名称
@@ -966,7 +966,7 @@ class WarehouseOutbound(Base):
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
     date = Column(String(20), default="")                    # 日期
-    product_id = Column(Integer, ForeignKey("warehouse_products.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("warehouse_products.id"), nullable=False, index=True)
     product_code = Column(String(50), default="")           # 产品编码（冗余）
     category = Column(String(50), default="")               # 类别
     product_name = Column(String(200), default="")          # 产品名称

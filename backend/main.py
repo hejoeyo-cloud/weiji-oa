@@ -37,7 +37,15 @@ import finance_router
 from seed_data import seed_knowledge
 from websocket.manager import manager
 
-app = FastAPI(title="Fries OA 内部系统", version="1.0.0")
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    seed_knowledge()
+    yield
+
+app = FastAPI(title="Fries OA 内部系统", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -150,10 +158,13 @@ if os.path.exists(frontend_dist):
         return {"error": "Frontend not built"}
 
 
-@app.on_event("startup")
-def on_startup():
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     init_db()
     seed_knowledge()
+    yield
 
 
 if __name__ == "__main__":

@@ -10,7 +10,12 @@ DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{os.path.join(PROJECT_DIR, 
 UPLOAD_DIR = os.path.join(PROJECT_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-JWT_SECRET = os.getenv("JWT_SECRET", "fries-oa-secret-change-in-production")
+_jwt = os.getenv("JWT_SECRET")
+if not _jwt:
+    import warnings
+    warnings.warn("⚠️ JWT_SECRET 未设置，使用开发默认值。生产环境必须配置！")
+    _jwt = "fries-oa-dev-secret"
+JWT_SECRET = _jwt
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "480"))
 

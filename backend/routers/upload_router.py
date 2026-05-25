@@ -1,13 +1,12 @@
-import os
-import uuid
-
+import os, uuid
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 
-from config import UPLOAD_DIR
 from auth import get_current_user
 from database import User
+from storage import get_storage
 
+storage = get_storage()
 router = APIRouter(prefix="/api/upload", tags=["upload"])
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".pdf"}
@@ -28,19 +27,12 @@ async def upload_image(
         raise HTTPException(status_code=400, detail="File too large (max 10MB)")
 
     filename = f"{uuid.uuid4().hex}{ext}"
-    filepath = os.path.join(UPLOAD_DIR, filename)
-    with open(filepath, "wb") as f:
-        f.write(content)
-
-    return {"url": f"/api/upload/{filename}", "filename": filename}
+    save_name = f"shared/{filename}"
+    storage.save(content, save_name)
+    return {"url": storage.get_url(save_name), "filename": save_name}
 
 
 @router.delete("/{filename}")
-def delete_image(
-    filename: str,
-    current_user: User = Depends(get_current_user),
-):
-    filepath = os.path.join(UPLOAD_DIR, filename)
-    if os.path.exists(filepath):
-        os.remove(filepath)
+def delete_image(filename: str, current_user: User = Depends(get_current_user)):
+    storage.delete(filename)
     return {"message": "Deleted"}
