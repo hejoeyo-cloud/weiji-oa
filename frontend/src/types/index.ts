@@ -746,3 +746,11 @@ export interface UserBrief {
   name: string
   email?: string
 }
+
+// ── 审批规则 ─────────────────────────────────────────────────────────
+export interface ApprovalRule {
+  id: number; name: string; target_module: string
+  condition_field: string; condition_op: string; condition_value: string
+  sign_mode: string; approver_ids: string; approver_names: string
+  enabled: boolean; sort_order: number
+}

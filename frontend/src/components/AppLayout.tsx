@@ -73,6 +73,7 @@ const navGroups: NavGroup[] = [
       { path: '/platform', label: '平台管理', icon: Building2, platformOnly: true },
       { path: '/audit-logs', label: '操作日志', icon: Shield, permission: ['audit_logs:view'] },
       { path: '/module-settings', label: '模块配置', icon: Settings },
+      { path: '/approval-rules', label: '审批规则', icon: GanttChartSquare, permission: ['approval_rules:view'] },
     ],
   },
 ]
