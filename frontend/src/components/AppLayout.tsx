@@ -5,7 +5,7 @@ import {
   Bell, LogOut, Menu, ClipboardList, Gift, DollarSign,
   Megaphone, CheckSquare, Shield, ChevronDown, Calendar, PackageCheck, User, Store,
   ChevronLeft, ChevronRight, Warehouse, RotateCcw, Wrench, Receipt, CreditCard, Building2,
-  Fingerprint, Kanban, BarChart3, Settings, Mail
+  Fingerprint, Kanban, BarChart3, Settings, Mail, GanttChartSquare
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useWebSocket } from '../hooks/useWebSocket'
