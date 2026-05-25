@@ -747,6 +747,29 @@ class MessageAttachment(Base):
     message = relationship("Message")
 
 
+
+class ApprovalRule(Base):
+    """审批规则 — 支持条件分支"""
+    __tablename__ = "approval_rules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    name = Column(String(100), default="")
+    target_module = Column(String(50), default="")    # 目标模块: return_exchange/repair
+    condition_field = Column(String(50), default="")  # 条件字段: amount/record_type
+    condition_op = Column(String(20), default="")     # 运算符: gt/gte/lt/lte/eq/contains
+    condition_value = Column(String(50), default="")  # 条件值: 5000
+    sign_mode = Column(String(10), default="or")      # 会签模式: or(或签)/and(会签)
+    approver_ids = Column(String(500), default="")    # 审批人ID列表, 逗号分隔
+    approver_names = Column(String(500), default="")  # 审批人姓名列表
+    enabled = Column(Boolean, default=True)
+    sort_order = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    company = relationship("Company")
+
+
 class GiftResendRecord(Base):
     """礼品补发登记"""
     __tablename__ = "gift_resend_records"

@@ -8,10 +8,9 @@ import os, uuid, shutil, hashlib
 
 from database import get_db, User, Message, MessageAttachment
 from auth import get_current_user
-from config import UPLOAD_DIR
+from storage import get_storage
 
-MAIL_UPLOAD = os.path.join(UPLOAD_DIR, "mail")
-os.makedirs(MAIL_UPLOAD, exist_ok=True)
+storage = get_storage()
 
 router = APIRouter(prefix="/api/messages", tags=["messages"])
 
@@ -197,8 +196,7 @@ def permanent_delete(msg_id: int, current_user: User = Depends(get_current_user)
             MessageAttachment.hash == att.hash, MessageAttachment.id != att.id
         ).count()
         if other_count == 0:
-            filepath = os.path.join(MAIL_UPLOAD, att.filepath)
-            if os.path.exists(filepath): os.remove(filepath)
+            storage.delete(att.filepath)
         db.delete(att)
     
     db.delete(msg); db.commit()
@@ -229,7 +227,6 @@ def upload(file: UploadFile = File(...), current_user: User = Depends(get_curren
     ).first()
     
     if existing:
-        # Dedup: reuse existing file, just create new DB record
         att = MessageAttachment(
             company_id=current_user.company_id, message_id=0,
             filename=file.filename or "file", filepath=existing.filepath,
@@ -237,12 +234,9 @@ def upload(file: UploadFile = File(...), current_user: User = Depends(get_curren
             hash=file_hash,
         )
     else:
-        # New file: save to disk with hash-based name
         ext = os.path.splitext(file.filename or "")[1]
-        save_name = f"{file_hash[:16]}{ext}"
-        save_path = os.path.join(MAIL_UPLOAD, save_name)
-        if not os.path.exists(save_path):
-            with open(save_path, "wb") as f: f.write(content)
+        save_name = f"mail/{file_hash[:16]}{ext}"
+        storage.save(content, save_name)
         att = MessageAttachment(
             company_id=current_user.company_id, message_id=0,
             filename=file.filename or "file", filepath=save_name,
@@ -261,8 +255,10 @@ def get_attachments(msg_id: int, current_user: User = Depends(get_current_user),
 def download(att_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     att = db.query(MessageAttachment).filter(MessageAttachment.id == att_id, MessageAttachment.company_id == current_user.company_id).first()
     if not att: raise HTTPException(404)
-    from fastapi.responses import FileResponse
-    return FileResponse(os.path.join(MAIL_UPLOAD, att.filepath), filename=att.filename)
+    from fastapi.responses import Response
+    content = storage.read(att.filepath)
+    return Response(content=content, media_type=att.mime_type or "application/octet-stream",
+                    headers={"Content-Disposition": f'attachment; filename="{att.filename}"'})
 
 @router.put("/attach/{att_id}/link/{msg_id}")
 def link(att_id: int, msg_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
