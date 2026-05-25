@@ -57,6 +57,10 @@ ALL_PERMISSIONS = [
     "attendance:view", "attendance:manage",
     # 任务看板
     "tasks:view", "tasks:create", "tasks:edit", "tasks:delete",
+    # 内部邮件
+    "messages:view", "messages:send",
+    # 审批规则
+    "approval_rules:view",
 ]
 
 # 模块分组（用于 UI 展示）
