@@ -5,6 +5,8 @@ from datetime import datetime
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from middleware.rate_limit import RateLimitMiddleware
+from middleware.request_log import request_log_middleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi import WebSocket, WebSocketDisconnect
@@ -47,6 +49,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Fries OA 内部系统", version="1.0.0", lifespan=lifespan)
 
+app.add_middleware(RateLimitMiddleware, max_requests=60, window_seconds=60)
+app.middleware("http")(request_log_middleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
@@ -83,6 +87,19 @@ app.include_router(dingtalk_router.router)
 app.include_router(module_config_router.router)
 app.include_router(messages_router.router)
 app.include_router(approval_rules_router.router)
+
+# ── WebSocket 实时推送 ──────────────────────────────────────────────
+from websocket.manager import manager as ws_manager
+
+@app.websocket("/ws/{user_id}")
+async def websocket_endpoint(websocket, user_id: int):
+    await ws_manager.connect(websocket, user_id)
+    try:
+        while True:
+            await websocket.receive_text()
+    except:
+        ws_manager.disconnect(user_id)
+
 app.include_router(finance_router.router, prefix="/api")
 
 
