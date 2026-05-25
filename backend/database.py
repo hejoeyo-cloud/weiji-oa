@@ -1,5 +1,6 @@
 """Database proxy — re-exports from models/ for backward compatibility"""
 from models.base import Base, engine, SessionLocal, JSONType
+from models.init_db import init_db
 from models.permissions import ALL_PERMISSIONS, PERMISSION_GROUPS, DEFAULT_ROLES
 from models import *
 

@@ -9,7 +9,8 @@ from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from models.init_db import init_db, seed_knowledge
+    from models.init_db import init_db
+    from seed_data import seed_knowledge
     init_db()
     seed_knowledge()
     yield
@@ -22,7 +23,9 @@ from fastapi.responses import FileResponse
 from fastapi import WebSocket, WebSocketDisconnect
 
 from config import UPLOAD_DIR, CORS_ORIGINS, SERVER_HOST, SERVER_PORT
-from database import init_db, SessionLocal, User
+from database import SessionLocal, User
+from models.init_db import init_db
+from seed_data import seed_knowledge
 from auth import get_current_user
 from routers import (
     auth_router, ticket_router, user_router,
