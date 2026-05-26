@@ -15,7 +15,7 @@ type Mode = 'view' | 'compose' | 'reply' | 'forward'
 type User = { id: number; name: string; department?: string; job_title?: string; email?: string }
 
 const folderIcons: Record<Folder, any> = { inbox: Inbox, sent: Send, drafts: FileText, starred: Star, trash: Trash2 }
-const folderLabels: Record<Folder, string> = { inbox: '收件箱', sent: '已发送', drafts: '草稿', trash: '回收站' }
+const folderLabels: Record<Folder, string> = { inbox: '收件箱', sent: '已发送', drafts: '草稿', starred: '星标邮件', trash: '回收站' }
 const modules = { toolbar: [['bold','italic','underline'],[{list:'ordered'},{list:'bullet'}],['blockquote'],['link'],['clean']] }
 
 export default function MessagesPage() {
@@ -83,7 +83,20 @@ export default function MessagesPage() {
     finally { setSending(false) }
   }
 
-  const handleStar = async (m:any) => { try { await toggleStar(m.id); loadFolder(folder) } catch {} }
+  const handleStar = async (m:any) => {
+    // 乐观更新：立即切换 UI 状态
+    const newVal = !(m.is_starred ?? false)
+    if (selected?.id === m.id) setSelected((p:any) => p ? {...p, is_starred: newVal} : p)
+    setMessages(prev => prev.map(x => x.id === m.id ? {...x, is_starred: newVal} : x))
+    try {
+      await toggleStar(m.id)
+      if (folder === 'starred') loadFolder('starred')
+    } catch {
+      // 回滚
+      if (selected?.id === m.id) setSelected((p:any) => p ? {...p, is_starred: !newVal} : p)
+      setMessages(prev => prev.map(x => x.id === m.id ? {...x, is_starred: !newVal} : x))
+    }
+  }
   const handleDelete = async (m:any) => {
     if (folder==='trash') { if(!confirm('永久删除？'))return; try{await permanentDelete(m.id);loadFolder('trash');setSelected(null)}catch{} }
     else { try{await softDelete(m.id);loadFolder(folder);setSelected(null)}catch{} }
