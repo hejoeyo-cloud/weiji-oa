@@ -45,7 +45,7 @@ export default function MessagesPage() {
   useEffect(() => { loadFolder(folder); loadCounts(); loadUsers() }, [folder])
 
   const loadCounts = async () => { try { setCounts((await getCounts()).data || {}) } catch {} }
-  const loadUsers = async () => { try { const u = (await getUsers()).data || (await getUsers()) || []; setUsers(u.map((x:any)=>({name:x.name||'',email:x.email||(x.name||'')+'@oa.local',id:x.id}))) } catch {} }
+  const loadUsers = async () => { try { const u = (await getUsers()).data || (await getUsers()) || []; setUsers(u.map((x:any)=>({name:x.name||'',email:x.email||(x.name||'')+'@oa.local'}))) } catch {} }
 
   const selectMessage = async (msg: any) => {
     setSelected(msg); setMode('view')
@@ -54,7 +54,7 @@ export default function MessagesPage() {
   }
 
   const handleSend = async (emailData: any) => {
-    const toIds = emailData.to?.map((u:any)=>u.id).filter(Boolean) || []
+    const toIds = emailData.to?.map((u:any) => { if (u.id) return u.id; const found = users.find((x:any) => x.email === u.email); return found?.id }).filter(Boolean) || []
     try {
       if (mode==='compose') { await sendMessage({ to_ids:toIds, subject:emailData.subject||'', body:emailData.body||'', draft:false }); notify('邮件已发送', emailData.subject||'(无主题)') }
       else if (mode==='reply'&&selected) { await replyMessage(selected.id, { body:emailData.body||'', to_ids:toIds }); notify('回复已发送', 'Re: '+selected.subject) }
@@ -70,7 +70,7 @@ export default function MessagesPage() {
   }
 
   const fetchEmailOptions = async (q: string) => {
-    const list = users.length > 0 ? users : await getUsers().then(r => (r.data||r||[])).then(u => u.map((x:any)=>({name:x.name||'',email:x.email||(x.name||'')+'@oa.local',id:x.id})))
+    const list = users.length > 0 ? users : await getUsers().then(r => (r.data||r||[])).then(u => u.map((x:any)=>({name:x.name||'',email:x.email||(x.name||'')+'@oa.local'})))
     if (!q) return list.slice(0,20)
     const lower = q.toLowerCase()
     return list.filter((u:any)=>u.name.toLowerCase().includes(lower)||(u.email||'').toLowerCase().includes(lower)).slice(0,20)
