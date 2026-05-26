@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 import { Edit2, Star, Trash2, Search, Reply, Forward, Download, Inbox, Send, FileText, RefreshCw, X, ChevronDown, ChevronRight, Users } from 'lucide-react'
-import { getInbox, getSent, getDrafts, getTrash, getCounts, sendMessage, markRead,
+import { getInbox, getSent, getDrafts, getTrash, getCounts, sendMessage, saveDraft, markRead,
          toggleStar, softDelete, permanentDelete, replyMessage, forwardMessage, getAttachments } from '../api/messages'
 import { getUsers } from '../api/users'
 import client from '../api/client'
@@ -65,6 +65,14 @@ export default function MessagesPage() {
       if (m==='forward') { setSubject('Fwd: '+(msg.subject||'')); setBody(msg.content||'') } }
   }
 
+  const handleSaveDraft = async () => {
+    if (!subject && !body) return
+    try {
+      await saveDraft({ recipient_id: to[0]?.id || 0, subject, content: body })
+      setMode('view'); setSelected(null); loadFolder('drafts')
+    } catch (e: any) { alert('保存草稿失败') }
+  }
+
   const handleSend = async () => {
     const rid = to[0]?.id; if (!rid) { alert('请选择收件人'); return }
     setSending(true)
@@ -110,8 +118,11 @@ export default function MessagesPage() {
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
               <span className="font-medium text-sm">{mode==='reply'?'回复':mode==='forward'?'转发':'写邮件'}</span>
             </div>
+            <div className="flex items-center gap-2">
+            <button onClick={handleSaveDraft} className="px-3 py-1.5 text-xs border rounded-lg text-gray-600 hover:bg-gray-50">存草稿</button>
             <button onClick={handleSend} disabled={sending} className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-lg flex items-center gap-1.5 hover:bg-blue-700 disabled:opacity-50">
               <Send size={14}/> {sending?'发送中...':'发送'}</button>
+          </div>
           </div>
           <div className="flex-1 flex flex-col p-4 overflow-auto">
             {mode !== 'reply' && <div className="mb-3">
