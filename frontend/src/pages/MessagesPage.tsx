@@ -33,6 +33,7 @@ export default function MessagesPage() {
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
   const [showToPicker, setShowToPicker] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
   const [showCcPicker, setShowCcPicker] = useState(false)
   const [sending, setSending] = useState(false)
   const quillRef = useRef<any>(null)
@@ -65,7 +66,7 @@ export default function MessagesPage() {
     setMode(m); setSubject(''); setBody(''); setTo([]); setCcUsers([]); setFiles([])
     if (msg) {
       if (m==='reply') { setTo([{id:msg.sender_id,name:msg.sender_name}]); setSubject('Re: '+(msg.subject||'')) }
-      if (m==='forward') { setSubject('Fwd: '+(msg.subject||'')); setBody(msg.body||'') }
+      if (m==='forward') { setSubject('Fwd: '+(msg.subject||'')); setBody(msg.content||'') }
     }
   }
 
@@ -130,12 +131,10 @@ export default function MessagesPage() {
                     <span key={u.id} className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded flex items-center gap-1">
                       {u.name}<button onClick={()=>removeRecipient(to,setTo,u.id)}><X size={10}/></button></span>))}
                   <div className="relative flex-1 min-w-[100px]">
-                    <input className="border-none outline-none text-sm w-full py-0.5" placeholder="添加收件人..."
-                      onFocus={()=>setShowToPicker(true)} onBlur={()=>setTimeout(()=>setShowToPicker(false),200)} />
-                    {showToPicker && <div className="absolute top-full left-0 bg-white border rounded-lg shadow-lg z-20 max-h-48 overflow-auto w-56 mt-1">
-                      {users.filter((u:any)=>!to.find((t:any)=>t.id===u.id)).slice(0,20).map((u:any)=>(
-                        <div key={u.id} className="px-3 py-1.5 text-sm hover:bg-blue-50 cursor-pointer" onMouseDown={()=>addRecipient(to,setTo,u)}>{u.name}</div>))}
-                    </div>}
+                    <input className="border-none outline-none text-sm w-full py-0.5" placeholder="搜索员工姓名..."
+                      onChange={e => setSearchTerm(e.target.value)}
+                      onFocus={()=>setShowToPicker(true)} onBlur={()=>setTimeout(()=>setShowToPicker(false),300)} />
+                    {showToPicker && <UserPicker users={users} to={to} onSelect={(u:any) => addRecipient(to, setTo, u)} searchTerm={searchTerm} />}
                   </div>
                 </div>
               </div>
@@ -167,7 +166,7 @@ export default function MessagesPage() {
                     <span className="text-xs text-gray-400 flex-shrink-0">{fmt(msg.created_at)}</span>
                   </div>
                   <div className="text-sm truncate" style={{fontWeight:msg.is_read===0?600:400}}>{msg.subject||'(无主题)'}</div>
-                  <div className="text-xs text-gray-400 truncate mt-0.5">{stripHtml(msg.body||'').slice(0,60)}</div>
+                  <div className="text-xs text-gray-400 truncate mt-0.5">{stripHtml(msg.content||'').slice(0,60)}</div>
                 </div>))}
             </div>
           </div>
@@ -189,7 +188,7 @@ export default function MessagesPage() {
                     <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm font-medium">{(selected.sender_name||'?')[0]}</div>
                     <div className="flex-1"><div className="text-sm font-medium">{selected.sender_name}</div><div className="text-xs text-gray-400">{fmt(selected.created_at)}</div></div>
                   </div>
-                  <div className="text-sm leading-relaxed prose max-w-none" dangerouslySetInnerHTML={{__html:selected.body||''}}/>
+                  <div className="text-sm leading-relaxed prose max-w-none" dangerouslySetInnerHTML={{__html:selected.content||''}}/>
                   {attachments.length>0&&<div className="mt-5 pt-4 border-t" style={{borderColor:'#f3f4f6'}}><div className="text-xs text-gray-500 mb-2">{attachments.length}个附件</div>
                     {attachments.map((a:any)=>(<a key={a.id} href={client.defaults.baseURL+'/messages/attachment/'+a.id} target="_blank" className="flex items-center gap-2 px-3 py-2 border rounded-lg mb-1.5 text-sm hover:bg-gray-50" style={{borderColor:'#e5e7eb'}}><Download size={14} className="text-gray-400"/>{a.filename}</a>))}</div>}
                 </div>
@@ -206,3 +205,40 @@ export default function MessagesPage() {
 function stripHtml(h: string) { return h.replace(/<[^>]*>/g, '') }
 function fmt(t: string) { if(!t)return'';try{const d=new Date(t),n=new Date();return d.toDateString()===n.toDateString()?d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('zh-CN')}catch{return t} }
 
+
+function UserPicker({ users, to, onSelect, searchTerm }: any) {
+  const [expandedDepts, setExpandedDepts] = useState<Record<string, boolean>>({})
+  const deptMap: Record<string, any[]> = {}
+  users.forEach((u: any) => {
+    const dept = u.department || u.dept_name || '未分组'
+    if (!deptMap[dept]) deptMap[dept] = []
+    deptMap[dept].push(u)
+  })
+  const depts = Object.keys(deptMap).sort()
+  
+  const filteredDepts = searchTerm ? 
+    Object.fromEntries(Object.entries(deptMap).map(([d, us]: any) => 
+      [d, us.filter((u: any) => u.name.includes(searchTerm) || (u.department||'').includes(searchTerm))]
+    ).filter(([_, us]: any) => us.length > 0))
+    : deptMap
+
+  return <div className="absolute top-full left-0 bg-white border rounded-lg shadow-lg z-20 max-h-72 overflow-auto w-60 mt-1">
+    {Object.keys(filteredDepts).length === 0 && <div className="px-3 py-2 text-sm text-gray-400">无匹配结果</div>}
+    {Object.entries(filteredDepts).map(([dept, deptUsers]: any) => {
+      const isExpanded = expandedDepts[dept] !== false
+      const visible = to.length === 0 ? deptUsers : deptUsers.filter((u: any) => !to.find((t: any) => t.id === u.id))
+      if (visible.length === 0) return null
+      return <div key={dept}>
+        <div className="px-3 py-1.5 text-xs font-medium text-gray-500 bg-gray-50 cursor-pointer flex items-center gap-1"
+          onClick={() => setExpandedDepts((p: any) => ({...p, [dept]: !isExpanded}))}>
+          <span style={{transform: isExpanded ? 'rotate(90deg)' : '', transition: 'transform 0.15s', display: 'inline-block'}}>▸</span>
+          {dept} ({visible.length})
+        </div>
+        {isExpanded && visible.map((u: any) => (
+          <div key={u.id} className="px-6 py-1.5 text-sm hover:bg-blue-50 cursor-pointer" onMouseDown={() => onSelect(u)}>
+            {u.name} {u.job_title ? <span className="text-xs text-gray-400">({u.job_title})</span> : null}
+          </div>))}
+      </div>
+    })}
+  </div>
+}
