@@ -4,7 +4,7 @@ from sqlalchemy import func
 
 from database import get_db, GiftCashback, GiftRecord, User
 from schemas import GiftCashbackCreate, GiftCashbackUpdate, GiftCashbackOut
-from auth import get_current_user, apply_owner_filter
+from auth import get_current_user, require_permission, apply_owner_filter
 from services import audit_service
 
 router = APIRouter(prefix="/api/gift-cashback", tags=["gift-cashback"])
@@ -34,7 +34,7 @@ def list_cashbacks(
     end_date: str = Query("", description="Filter by created_at <= end_date (YYYY-MM-DD)"),
     all: bool = Query(False, description="Return all records (for export)"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("gift_cashback:view")),
 ):
     query = db.query(GiftCashback).filter(GiftCashback.company_id == current_user.company_id)
     query = apply_owner_filter(query, GiftCashback, current_user)
@@ -66,7 +66,7 @@ def list_cashbacks(
 def get_cashback(
     cashback_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("gift_cashback:create")),
 ):
     c = db.query(GiftCashback).filter(GiftCashback.id == cashback_id, GiftCashback.company_id == current_user.company_id).first()
     if not c:
@@ -78,7 +78,7 @@ def get_cashback(
 def create_cashback(
     req: GiftCashbackCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("gift_cashback:edit")),
 ):
     c = GiftCashback(
         company_id=current_user.company_id,
@@ -102,7 +102,7 @@ def update_cashback(
     cashback_id: int,
     req: GiftCashbackUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("gift_cashback:delete")),
 ):
     c = db.query(GiftCashback).filter(GiftCashback.id == cashback_id, GiftCashback.company_id == current_user.company_id).first()
     if not c:

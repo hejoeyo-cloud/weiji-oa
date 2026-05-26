@@ -4,7 +4,7 @@ from sqlalchemy import func
 
 from database import get_db, GiftRecord, GiftCashback, GiftFeedback, User
 from schemas import GiftRecordCreate, GiftRecordUpdate, GiftRecordOut, GiftFeedbackCreate, GiftFeedbackOut
-from auth import apply_owner_filter,  get_current_user
+from auth import apply_owner_filter, get_current_user, require_permission
 from services import audit_service
 
 router = APIRouter(prefix="/api/gifts", tags=["gifts"])
@@ -71,7 +71,7 @@ def list_records(
     end_date: str = Query("", description="Filter by date <= end_date (YYYY-MM-DD)"),
     all: bool = Query(False, description="Return all records (for export)"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("gifts:view")),
 ):
     # 检查用户是否有成本查看权限
     has_cost_permission = "gifts:cost_view" in (current_user.role_obj.permissions if current_user.role_obj else [])
@@ -108,7 +108,7 @@ def list_records(
 def get_record(
     record_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("gifts:create")),
 ):
     # 检查用户是否有成本查看权限
     has_cost_permission = "gifts:cost_view" in (current_user.role_obj.permissions if current_user.role_obj else [])
@@ -123,7 +123,7 @@ def get_record(
 def create_record(
     req: GiftRecordCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("gifts:edit")),
 ):
     has_cost_permission = "gifts:cost_view" in (current_user.role_obj.permissions if current_user.role_obj else [])
     
@@ -160,7 +160,7 @@ def update_record(
     record_id: int,
     req: GiftRecordUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("gifts:delete")),
 ):
     has_cost_permission = "gifts:cost_view" in (current_user.role_obj.permissions if current_user.role_obj else [])
     
@@ -183,7 +183,7 @@ def update_record(
 def delete_record(
     record_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("gifts:cost_view")),
 ):
     r = db.query(GiftRecord).filter(GiftRecord.id == record_id, GiftRecord.company_id == current_user.company_id).first()
     if not r:

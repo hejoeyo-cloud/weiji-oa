@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db, GiftResendRecord, User, GiftResendFeedback
 from schemas import GiftResendCreate, GiftResendUpdate, GiftResendOut, GiftResendFeedbackCreate, GiftResendFeedbackOut
-from auth import apply_owner_filter,  get_current_user
+from auth import apply_owner_filter, get_current_user, require_permission
 from services import audit_service
 
 router = APIRouter(prefix="/api/gift-resend", tags=["gift_resend"])
@@ -37,7 +37,7 @@ def list_records(
     end_date: str = Query("", description="Filter by apply_date <= end_date (YYYY-MM-DD)"),
     all: bool = Query(False, description="Return all records (for export)"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("gift_resend:view")),
 ):
     query = db.query(GiftResendRecord).filter(GiftResendRecord.company_id == current_user.company_id)
     query = apply_owner_filter(query, GiftResendRecord, current_user)
@@ -68,7 +68,7 @@ def list_records(
 def get_record(
     record_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("gift_resend:create")),
 ):
     r = db.query(GiftResendRecord).filter(GiftResendRecord.id == record_id, GiftResendRecord.company_id == current_user.company_id).first()
     if not r:
@@ -80,7 +80,7 @@ def get_record(
 def create_record(
     req: GiftResendCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("gift_resend:edit")),
 ):
     r = GiftResendRecord(
         company_id=current_user.company_id,
@@ -108,7 +108,7 @@ def update_record(
     record_id: int,
     req: GiftResendUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("gift_resend:delete")),
 ):
     r = db.query(GiftResendRecord).filter(GiftResendRecord.id == record_id, GiftResendRecord.company_id == current_user.company_id).first()
     if not r:

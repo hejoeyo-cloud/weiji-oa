@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db, TaskBoard, User
 from schemas import TaskCreate, TaskUpdate, TaskOut
-from auth import get_current_user
+from auth import get_current_user, require_permission
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 

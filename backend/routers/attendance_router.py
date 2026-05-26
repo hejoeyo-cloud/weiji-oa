@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db, AttendanceRecord, User
 from schemas import CheckInRequest, AttendanceRecordOut, MonthlyAttendanceStats
-from auth import get_current_user
+from auth import get_current_user, require_permission
 
 router = APIRouter(prefix="/api/attendance", tags=["attendance"])
 
@@ -31,7 +31,7 @@ def _record_to_out(r: AttendanceRecord) -> AttendanceRecordOut:
 @router.post("/check-in", response_model=AttendanceRecordOut)
 def check_in(
     req: CheckInRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("attendance:view")),
     db: Session = Depends(get_db),
 ):
     now = datetime.now()

@@ -11,7 +11,7 @@ from schemas import (
     WarehouseInboundFeedbackCreate, WarehouseInboundFeedbackOut,
     WarehouseOutboundFeedbackCreate, WarehouseOutboundFeedbackOut,
 )
-from auth import get_current_user
+from auth import get_current_user, require_permission
 from services import audit_service
 
 router = APIRouter(prefix="/api/warehouse", tags=["warehouse"])
@@ -111,7 +111,7 @@ def list_products(
     category: str = Query("", description="Filter by category"),
     all: bool = Query(False),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("warehouse_products:view")),
 ):
     query = db.query(WarehouseProduct).filter(WarehouseProduct.company_id == current_user.company_id)
     if search:
@@ -142,7 +142,7 @@ def list_products(
 def get_product(
     product_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("warehouse_products:create")),
 ):
     p = db.query(WarehouseProduct).filter(WarehouseProduct.id == product_id, WarehouseProduct.company_id == current_user.company_id).first()
     if not p:
@@ -154,7 +154,7 @@ def get_product(
 def create_product(
     data: WarehouseProductCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("warehouse_products:edit")),
 ):
     # 检查编码唯一性
     existing = db.query(WarehouseProduct).filter(WarehouseProduct.code == data.code, WarehouseProduct.company_id == current_user.company_id).first()
@@ -184,7 +184,7 @@ def update_product(
     product_id: int,
     data: WarehouseProductUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("warehouse_inbound:view")),
 ):
     p = db.query(WarehouseProduct).filter(WarehouseProduct.id == product_id, WarehouseProduct.company_id == current_user.company_id).first()
     if not p:
@@ -209,7 +209,7 @@ def update_product(
 def delete_product(
     product_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("warehouse_inbound:create")),
 ):
     p = db.query(WarehouseProduct).filter(WarehouseProduct.id == product_id, WarehouseProduct.company_id == current_user.company_id).first()
     if not p:
@@ -233,7 +233,7 @@ def delete_product(
 def get_inbound_feedbacks(
     record_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("warehouse_inbound:edit")),
 ):
     """获取入库记录的处理记录列表"""
     feedbacks = db.query(WarehouseInboundFeedback).filter(
@@ -258,7 +258,7 @@ def add_inbound_feedback(
     record_id: int,
     data: WarehouseInboundFeedbackCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("warehouse_outbound:view")),
 ):
     """添加入库记录的处理记录"""
     # 验证记录是否存在
@@ -299,7 +299,7 @@ def list_inbound(
     end_date: str = Query(""),
     all: bool = Query(False),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("warehouse_outbound:create")),
 ):
     query = db.query(WarehouseInbound).filter(WarehouseInbound.company_id == current_user.company_id)
     if search:
@@ -334,7 +334,7 @@ def list_inbound(
 def create_inbound(
     data: WarehouseInboundCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("warehouse_outbound:edit")),
 ):
     product = db.query(WarehouseProduct).filter(WarehouseProduct.id == data.product_id, WarehouseProduct.company_id == current_user.company_id).first()
     if not product:

@@ -7,7 +7,7 @@ from datetime import datetime
 import os, uuid, shutil, hashlib
 
 from database import get_db, User, Message, MessageAttachment
-from auth import get_current_user
+from auth import get_current_user, require_permission
 from storage import get_storage
 
 storage = get_storage()
@@ -106,7 +106,7 @@ def get_counts(current_user: User = Depends(get_current_user), db: Session = Dep
 
 # ── 发送 ──
 @router.post("", response_model=MessageOut)
-def send_message(req: MessageCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def send_message(req: MessageCreate, current_user: User = Depends(require_permission("messages:send")), db: Session = Depends(get_db)):
     recipient = db.query(User).filter(User.id == req.recipient_id, User.company_id == current_user.company_id).first()
     if not recipient: raise HTTPException(404, "收件人不存在")
     thread_id = req.thread_id
