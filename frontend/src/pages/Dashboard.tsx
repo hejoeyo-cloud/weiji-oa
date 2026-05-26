@@ -9,6 +9,7 @@ import AnnouncementPanel from '../components/dashboard/AnnouncementPanel'
 import SchedulePanel from '../components/dashboard/SchedulePanel'
 import OverviewCards from '../components/dashboard/OverviewCards'
 import RecentActivity from '../components/dashboard/RecentActivity'
+import UnreadMessagesPanel from '../components/dashboard/UnreadMessagesPanel'
 
 export default function Dashboard() {
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null)
@@ -93,6 +94,8 @@ export default function Dashboard() {
           onOpenSchedule={() => navigate('/schedule')}
         />
       </div>
+
+      <UnreadMessagesPanel messages={dashboard.unread_messages || []} />
 
       <OverviewCards cards={dashboard.overview_cards} onOpen={(path) => path && navigate(path)} />
 

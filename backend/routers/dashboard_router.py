@@ -341,6 +341,24 @@ def build_shortcuts(user_perms: list[str]) -> list[dict]:
     } for item in shortcuts if has_permission(user_perms, *item["permissions"])]
 
 
+def build_unread_messages(db: Session, current_user: User) -> list[dict]:
+    """未读邮件列表 (最多5条)"""
+    from database import Message
+    msgs = db.query(Message).filter(
+        Message.company_id == current_user.company_id,
+        Message.recipient_id == current_user.id,
+        Message.is_read == False,
+        Message.is_draft == False,
+        Message.is_deleted == False,
+    ).order_by(Message.created_at.desc()).limit(5).all()
+    return [{
+        "id": m.id, "subject": m.subject or "(无主题)",
+        "sender_name": m.sender.name if m.sender else "",
+        "content_preview": (m.content or "")[:80],
+        "created_at": m.created_at.isoformat() if m.created_at else "",
+    } for m in msgs]
+
+
 def build_recent_activity(db: Session, current_user: User) -> list[dict]:
     import json
     items: list[dict] = []
@@ -467,4 +485,5 @@ def get_dashboard(
         ),
         "shortcuts": build_shortcuts(user_perms),
         "recent_activity": build_recent_activity(db, current_user),
+        "unread_messages": build_unread_messages(db, current_user),
     }
