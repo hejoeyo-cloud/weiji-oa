@@ -14,7 +14,7 @@ type Folder = 'inbox' | 'sent' | 'drafts' | 'trash'
 type Mode = 'view' | 'compose' | 'reply' | 'forward'
 type User = { id: number; name: string; department?: string; job_title?: string; email?: string }
 
-const folderIcons: Record<Folder, any> = { inbox: Inbox, sent: Send, drafts: FileText, trash: Trash2 }
+const folderIcons: Record<Folder, any> = { inbox: Inbox, sent: Send, drafts: FileText, starred: Star, trash: Trash2 }
 const folderLabels: Record<Folder, string> = { inbox: '收件箱', sent: '已发送', drafts: '草稿', trash: '回收站' }
 const modules = { toolbar: [['bold','italic','underline'],[{list:'ordered'},{list:'bullet'}],['blockquote'],['link'],['clean']] }
 
@@ -45,13 +45,13 @@ export default function MessagesPage() {
     setLoading(true)
     try { let data: any
       if (f==='inbox') data = await getInbox(); else if (f==='sent') data = await getSent()
-      else if (f==='drafts') data = await getDrafts(); else if (f==='trash') data = await getTrash()
+      else if (f==='drafts') data = await getDrafts(); else if (f==='starred') data = (await getInbox('', true)).data || await getInbox('', true); else if (f==='trash') data = await getTrash()
       setMessages(Array.isArray(data?.data||data) ? (data?.data||data) : [])
     } catch {} finally { setLoading(false) }
   }, [])
   useEffect(() => { loadFolder(folder); loadCounts(); loadUsers() }, [folder])
 
-  const loadCounts = async () => { try { setCounts((await getCounts()).data || {}) } catch {} }
+  const loadCounts = async () => { try { const cnts = (await getCounts()).data || {}; setCounts(cnts) } catch {} }
   const loadUsers = async () => { try { setUsers((await getUsers()).data || (await getUsers()) || []) } catch {} }
 
   const selectMessage = async (msg: any) => { setSelected(msg); setMode('view')
@@ -94,7 +94,7 @@ export default function MessagesPage() {
   users.forEach(u => { const d = u.department || '其他'; if(!departments[d]) departments[d] = []; departments[d].push(u) })
 
   const filtered: any[] = messages.filter((m:any)=>!search||(m.subject||'').includes(search)||(m.sender_name||'').includes(search))
-  const folders: Folder[] = ['inbox','sent','drafts','trash']
+  const folders: Folder[] = ['inbox','sent','drafts','starred','trash']
 
   return (
     <div className="flex h-[calc(100vh-80px)] bg-white border rounded-lg overflow-hidden" style={{borderColor:'#e5e7eb'}}>
