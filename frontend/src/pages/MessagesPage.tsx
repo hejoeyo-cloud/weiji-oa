@@ -4,7 +4,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
-import { Edit2, Star, Trash2, Search, Reply, Forward, Download, Inbox, Send, FileText, RefreshCw, X, ChevronDown, ChevronRight, Users } from 'lucide-react'
+import { Edit2, Star, Trash2, Search, Reply, Forward, Download, Inbox, Send, FileText, RefreshCw, X, ChevronDown, ChevronRight, Users, Paperclip } from 'lucide-react'
 import { getInbox, getSent, getDrafts, getTrash, getCounts, sendMessage, saveDraft, markRead,
          toggleStar, softDelete, permanentDelete, replyMessage, forwardMessage, getAttachments, uploadAttachment } from '../api/messages'
 import { getUsers } from '../api/users'
