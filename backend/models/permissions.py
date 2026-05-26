@@ -98,9 +98,11 @@ DEFAULT_ROLES = [
             "warehouse_outbound:view", "warehouse_outbound:create", "warehouse_outbound:edit",
             "announcements:view",
             "approvals:view", "approvals:create",
+            "approval_rules:view",
             "schedule:view",
             "attendance:view",
             "tasks:view", "tasks:create", "tasks:edit",
+            "messages:view", "messages:send",
         ],
     },
     {
@@ -121,6 +123,7 @@ DEFAULT_ROLES = [
             "schedule:view",
             "attendance:view",
             "tasks:view",
+            "messages:view", "messages:send",
         ],
     },
 ]
