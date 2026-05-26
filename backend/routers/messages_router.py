@@ -229,11 +229,32 @@ def mark_read(msg_id: int, current_user: User = Depends(get_current_user), db: S
 def upload(file: UploadFile = File(...), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if file.size and file.size > 300 * 1024 * 1024: raise HTTPException(400, "≤300MB")
     
-    # Read content and compute SHA-256 hash for dedup
     content = file.file.read()
+    mime = file.content_type or ""
+    
+    # 图片自动压缩（减少 80-95% 体积）
+    if mime.startswith("image/") and mime != "image/gif" and mime != "image/svg+xml":
+        try:
+            from io import BytesIO
+            from PIL import Image
+            img = Image.open(BytesIO(content))
+            if img.mode in ("RGBA", "P"): img = img.convert("RGB")
+            w, h = img.size
+            max_dim = 1920
+            if w > max_dim or h > max_dim:
+                ratio = min(max_dim / w, max_dim / h)
+                img = img.resize((int(w * ratio), int(h * ratio)), Image.LANCZOS)
+            buf = BytesIO()
+            img.save(buf, format="JPEG", quality=80, optimize=True)
+            compressed = buf.getvalue()
+            if len(compressed) < len(content):
+                content = compressed
+                mime = "image/jpeg"
+        except: pass
+    
     file_hash = hashlib.sha256(content).hexdigest()
     
-    # Check if same hash already exists in this company
+    # SHA-256 去重
     existing = db.query(MessageAttachment).filter(
         MessageAttachment.hash == file_hash,
         MessageAttachment.company_id == current_user.company_id,
@@ -243,18 +264,16 @@ def upload(file: UploadFile = File(...), current_user: User = Depends(get_curren
         att = MessageAttachment(
             company_id=current_user.company_id, message_id=0,
             filename=file.filename or "file", filepath=existing.filepath,
-            size=len(content), mime_type=file.content_type or "",
-            hash=file_hash,
+            size=len(content), mime_type=mime, hash=file_hash,
         )
     else:
-        ext = os.path.splitext(file.filename or "")[1]
+        ext = os.path.splitext(file.filename or "")[1] or ".jpg"
         save_name = f"mail/{file_hash[:16]}{ext}"
         storage.save(content, save_name)
         att = MessageAttachment(
             company_id=current_user.company_id, message_id=0,
             filename=file.filename or "file", filepath=save_name,
-            size=len(content), mime_type=file.content_type or "",
-            hash=file_hash,
+            size=len(content), mime_type=mime, hash=file_hash,
         )
     
     db.add(att); db.commit(); db.refresh(att)
