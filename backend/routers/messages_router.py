@@ -6,7 +6,7 @@ from typing import Optional, List
 from datetime import datetime
 import os, uuid, shutil, hashlib
 
-from database import get_db, User, Message, MessageAttachment
+from database import get_db, User, Message, MessageAttachment, Notification
 from auth import get_current_user, require_permission
 from storage import get_storage
 
@@ -115,6 +115,11 @@ def send_message(req: MessageCreate, current_user: User = Depends(require_permis
                   recipient_id=req.recipient_id, subject=req.subject, content=req.content,
                   is_draft=False, thread_id=thread_id)
     db.add(msg); db.commit(); db.refresh(msg)
+    # 创建收件人通知
+    notif = Notification(company_id=current_user.company_id, user_id=req.recipient_id,
+                         title=f"新邮件: {req.subject}", content=f"来自 {current_user.name}",
+                         is_read=False)
+    db.add(notif); db.commit()
     return _out(msg)
 
 
