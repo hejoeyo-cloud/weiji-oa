@@ -70,13 +70,13 @@ export default function MessagesPage() {
   }
 
   const handleSend = async () => {
-    const toIds = to.map(u=>u.id).filter(Boolean)
-    if (!toIds.length) { alert('请添加收件人'); return }
+    const recipientId = to[0]?.id
+    if (!recipientId) { alert('请选择收件人'); return }
     setSending(true)
     try {
-      if (mode==='compose') { await sendMessage({ to_ids:toIds, subject, body, draft:false }); notify('邮件已发送', subject||'(无主题)') }
-      else if (mode==='reply'&&selected) { await replyMessage(selected.id, { body, to_ids:toIds }) }
-      else if (mode==='forward'&&selected) { await forwardMessage(selected.id, { body, to_ids:toIds }) }
+      if (mode==='compose') { await sendMessage({ recipient_id: recipientId, subject, content: body, draft: false }); notify('邮件已发送', subject||'(无主题)') }
+      else if (mode==='reply'&&selected) { await replyMessage(selected.id, { content: body, recipient_id: recipientId }) }
+      else if (mode==='forward'&&selected) { await forwardMessage(selected.id, { content: body, recipient_id: recipientId }) }
       setMode('view'); setSelected(null); loadFolder('sent'); loadFolder('inbox')
     } catch (e:any) { const msg = typeof e?.response?.data?.detail === 'string' ? e.response.data.detail : '发送失败'; alert(msg) }
     finally { setSending(false) }
@@ -88,8 +88,8 @@ export default function MessagesPage() {
     else { try{await softDelete(m.id);loadFolder(folder);setSelected(null)}catch{} }
   }
 
-  const removeRecipient = (arr:any[], setArr:any, id:number) => setArr(arr.filter((u:any)=>u.id!==id))
-  const addRecipient = (arr:any[], setArr:any, user:any) => { if(!arr.find((u:any)=>u.id===user.id)) setArr([...arr, user]) }
+  const removeRecipient = (arr:any[], setArr:any, id:number) => setArr([])
+  const addRecipient = (arr:any[], setArr:any, user:any) => { setArr([user]) }
 
   const folders: Folder[] = ['inbox','sent','drafts','trash']
   const filtered = messages.filter((m:any)=>!search||(m.subject||'').includes(search)||(m.sender_name||'').includes(search))
