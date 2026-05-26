@@ -78,4 +78,21 @@ class ShiftSwapRequestOut(BaseModel):
         from_attributes = True
 
 
-# ── 仓储业务 ─────────────────────────────────────────────────────────
+# ── 批量排班 ─────────────────────────────────────────────────────
+
+class ScheduleSlotBatchCreate(BaseModel):
+    """批量设置排班：同一天多个人的同一班次"""
+    user_ids: List[int]
+    date: str
+    shift_id: int
+
+class ScheduleSlotBatchRangeCreate(BaseModel):
+    """批量设置排班：一个人连续多天同一班次"""
+    user_id: int
+    start_date: str            # YYYY-MM-DD
+    end_date: str              # YYYY-MM-DD
+    shift_id: int
+
+class ShiftSwapAction(BaseModel):
+    action: str = "approve"    # approve / reject
+    comment: str = ""

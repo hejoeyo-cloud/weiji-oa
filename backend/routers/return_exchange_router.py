@@ -1,16 +1,22 @@
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from database import get_db, ReturnExchangeRecord, User, ReturnExchangeFeedback
+from database import get_db, ReturnExchangeRecord, User, ReturnExchangeFeedback, AfterSalesChargeRequest
 from schemas import (
     ReturnExchangeCreate,
     ReturnExchangeUpdate,
     ReturnExchangeOut,
     ReturnExchangeFeedbackCreate,
     ReturnExchangeFeedbackOut,
+    AfterSalesChargeRequestCreate,
+    AfterSalesChargeRequestPaid,
+    AfterSalesChargeRequestCancel,
+    AfterSalesChargeRequestOut,
 )
 from auth import apply_owner_filter,  get_current_user, require_permission
 from services import audit_service
+from services.charge_service import create_aftersales_charge_request
 
 router = APIRouter(prefix="/api/return-exchange", tags=["return_exchange"])
 
@@ -220,3 +226,124 @@ def get_feedbacks(
         )
         for fb in feedbacks
     ]
+
+
+# ── 收费审批 ─────────────────────────────────────────────────────
+
+def charge_to_out(charge_request: AfterSalesChargeRequest) -> AfterSalesChargeRequestOut:
+    return AfterSalesChargeRequestOut(
+        id=charge_request.id,
+        after_sales_record_id=charge_request.after_sales_record_id,
+        status=charge_request.status or "pending_charge",
+        expected_amount=charge_request.expected_amount or 0,
+        paid_amount=charge_request.paid_amount or 0,
+        charge_note=charge_request.charge_note or "",
+        amount_change_note=charge_request.amount_change_note or "",
+        created_by=charge_request.created_by,
+        created_by_name=charge_request.creator.name if charge_request.creator else "",
+        paid_by=charge_request.paid_by,
+        paid_by_name=charge_request.payer.name if charge_request.payer else "",
+        created_at=charge_request.created_at,
+        paid_at=charge_request.paid_at,
+        updated_at=charge_request.updated_at,
+    )
+
+
+@router.post("/{record_id}/charge-requests", response_model=AfterSalesChargeRequestOut)
+def create_record_charge_request(
+    record_id: int,
+    req: AfterSalesChargeRequestCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("return_exchange:process")),
+):
+    record = db.query(ReturnExchangeRecord).filter(
+        ReturnExchangeRecord.id == record_id,
+        ReturnExchangeRecord.company_id == current_user.company_id,
+    ).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Record not found")
+    charge_request = create_aftersales_charge_request(
+        db=db,
+        record=record,
+        current_user=current_user,
+        expected_amount=req.expected_amount,
+        charge_note=req.charge_note,
+    )
+    return charge_to_out(charge_request)
+
+
+@router.get("/{record_id}/charge-requests", response_model=list[AfterSalesChargeRequestOut])
+def list_record_charge_requests(
+    record_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("return_exchange:view")),
+):
+    record = db.query(ReturnExchangeRecord).filter(
+        ReturnExchangeRecord.id == record_id,
+        ReturnExchangeRecord.company_id == current_user.company_id,
+    ).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Record not found")
+    charge_requests = db.query(AfterSalesChargeRequest).filter(
+        AfterSalesChargeRequest.after_sales_record_id == record_id,
+        AfterSalesChargeRequest.company_id == current_user.company_id,
+    ).order_by(AfterSalesChargeRequest.created_at.desc(), AfterSalesChargeRequest.id.desc()).all()
+    return [charge_to_out(item) for item in charge_requests]
+
+
+@router.post("/charge-requests/{charge_id}/mark-paid", response_model=AfterSalesChargeRequestOut)
+def mark_record_charge_paid(
+    charge_id: int,
+    req: AfterSalesChargeRequestPaid,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("return_exchange:process")),
+):
+    charge_request = db.query(AfterSalesChargeRequest).filter(
+        AfterSalesChargeRequest.id == charge_id,
+        AfterSalesChargeRequest.company_id == current_user.company_id,
+    ).first()
+    if not charge_request:
+        raise HTTPException(status_code=404, detail="Charge request not found")
+    charge_request.paid_amount = req.paid_amount
+    charge_request.amount_change_note = req.amount_change_note or ""
+    charge_request.status = "paid"
+    charge_request.paid_by = current_user.id
+    charge_request.paid_at = datetime.now()
+    db.commit()
+    db.refresh(charge_request)
+    return charge_to_out(charge_request)
+
+
+@router.post("/charge-requests/{charge_id}/cancel", response_model=AfterSalesChargeRequestOut)
+def cancel_record_charge_request(
+    charge_id: int,
+    req: AfterSalesChargeRequestCancel,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("return_exchange:process")),
+):
+    charge_request = db.query(AfterSalesChargeRequest).filter(
+        AfterSalesChargeRequest.id == charge_id,
+        AfterSalesChargeRequest.company_id == current_user.company_id,
+    ).first()
+    if not charge_request:
+        raise HTTPException(status_code=404, detail="Charge request not found")
+    charge_request.status = "cancelled"
+    db.commit()
+    db.refresh(charge_request)
+    return charge_to_out(charge_request)
+
+
+@router.get("/charge-requests/{charge_id}", response_model=AfterSalesChargeRequestOut)
+def get_charge_request(
+    charge_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("return_exchange:view")),
+):
+    charge_request = db.query(AfterSalesChargeRequest).filter(
+        AfterSalesChargeRequest.id == charge_id,
+        AfterSalesChargeRequest.company_id == current_user.company_id,
+    ).first()
+    if not charge_request:
+        raise HTTPException(status_code=404, detail="Charge request not found")
+    return charge_to_out(charge_request)
+

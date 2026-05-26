@@ -18,3 +18,17 @@ class AttendanceRecordOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ── 打卡请求 ─────────────────────────────────────────────────────────
+
+class CheckInRequest(BaseModel):
+    location: str = ""
+    remark: str = ""
+
+class MonthlyAttendanceStats(BaseModel):
+    total_days: int = 0
+    normal_days: int = 0
+    late_days: int = 0
+    early_days: int = 0
+    absent_days: int = 0

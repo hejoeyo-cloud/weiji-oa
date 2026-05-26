@@ -12,3 +12,9 @@ class DingtalkConfigOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class DingtalkConfigIn(BaseModel):
+    app_key: Optional[str] = None
+    app_secret: Optional[str] = None
+    enabled: Optional[bool] = None

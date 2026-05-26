@@ -104,4 +104,68 @@ class GiftResendFeedbackOut(BaseModel):
         from_attributes = True
 
 
-# ── 仓储业务 ─────────────────────────────────────────────────────────
+# ── 发货登记 ─────────────────────────────────────────────────────
+
+class GiftRecordCreate(BaseModel):
+    date: str = ""
+    order_no: str = ""
+    size: str = ""
+    model: str = ""
+    config: str = ""
+    color: str = ""
+    quantity: int = 1
+    accessories: str = ""
+    customer_info: str = ""
+    send_tracking: str = ""
+    shipping_fee: float = 0
+    order_amount: float = 0
+    cost: float = 0
+    remark: str = ""
+    ship_date: str = ""
+    status: str = "pending"
+
+class GiftRecordUpdate(BaseModel):
+    date: Optional[str] = None
+    order_no: Optional[str] = None
+    size: Optional[str] = None
+    model: Optional[str] = None
+    config: Optional[str] = None
+    color: Optional[str] = None
+    quantity: Optional[int] = None
+    accessories: Optional[str] = None
+    customer_info: Optional[str] = None
+    send_tracking: Optional[str] = None
+    shipping_fee: Optional[float] = None
+    order_amount: Optional[float] = None
+    cost: Optional[float] = None
+    remark: Optional[str] = None
+    ship_date: Optional[str] = None
+    status: Optional[str] = None
+
+class GiftRecordOut(BaseModel):
+    id: int
+    date: str = ""
+    order_no: str = ""
+    size: str = ""
+    model: str = ""
+    config: str = ""
+    color: str = ""
+    quantity: int = 1
+    accessories: str = ""
+    customer_info: str = ""
+    send_tracking: str = ""
+    shipping_fee: float = 0
+    order_amount: float = 0
+    cost: float = 0
+    total_cashback: float = 0      # 自动汇总的返现金额（来自返现表）
+    profit: float = 0              # 利润 = 订单金额 - 成本 - 返现
+    remark: str = ""
+    ship_date: str = ""
+    status: str = "pending"
+    created_by: Optional[int] = None
+    creator_name: str = ""
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True

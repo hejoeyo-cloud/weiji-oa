@@ -48,3 +48,30 @@ class KnowledgeArticleOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ── 故障排查步骤 ────────────────────────────────────────────────────
+
+class TroubleshootCategoryOut(BaseModel):
+    id: int
+    name: str
+    icon: str
+    sort_order: int
+    step_count: int = 0
+
+    class Config:
+        from_attributes = True
+
+class TroubleshootStepOut(BaseModel):
+    id: int
+    parent_id: Optional[int]
+    category_id: Optional[int]
+    title: str
+    instruction: str
+    is_hardware: bool
+    solution: str
+    sort_order: int
+    children: List["TroubleshootStepOut"] = []
+
+    class Config:
+        from_attributes = True

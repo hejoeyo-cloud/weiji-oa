@@ -2,7 +2,10 @@ from .aftersales import *
 from .announcement import *
 from .approval import *
 from .attendance import *
+from .audit import *
 from .auth import *
+from .company import *
+from .dashboard import *
 from .department import *
 from .dingtalk import *
 from .finance import *
@@ -12,9 +15,6 @@ from .misc import *
 from .notification import *
 from .role import *
 from .schedule import *
+from .task import *
 from .ticket import *
 from .warehouse import *
-
-# Rebuild models with forward references
-from .auth import UserInfo
-UserInfo.model_rebuild()

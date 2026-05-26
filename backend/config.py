@@ -19,12 +19,12 @@ JWT_SECRET = _jwt
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "480"))
 
-# 内网部署时，修改为你的内网IP地址，例如：
+# 内网部署时，用 CORS_ORIGINS 环境变量覆盖允许来源（逗号分隔）
 CORS_ORIGINS = [
-    "http://192.168.1.100:5173",  # 修改为实际内网IP
-    "http://192.168.1.100:8000",
-    "http://localhost:5173",
-    "http://localhost:8000",
+    o.strip() for o in os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:5173,http://localhost:8000"
+    ).split(",")
 ]
 
 SERVER_HOST = "0.0.0.0"

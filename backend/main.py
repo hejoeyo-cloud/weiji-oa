@@ -22,7 +22,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi import WebSocket, WebSocketDisconnect
 
-from config import UPLOAD_DIR, CORS_ORIGINS, SERVER_HOST, SERVER_PORT
+from config import CORS_ORIGINS, SERVER_HOST, SERVER_PORT
+from storage import get_storage
+storage = get_storage()
 from database import SessionLocal, User
 from models.init_db import init_db
 from seed_data import seed_knowledge
@@ -49,11 +51,7 @@ from routers import module_config_router
 from routers import messages_router
 from routers import approval_rules_router
 import finance_router
-from seed_data import seed_knowledge
 from websocket.manager import manager
-
-from contextlib import asynccontextmanager
-
 
 app = FastAPI(title="Fries OA 内部系统", version="1.0.0", lifespan=lifespan)
 
@@ -97,18 +95,6 @@ app.include_router(dingtalk_router.router)
 app.include_router(module_config_router.router)
 app.include_router(messages_router.router)
 app.include_router(approval_rules_router.router)
-# ── WebSocket 实时推送 ──────────────────────────────────────────────
-from websocket.manager import manager as ws_manager
-
-@app.websocket("/ws/{user_id}")
-async def websocket_endpoint(websocket, user_id: int):
-    await ws_manager.connect(websocket, user_id)
-    try:
-        while True:
-            await websocket.receive_text()
-    except:
-        ws_manager.disconnect(user_id)
-
 app.include_router(finance_router.router, prefix="/api")
 
 
@@ -164,12 +150,17 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int):
         manager.disconnect(user_id)
 
 
-@app.get("/api/upload/{filename}")
-def serve_upload(filename: str):
-    filepath = os.path.join(UPLOAD_DIR, filename)
-    if os.path.exists(filepath):
-        return FileResponse(filepath)
-    return {"error": "File not found"}
+@app.get("/api/files/{filepath:path}")
+def serve_file(filepath: str):
+    """通过存储抽象层提供文件下载 / 展示"""
+    try:
+        content = storage.read(filepath)
+        import mimetypes
+        mime_type, _ = mimetypes.guess_type(filepath)
+        from fastapi.responses import Response
+        return Response(content=content, media_type=mime_type or "application/octet-stream")
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="File not found")
 
 
 frontend_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frontend", "dist")
@@ -182,10 +173,6 @@ if os.path.exists(frontend_dist):
         if os.path.exists(index_file):
             return FileResponse(index_file)
         return {"error": "Frontend not built"}
-
-
-from contextlib import asynccontextmanager
-
 
 
 if __name__ == "__main__":
