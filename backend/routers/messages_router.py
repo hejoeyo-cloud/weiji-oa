@@ -25,6 +25,7 @@ class MessageOut(BaseModel):
 
 class MessageCreate(BaseModel):
     recipient_id: int; subject: str = ""; content: str; thread_id: Optional[int] = None
+    attachment_ids: List[int] = []
 
 class AttachmentOut(BaseModel):
     id: int; filename: str; size: int; mime_type: str = ""
@@ -115,6 +116,13 @@ def send_message(req: MessageCreate, current_user: User = Depends(require_permis
                   recipient_id=req.recipient_id, subject=req.subject, content=req.content,
                   is_draft=False, thread_id=thread_id)
     db.add(msg); db.commit(); db.refresh(msg)
+    # 关联附件
+    if req.attachment_ids:
+        db.query(MessageAttachment).filter(
+            MessageAttachment.id.in_(req.attachment_ids),
+            MessageAttachment.company_id == current_user.company_id,
+        ).update({"message_id": msg.id}, synchronize_session=False)
+        db.commit()
     # 创建收件人通知
     notif = Notification(company_id=current_user.company_id, user_id=req.recipient_id,
                          title=f"新邮件: {req.subject}", content=f"来自 {current_user.name}",
@@ -219,7 +227,7 @@ def mark_read(msg_id: int, current_user: User = Depends(get_current_user), db: S
 # ── 附件 ──
 @router.post("/upload", response_model=AttachmentOut)
 def upload(file: UploadFile = File(...), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    if file.size and file.size > 150 * 1024 * 1024: raise HTTPException(400, "≤150MB")
+    if file.size and file.size > 300 * 1024 * 1024: raise HTTPException(400, "≤300MB")
     
     # Read content and compute SHA-256 hash for dedup
     content = file.file.read()

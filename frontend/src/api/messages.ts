@@ -31,3 +31,10 @@ export function markRead(id: number) { return client.put(`/messages/${id}/read`)
 export function getAttachments(msgId: number) {
   return client.get<{id:number;filename:string;size:number;mime_type:string}[]>(`/messages/attachments/${msgId}`).then(r=>r.data)
 }
+
+export function uploadAttachment(file: File, onProgress?: (pct: number) => void) {
+  const fd = new FormData(); fd.append('file', file)
+  return client.post('/messages/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: onProgress ? (e:any) => onProgress(Math.round((e.loaded/e.total)*100)) : undefined
+  }).then(r => r.data)
+}

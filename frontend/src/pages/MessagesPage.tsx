@@ -6,7 +6,7 @@ import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 import { Edit2, Star, Trash2, Search, Reply, Forward, Download, Inbox, Send, FileText, RefreshCw, X, ChevronDown, ChevronRight, Users } from 'lucide-react'
 import { getInbox, getSent, getDrafts, getTrash, getCounts, sendMessage, saveDraft, markRead,
-         toggleStar, softDelete, permanentDelete, replyMessage, forwardMessage, getAttachments } from '../api/messages'
+         toggleStar, softDelete, permanentDelete, replyMessage, forwardMessage, getAttachments, uploadAttachment } from '../api/messages'
 import { getUsers } from '../api/users'
 import client from '../api/client'
 
@@ -31,10 +31,14 @@ export default function MessagesPage() {
   const [to, setTo] = useState<User[]>([])
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
+  const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
+  const [uploading, setUploading] = useState(false)
   const [sending, setSending] = useState(false)
   const [showPicker, setShowPicker] = useState(false)
   const [term, setTerm] = useState('')
   const quillRef = useRef<any>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission() }, [])
   const notify = useCallback((t: string, b: string) => {
@@ -73,12 +77,42 @@ export default function MessagesPage() {
     } catch (e: any) { alert('保存草稿失败') }
   }
 
+  
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return
+    if (file.size > 10 * 1024 * 1024) { alert('图片不能超过10MB'); return }
+    if (!file.type.startsWith('image/')) { alert('请选择图片文件'); return }
+    setUploading(true)
+    try {
+      const att = await uploadAttachment(file)
+      const url = client.defaults.baseURL + '/messages/attachment/' + att.id
+      const editor = quillRef.current?.getEditor()
+      if (editor) {
+        const range = editor.getSelection(true)
+        editor.insertEmbed(range.index, 'image', url)
+      }
+      setUploadedFiles(prev => [...prev, att])
+    } catch { alert('图片上传失败') }
+    finally { setUploading(false); e.target.value = '' }
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return
+    if (file.size > 300 * 1024 * 1024) { alert('文件不能超过300MB'); return }
+    setUploading(true)
+    try {
+      const att = await uploadAttachment(file)
+      setUploadedFiles(prev => [...prev, att])
+    } catch { alert('文件上传失败') }
+    finally { setUploading(false); e.target.value = '' }
+  }
+
   const handleSend = async () => {
     const rid = to[0]?.id; if (!rid) { alert('请选择收件人'); return }
     setSending(true)
-    try { if (mode==='compose') { await sendMessage({ recipient_id:rid, subject, content:body, draft:false }); notify('邮件已发送', subject||'') }
-      else if (mode==='reply'&&selected) { await replyMessage(selected.id, { recipient_id:rid, subject, content:body }) }
-      else if (mode==='forward'&&selected) { await forwardMessage(selected.id, { recipient_id:rid, subject, content:body }) }
+    try { if (mode==='compose') { await sendMessage({ recipient_id:rid, subject, content:body, draft:false, attachment_ids: uploadedFiles.map(f=>f.id) }); notify('邮件已发送', subject||'') }
+      else if (mode==='reply'&&selected) { await replyMessage(selected.id, { recipient_id:rid, subject, content:body, attachment_ids: uploadedFiles.map(f=>f.id) }) }
+      else if (mode==='forward'&&selected) { await forwardMessage(selected.id, { recipient_id:rid, subject, content:body, attachment_ids: uploadedFiles.map(f=>f.id) }) }
       setMode('view'); setSelected(null); loadFolder('sent') } catch (e:any) { alert(typeof e?.response?.data?.detail==='string'?e.response.data.detail:'发送失败') }
     finally { setSending(false) }
   }
@@ -163,7 +197,22 @@ export default function MessagesPage() {
             </div>}
 
             <input value={subject} onChange={e=>setSubject(e.target.value)} placeholder="主题" className="w-full border-0 border-b px-2 py-2 text-sm outline-none mb-3" style={{borderColor:'#e5e7eb',borderBottomWidth:1}} />
-            <div className="flex-1 min-h-[250px]">
+            <div className="flex items-center gap-2 mb-2">
+            <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+            <button onClick={() => imageInputRef.current?.click()} disabled={uploading}
+              className="px-2.5 py-1 text-xs border rounded-md text-gray-500 hover:bg-gray-50 flex items-center gap-1">
+              🖼 插入图片 <span className="text-gray-300">≤10MB</span></button>
+            <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} />
+            <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
+              className="px-2.5 py-1 text-xs border rounded-md text-gray-500 hover:bg-gray-50 flex items-center gap-1">
+              <Paperclip size={11}/> 上传附件 <span className="text-gray-300">≤300MB</span></button>
+            {uploading && <span className="text-xs text-blue-500">上传中...</span>}
+          </div>
+          {uploadedFiles.length > 0 && <div className="flex flex-wrap gap-1 mb-2">
+            {uploadedFiles.map((f:any) => <span key={f.id} className="px-2 py-0.5 bg-green-50 text-green-700 text-xs rounded flex items-center gap-1">
+              {f.filename} <button onClick={() => setUploadedFiles(prev => prev.filter(x=>x.id!==f.id))}><X size={10}/></button></span>)}
+          </div>}
+          <div className="flex-1 min-h-[250px]">
               <ReactQuill ref={quillRef} value={body} onChange={setBody} modules={modules} theme="snow" style={{height:'calc(100% - 42px)'}} placeholder="撰写邮件内容..." />
             </div>
           </div>
