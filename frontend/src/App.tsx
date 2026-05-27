@@ -29,10 +29,49 @@ import ReportsPage from './pages/ReportsPage'
 import ModuleSettingsPage from './pages/ModuleSettingsPage'
 import MessagesPage from './pages/MessagesPage'
 import ApprovalRulesPage from './pages/ApprovalRulesPage'
+import { MODULE_REGISTRY } from './config/moduleRegistry'
+
+function isTokenExpired(): boolean {
+  const token = localStorage.getItem('token')
+  if (!token) return true
+  try {
+    // JWT payload 在第二段（base64url 编码）
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    const now = Math.floor(Date.now() / 1000)
+    return payload.exp ? payload.exp < now : false
+  } catch {
+    return true // 解析失败视为过期
+  }
+}
+
+// ── 模块路由映射（页面组件需手动关联） ──
+const moduleRoutes: Record<string, React.ComponentType> = {
+  return_exchange: ReturnExchangeList,
+  repair: RepairList,
+  gift: GiftList,
+  gift_cashback: GiftCashbackList,
+  gift_resend: GiftResendList,
+}
+
+// 从注册表动态生成模块路由
+const dynamicModuleRoutes = Object.values(MODULE_REGISTRY)
+  .filter(mod => moduleRoutes[mod.moduleKey])
+  .map(mod => {
+    const Component = moduleRoutes[mod.moduleKey]
+    const routePath = mod.routePath.replace(/^\//, '')
+    return <Route key={mod.moduleKey} path={routePath} element={<Component />} />
+  })
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('token')
-  if (!token) return <Navigate to="/login" replace />
+  if (!token || isTokenExpired()) {
+    if (token) {
+      // token 已过期，清除以免后续请求反复 401
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+    }
+    return <Navigate to="/login" replace />
+  }
   return <>{children}</>
 }
 
@@ -58,11 +97,7 @@ export default function App() {
           <Route path="/knowledge/new" element={<KnowledgeEdit />} />
           <Route path="/knowledge/:id" element={<KnowledgeDetail />} />
           <Route path="/knowledge/:id/edit" element={<KnowledgeEdit />} />
-          <Route path="/return-exchange" element={<ReturnExchangeList />} />
-          <Route path="/repair" element={<RepairList />} />
-          <Route path="/gifts" element={<GiftList />} />
-          <Route path="/gift-cashback" element={<GiftCashbackList />} />
-          <Route path="/gift-resend" element={<GiftResendList />} />
+          {dynamicModuleRoutes}
           <Route path="/warehouse" element={<WarehousePage />} />
           <Route path="/announcements" element={<AnnouncementPage />} />
           <Route path="/approvals" element={<ApprovalPage />} />

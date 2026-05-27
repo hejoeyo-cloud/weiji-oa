@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Ticket, FilePlus, Users, BookOpen,
@@ -14,6 +14,7 @@ import { getUnreadAnnouncementCount, getAnnouncements, markAnnouncementRead } fr
 import { getApprovals } from '../api/approvals'
 import type { Notification, Announcement } from '../types'
 import { getModuleConfigs } from '../api/moduleConfig'
+import { MODULE_REGISTRY, ICON_MAP } from '../config/moduleRegistry'
 
 const ROLE_LABELS: Record<string, string> = {
   admin: '管理员', technician: '技术员', customer: '客服',
@@ -79,10 +80,23 @@ const navGroups: NavGroup[] = [
 ]
 
 export default function AppLayout() {
-  const { user, setUser, hasPermission } = useAuth()
+  const { user, setUser, loading: authLoading, hasPermission } = useAuth()
   const { unreadCount, setUnreadCount, showPanel, setShowPanel, refreshUnread } = useWebSocket(user?.id)
   const navigate = useNavigate()
   const location = useLocation()
+  const mainRef = useRef<HTMLElement>(null)
+
+  // 路由切换时自动将内容区滚动到顶部
+  useEffect(() => {
+    // 用 rAF 确保在浏览器完成渲染后再滚动
+    requestAnimationFrame(() => {
+      const el = mainRef.current
+      if (el) {
+        el.scrollTop = 0
+      }
+      window.scrollTo(0, 0)
+    })
+  }, [location.pathname])
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem('sidebarCollapsed')
@@ -135,29 +149,38 @@ export default function AppLayout() {
     })
   }
 
+  // 仅在认证就绪（user 已加载）后才请求模块配置
   useEffect(() => {
+    if (authLoading || !user) return
     getModuleConfigs().then(mods => {
-      const iconMap: Record<string, React.ElementType> = {
-        return_exchange: RotateCcw, repair: Wrench, gift: Gift,
-        gift_cashback: DollarSign, gift_resend: PackageCheck,
-      }
-      const pathMap: Record<string, string> = {
-        return_exchange: '/return-exchange', repair: '/repair', gift: '/gifts',
-        gift_cashback: '/gift-cashback', gift_resend: '/gift-resend',
-      }
       const items = mods
         .filter(m => m.enabled)
-        .map(m => ({
-          path: pathMap[m.module_key] || `/module/${m.module_key}`,
-          label: m.display_name || m.module_key,
-          icon: iconMap[m.module_key] || PackageCheck,
-          permission: [`${m.module_key}:view` as any],
-        }))
-      setModuleItems(items.filter(i => !i.path.startsWith('/gifts')))
-      setWarehouseModuleItems(items.filter(i => i.path.startsWith('/gifts')))
-    }).catch(() => {})
-  }, [])
+        .map(m => {
+          // 优先使用数据库值，回退到注册表默认值
+          const reg = MODULE_REGISTRY[m.module_key]
+          const icon = ICON_MAP[m.icon || reg?.icon || 'PackageCheck'] || PackageCheck
+          const routePath = m.route_path || reg?.routePath || `/module/${m.module_key}`
+          const navGroup = m.navigation_group || reg?.navigationGroup || ''
+          const displayName = m.display_name || reg?.displayName || m.module_key
 
+          return {
+            path: routePath,
+            label: displayName,
+            icon,
+            permission: m.permissions && m.permissions !== '[]'
+              ? JSON.parse(m.permissions)
+              : [`${m.module_key}:view`],
+            navigationGroup: navGroup,
+          }
+        })
+
+      // 按 navigation_group 分组，而不是硬编码路由前缀
+      setModuleItems(items.filter(i => i.navigationGroup === '客服业务'))
+      setWarehouseModuleItems(items.filter(i => i.navigationGroup === '仓储业务'))
+    }).catch(() => {})
+  }, [authLoading, user])
+
+  // 获取未读公告数量（仅登录时）
   useEffect(() => {
     if (!user?.id) return
     getUnreadAnnouncementCount()
@@ -173,7 +196,19 @@ export default function AppLayout() {
         }
       })
       .catch(console.error)
-  }, [user?.id, location.pathname])
+  }, [user?.id])
+
+  // 仅在路由切换到首页时检查是否需要弹公告
+  useEffect(() => {
+    if (location.pathname === '/' && unreadAnnCount > 0) {
+      getAnnouncements({ page: 1, page_size: 5, active_only: true })
+        .then(res => {
+          const unread = (res.items || []).find(a => !a.is_read)
+          if (unread) setAnnouncementPopup(unread)
+        })
+        .catch(console.error)
+    }
+  }, [location.pathname, unreadAnnCount])
 
   useEffect(() => {
     if (!user?.id) return
@@ -202,7 +237,7 @@ export default function AppLayout() {
   return (
     <div className="min-h-screen flex" style={{ background: '#fafaf9' }}>
       {/* Sidebar - 深灰/近黑色背景 */}
-      <aside className={`relative fixed inset-y-0 left-0 z-50 flex flex-col transform transition-all duration-300 lg:relative lg:translate-x-0
+      <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col transform transition-all duration-300 lg:relative lg:translate-x-0 lg:h-screen lg:sticky lg:top-0 lg:self-start
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         ${sidebarCollapsed ? 'w-16' : 'w-48'}`}
         style={{ background: '#27272a', color: 'white' }}>
@@ -245,7 +280,7 @@ export default function AppLayout() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        <nav className="flex-1 overflow-y-auto scrollbar-hide py-4 px-3 space-y-1">
           {visibleGroups.map(group => {
             const isCollapsed = collapsedGroups.has(group.label)
             return (
@@ -473,8 +508,8 @@ export default function AppLayout() {
           </div>
         )}
 
-        {/* Page content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-auto">
+        {/* Page content - key 确保路由切换时内容区重新挂载，滚动位置自动归零 */}
+        <main key={location.pathname} ref={mainRef} className="flex-1 p-4 lg:p-6 overflow-auto">
           <Outlet />
         </main>
       </div>

@@ -9,6 +9,7 @@ from .gift import *
 from .knowledge import *
 from .message import *
 from .misc import *
+from .module_registry import *
 from .notification import *
 from .schedule import *
 from .task import *

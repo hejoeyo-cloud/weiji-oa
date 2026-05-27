@@ -43,6 +43,13 @@ class ModuleConfig(Base):
     enabled = Column(Boolean, default=True)
     display_name = Column(String(50), default="")
     sort_order = Column(Integer, default=0)
+    # ── v2.0 新增：模块元数据 ──
+    icon = Column(String(50), default="")                   # lucide 图标名
+    route_path = Column(String(200), default="")            # 前端路由路径
+    navigation_group = Column(String(50), default="")       # 侧边栏分组
+    permissions = Column(Text, default="[]")                # JSON 数组
+    fields_schema = Column(Text, default="[]")              # JSON 数组，字段元数据
+    # ────────────────────────────
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 

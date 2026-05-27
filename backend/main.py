@@ -55,7 +55,7 @@ from websocket.manager import manager
 
 app = FastAPI(title="Fries OA 内部系统", version="1.0.0", lifespan=lifespan)
 
-app.add_middleware(RateLimitMiddleware, max_requests=120, window_seconds=60)
+app.add_middleware(RateLimitMiddleware, max_requests=600, window_seconds=60, burst_max=30)
 app.middleware("http")(request_log_middleware)
 app.middleware("http")(company_guard)
 
@@ -177,4 +177,11 @@ if os.path.exists(frontend_dist):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host=SERVER_HOST, port=SERVER_PORT, reload=True)
+    uvicorn.run(
+        "main:app",
+        host=SERVER_HOST,
+        port=SERVER_PORT,
+        reload=True,
+        reload_delay=0.5,  # 0.5秒防抖，避免频繁重启
+        reload_dirs=[os.path.dirname(os.path.abspath(__file__))],  # 仅监控后端目录
+    )

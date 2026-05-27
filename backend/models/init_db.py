@@ -248,6 +248,45 @@ def _migrate_db():
             """))
             conn.commit()
 
+    # ── 模块配置表新增元数据字段（v2.0 迁移） ────────────────────
+    if "module_configs" in inspector.get_table_names():
+        columns = [c["name"] for c in inspector.get_columns("module_configs")]
+        new_module_config_columns = {
+            "icon": "ALTER TABLE module_configs ADD COLUMN icon VARCHAR(50) DEFAULT ''",
+            "route_path": "ALTER TABLE module_configs ADD COLUMN route_path VARCHAR(200) DEFAULT ''",
+            "navigation_group": "ALTER TABLE module_configs ADD COLUMN navigation_group VARCHAR(50) DEFAULT ''",
+            "permissions": "ALTER TABLE module_configs ADD COLUMN permissions TEXT DEFAULT '[]'",
+            "fields_schema": "ALTER TABLE module_configs ADD COLUMN fields_schema TEXT DEFAULT '[]'",
+        }
+        for col_name, sql in new_module_config_columns.items():
+            if col_name not in columns:
+                with engine.connect() as conn:
+                    conn.execute(text(sql))
+                    conn.commit()
+        # 迁移后，用注册表数据回填现有记录的元数据字段
+        from .module_registry import MODULE_REGISTRY
+        import json as _json
+        db_migrate = SessionLocal()
+        try:
+            configs = db_migrate.query(ModuleConfig).all()
+            for config in configs:
+                reg = MODULE_REGISTRY.get(config.module_key)
+                if reg:
+                    config.icon = reg.icon
+                    config.route_path = reg.route_path
+                    config.navigation_group = reg.navigation_group
+                    config.permissions = _json.dumps(reg.permissions)
+                    config.fields_schema = _json.dumps([
+                        {"name": f.name, "label": f.label, "type": f.type,
+                         "options": f.options, "required": f.required,
+                         "sort_order": f.sort_order}
+                        for f in reg.fields
+                    ])
+            db_migrate.commit()
+        finally:
+            db_migrate.close()
+    # ─────────────────────────────────────────────────────────────
+
     with engine.connect() as conn:
         sub = conn.execute(text("SELECT id FROM subscriptions WHERE company_id = :company_id"), {"company_id": default_company_id}).fetchone()
         if not sub:
@@ -611,18 +650,9 @@ def init_db():
         ]
         db.add_all(default_shifts)
         db.commit()
-    # 种子数据：默认模块配置
-    existing_mods = db.query(ModuleConfig).filter(ModuleConfig.company_id == default_company.id).count()
-    if existing_mods == 0:
-        default_modules = [
-            ModuleConfig(company_id=default_company.id, module_key="return_exchange", enabled=True, display_name="退换登记", sort_order=1),
-            ModuleConfig(company_id=default_company.id, module_key="repair", enabled=True, display_name="维修登记", sort_order=2),
-            ModuleConfig(company_id=default_company.id, module_key="gift", enabled=True, display_name="发货登记", sort_order=3),
-            ModuleConfig(company_id=default_company.id, module_key="gift_cashback", enabled=True, display_name="返现登记", sort_order=4),
-            ModuleConfig(company_id=default_company.id, module_key="gift_resend", enabled=True, display_name="礼品补发", sort_order=5),
-        ]
-        db.add_all(default_modules)
-        db.commit()
+    # 种子数据：默认模块配置（从注册表统一生成）
+    from .seed_modules import seed_module_configs
+    seed_module_configs(db, default_company.id)
 
     db.close()
 

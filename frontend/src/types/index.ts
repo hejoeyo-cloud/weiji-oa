@@ -720,6 +720,13 @@ export interface ModuleConfigItem {
   enabled: boolean
   display_name: string
   sort_order: number
+  // ── v2.0 新增字段 ──
+  icon: string
+  route_path: string
+  navigation_group: string
+  permissions: string          // JSON 字符串，前端使用时需 parse
+  fields_schema: string        // JSON 字符串，前端使用时需 parse
+  // ────────────────
 }
 
 export interface FieldLabel {
@@ -727,6 +734,15 @@ export interface FieldLabel {
   module_key: string
   field_name: string
   label: string
+}
+
+export interface FieldDef {
+  name: string
+  label: string
+  type: 'text' | 'number' | 'date' | 'select'
+  options: string[]
+  required: boolean
+  sort_order: number
 }
 
 // ── 内部邮件 ─────────────────────────────────────────────────────────

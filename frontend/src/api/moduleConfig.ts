@@ -5,7 +5,11 @@ export function getModuleConfigs() {
   return client.get<ModuleConfigItem[]>('/module-config').then(r => r.data)
 }
 
-export function updateModuleConfigs(reqs: { module_key: string; enabled?: boolean; display_name?: string }[]) {
+export function getModuleRegistry() {
+  return client.get<{ modules: Record<string, any> }>('/module-config/registry').then(r => r.data)
+}
+
+export function updateModuleConfigs(reqs: { module_key: string; enabled?: boolean; display_name?: string; sort_order?: number; icon?: string; route_path?: string; navigation_group?: string; permissions?: string; fields_schema?: string }[]) {
   return client.put<{ ok: boolean }>('/module-config', reqs).then(r => r.data)
 }
 
