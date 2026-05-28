@@ -21,8 +21,6 @@ import GiftResendList from './pages/GiftResendList'
 import ProfilePage from './pages/Profile'
 import WarehousePage from './pages/Warehouse/WarehousePage'
 import FinancePage from './pages/FinancePage'
-import BillingPage from './pages/BillingPage'
-import PlatformPage from './pages/PlatformPage'
 import AttendancePage from './pages/AttendancePage'
 import TaskBoard from './pages/TaskBoard'
 import ReportsPage from './pages/ReportsPage'
@@ -103,8 +101,6 @@ export default function App() {
           <Route path="/approvals" element={<ApprovalPage />} />
           <Route path="/schedule" element={<SchedulePage />} />
           <Route path="/finance" element={<FinancePage />} />
-          <Route path="/billing" element={<BillingPage />} />
-          <Route path="/platform" element={<PlatformPage />} />
           <Route path="/audit-logs" element={<AuditLogPage />} />
           <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/tasks" element={<TaskBoard />} />

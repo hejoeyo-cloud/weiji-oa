@@ -70,8 +70,6 @@ const navGroups: NavGroup[] = [
     permission: ['users:view', 'departments:view', 'audit_logs:view'],
     items: [
       { path: '/users', label: '人员管理', icon: Users, permission: ['users:view'] },
-      { path: '/billing', label: '订阅续费', icon: CreditCard },
-      { path: '/platform', label: '平台管理', icon: Building2, platformOnly: true },
       { path: '/audit-logs', label: '操作日志', icon: Shield, permission: ['audit_logs:view'] },
       { path: '/module-settings', label: '模块配置', icon: Settings },
       { path: '/approval-rules', label: '审批规则', icon: GanttChartSquare, permission: ['approval_rules:view'] },
@@ -495,18 +493,6 @@ export default function AppLayout() {
             )}
           </div>
         </header>
-        {user?.subscription && !user.subscription.is_writable && (
-          <div className="px-6 py-3 bg-red-50 border-b border-red-100 text-sm text-red-700 flex items-center justify-between">
-            <span>订阅已到期，当前只能查看数据。请续费后继续新增或编辑。</span>
-            <button onClick={() => navigate('/billing')} className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs">去续费</button>
-          </div>
-        )}
-        {user?.subscription?.status === 'grace' && user.subscription.is_writable && (
-          <div className="px-6 py-3 bg-amber-50 border-b border-amber-100 text-sm text-amber-700 flex items-center justify-between">
-            <span>订阅已到期，当前处于 {user.subscription.days_remaining} 天宽限期。</span>
-            <button onClick={() => navigate('/billing')} className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs">去续费</button>
-          </div>
-        )}
 
         {/* Page content - key 确保路由切换时内容区重新挂载，滚动位置自动归零 */}
         <main key={location.pathname} ref={mainRef} className="flex-1 p-4 lg:p-6 overflow-auto">
