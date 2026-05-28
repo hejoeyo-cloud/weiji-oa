@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
@@ -96,7 +99,7 @@ def check_out(
     return _record_to_out(record)
 
 
-@router.get("/today", response_model=AttendanceRecordOut | None)
+@router.get("/today", response_model=Optional[AttendanceRecordOut])
 def get_today(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

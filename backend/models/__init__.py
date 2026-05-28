@@ -12,6 +12,7 @@ from .misc import *
 from .module_registry import *
 from .notification import *
 from .schedule import *
+from .shop import *
 from .task import *
 from .ticket import *
 from .user import *

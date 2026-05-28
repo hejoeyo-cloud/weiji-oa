@@ -30,21 +30,4 @@ CORS_ORIGINS = [
 SERVER_HOST = "0.0.0.0"
 SERVER_PORT = 8000
 
-# ── SaaS subscription / Alipay settings ──────────────────────────────
-TRIAL_DAYS = int(os.getenv("TRIAL_DAYS", "30"))
-SUBSCRIPTION_GRACE_DAYS = int(os.getenv("SUBSCRIPTION_GRACE_DAYS", "7"))
-FIRST_YEAR_PRICE = float(os.getenv("FIRST_YEAR_PRICE", "1599"))
-RENEWAL_YEAR_PRICE = float(os.getenv("RENEWAL_YEAR_PRICE", "599"))
-
-ALIPAY_ENV = os.getenv("ALIPAY_ENV", "sandbox")
-ALIPAY_APP_ID = os.getenv("ALIPAY_APP_ID", "")
-ALIPAY_PRIVATE_KEY = os.getenv("ALIPAY_PRIVATE_KEY", "")
-ALIPAY_PUBLIC_KEY = os.getenv("ALIPAY_PUBLIC_KEY", "")
-ALIPAY_NOTIFY_URL = os.getenv("ALIPAY_NOTIFY_URL", "")
-ALIPAY_RETURN_URL = os.getenv("ALIPAY_RETURN_URL", "")
-ALIPAY_GATEWAY = os.getenv(
-    "ALIPAY_GATEWAY",
-    "https://openapi-sandbox.dl.alipaydev.com/gateway.do"
-    if ALIPAY_ENV == "sandbox"
-    else "https://openapi.alipay.com/gateway.do",
-)
+# ── 本地版：无订阅/计费配置 ──────────────────────────────

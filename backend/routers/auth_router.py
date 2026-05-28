@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from config import TRIAL_DAYS, SUBSCRIPTION_GRACE_DAYS
-from database import get_db, User, Role, Company, Subscription, ALL_PERMISSIONS
+from database import get_db, User, Role, Company, ALL_PERMISSIONS
 from schemas import LoginRequest, LoginResponse, UserInfo, RegisterRequest
 from auth import (
     verify_password, create_access_token, get_current_user, require_admin,
@@ -61,61 +62,42 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
 
 @router.post("/register", response_model=LoginResponse)
 def register(req: RegisterRequest, db: Session = Depends(get_db)):
-    company_name = req.company_name.strip()
+    """本地版注册：直接关联默认公司，不创建新公司"""
     email = req.email.strip()
     name = req.name.strip()
     username = (req.username or req.email.split("@")[0]).strip()
-    if not company_name or not email or not req.password or not name:
-        raise HTTPException(status_code=400, detail="公司名称、邮箱、姓名和密码不能为空")
-    if db.query(Company).filter(Company.name == company_name).first():
-        raise HTTPException(status_code=400, detail="公司名称已存在")
+    if not email or not req.password or not name:
+        raise HTTPException(status_code=400, detail="邮箱、姓名和密码不能为空")
     if db.query(User).filter(User.email == email).first():
         raise HTTPException(status_code=400, detail="邮箱已注册")
 
-    now = datetime.now()
-    trial_end = now + timedelta(days=TRIAL_DAYS)
-    company = Company(name=company_name, status="active")
-    db.add(company)
-    db.flush()
+    # 获取或创建默认公司
+    company = db.query(Company).filter(Company.name == "默认公司").first()
+    if not company:
+        company = Company(name="默认公司", status="active")
+        db.add(company)
+        db.flush()
+        # 为默认公司创建模块配置
+        from models.seed_modules import seed_module_configs
+        seed_module_configs(db, company.id)
 
-    # Create default module configs for new company (from registry)
-    from models.seed_modules import seed_module_configs
-    seed_module_configs(db, company.id)
-
-    admin_role = Role(
-        company_id=company.id,
-        name=f"admin_{company.id}",
-        label="公司管理员",
-        color="#722ED1",
-        permissions=ALL_PERMISSIONS.copy(),
-        is_builtin=True,
-        sort_order=0,
-    )
-    customer_role = Role(
-        company_id=company.id,
-        name=f"customer_{company.id}",
-        label="客服",
-        color="#52C41A",
-        permissions=[
-            "tickets:view", "tickets:create",
-            "knowledge:view",
-            "return_exchange:view", "return_exchange:create",
-            "repair:view", "repair:create",
-            "gifts:view", "gifts:create",
-            "gift_cashback:view", "gift_cashback:create",
-            "gift_resend:view", "gift_resend:create",
-            "warehouse_products:view",
-            "warehouse_inbound:view", "warehouse_inbound:create",
-            "warehouse_outbound:view", "warehouse_outbound:create",
-            "announcements:view",
-            "approvals:view", "approvals:create",
-            "schedule:view",
-        ],
-        is_builtin=True,
-        sort_order=1,
-    )
-    db.add_all([admin_role, customer_role])
-    db.flush()
+    # 获取或创建默认角色
+    admin_role = db.query(Role).filter(
+        Role.company_id == company.id,
+        Role.name == "admin"
+    ).first()
+    if not admin_role:
+        admin_role = Role(
+            company_id=company.id,
+            name="admin",
+            label="管理员",
+            color="#722ED1",
+            permissions=ALL_PERMISSIONS.copy(),
+            is_builtin=True,
+            sort_order=0,
+        )
+        db.add(admin_role)
+        db.flush()
 
     user = User(
         company_id=company.id,
@@ -127,16 +109,7 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
         role_id=admin_role.id,
         is_manager=True,
     )
-    subscription = Subscription(
-        company_id=company.id,
-        status="trial",
-        trial_start_at=now,
-        trial_end_at=trial_end,
-        current_period_start=now,
-        current_period_end=trial_end,
-        grace_end_at=trial_end + timedelta(days=SUBSCRIPTION_GRACE_DAYS),
-    )
-    db.add_all([user, subscription])
+    db.add(user)
     db.commit()
     db.refresh(user)
     token = create_access_token({"user_id": user.id})

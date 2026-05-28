@@ -55,52 +55,14 @@ def is_platform_admin(user: User) -> bool:
 
 
 def get_subscription_state(db: Session, user: User) -> dict:
-    """Return normalized subscription state for the user's company."""
-    if is_platform_admin(user):
-        return {
-            "status": "active",
-            "trial_end_at": None,
-            "current_period_end": None,
-            "grace_end_at": None,
-            "is_writable": True,
-            "days_remaining": 9999,
-        }
-    sub = db.query(Subscription).filter(Subscription.company_id == user.company_id).first()
-    if not sub:
-        return {
-            "status": "expired",
-            "trial_end_at": None,
-            "current_period_end": None,
-            "grace_end_at": None,
-            "is_writable": False,
-            "days_remaining": 0,
-        }
-    now = datetime.now()
-    effective_end = sub.current_period_end or sub.trial_end_at
-    grace_end = sub.grace_end_at
-    status = sub.status
-    if sub.status == "disabled":
-        is_writable = False
-        days_remaining = 0
-    elif effective_end and now <= effective_end:
-        is_writable = True
-        days_remaining = max(0, (effective_end.date() - now.date()).days)
-        status = "active" if sub.first_paid_at else "trial"
-    elif grace_end and now <= grace_end:
-        is_writable = True
-        days_remaining = max(0, (grace_end.date() - now.date()).days)
-        status = "grace"
-    else:
-        is_writable = False
-        days_remaining = 0
-        status = "expired"
+    """本地版：永久有效，无订阅限制"""
     return {
-        "status": status,
-        "trial_end_at": sub.trial_end_at,
-        "current_period_end": sub.current_period_end,
-        "grace_end_at": sub.grace_end_at,
-        "is_writable": is_writable,
-        "days_remaining": days_remaining,
+        "status": "active",
+        "trial_end_at": None,
+        "current_period_end": None,
+        "grace_end_at": None,
+        "is_writable": True,
+        "days_remaining": 9999,
     }
 
 

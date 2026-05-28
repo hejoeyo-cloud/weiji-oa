@@ -24,7 +24,7 @@ def _migrate_db():
         "warehouse_outbound", "warehouse_inbound_feedbacks",
         "warehouse_outbound_feedbacks", "customer_invoice_requests",
         "sales_invoices", "purchase_invoices", "expense_invoices",
-        "attendance_records", "task_boards",
+        "attendance_records", "task_boards", "shops",
     ]
 
     if "companies" not in existing_tables:
@@ -119,6 +119,18 @@ def _migrate_db():
                     created_by INTEGER REFERENCES users(id),
                     created_at DATETIME,
                     updated_at DATETIME
+                )
+            """))
+            conn.commit()
+
+    if "shops" not in existing_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE shops (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER REFERENCES companies(id),
+                    name VARCHAR(200) DEFAULT '',
+                    created_at DATETIME
                 )
             """))
             conn.commit()
@@ -516,6 +528,18 @@ def _migrate_db():
                 )
             """))
             conn.commit()
+
+    # ── 迁移：gift_records 新增 shop_id / shop_name 列 ─────────────
+    if 'gift_records' in existing_tables:
+        columns = [c['name'] for c in inspector.get_columns('gift_records')]
+        if 'shop_id' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE gift_records ADD COLUMN shop_id INTEGER REFERENCES shops(id)"))
+                conn.commit()
+        if 'shop_name' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE gift_records ADD COLUMN shop_name VARCHAR(200) DEFAULT ''"))
+                conn.commit()
 
     # ── 迁移：users 表新增 role_id 列 ──────────────────────────────
     if 'users' in existing_tables:

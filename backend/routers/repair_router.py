@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from database import get_db, RepairRecord, User, RepairFeedback
+from database import get_db, RepairRecord, User, RepairFeedback, RepairChargeRequest
 from schemas import (
     RepairCreate,
     RepairUpdate,

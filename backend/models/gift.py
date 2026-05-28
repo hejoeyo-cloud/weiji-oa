@@ -42,6 +42,8 @@ class GiftRecord(Base):
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
     date = Column(String(20), default="")               # 日期
     order_no = Column(String(100), default="")           # 订单编号
+    shop_id = Column(Integer, ForeignKey("shops.id"), nullable=True)  # 店铺
+    shop_name = Column(String(200), default="")          # 店铺名称（冗余）
     size = Column(String(50), default="")                # 尺寸
     model = Column(String(200), default="")              # 型号
     config = Column(String(200), default="")             # 配置

@@ -1,8 +1,9 @@
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from database import get_db, GiftRecord, GiftCashback, GiftFeedback, User
+from database import get_db, GiftRecord, GiftCashback, GiftFeedback, User, Shop
 from schemas import GiftRecordCreate, GiftRecordUpdate, GiftRecordOut, GiftFeedbackCreate, GiftFeedbackOut
 from auth import apply_owner_filter, get_current_user, require_permission
 from services import audit_service
@@ -30,6 +31,8 @@ def record_to_out(db: Session, r: GiftRecord, has_cost_permission: bool = False)
         id=r.id,
         date=r.date or "",
         order_no=r.order_no or "",
+        shop_id=r.shop_id,
+        shop_name=r.shop_name or "",
         size=r.size or "",
         model=r.model or "",
         config=r.config or "",
@@ -127,10 +130,19 @@ def create_record(
 ):
     has_cost_permission = "gifts:cost_view" in (current_user.role_obj.permissions if current_user.role_obj else [])
     
+    # 自动填充 shop_name
+    shop_name = req.shop_name
+    if req.shop_id and not shop_name:
+        shop = db.query(Shop).filter(Shop.id == req.shop_id, Shop.company_id == current_user.company_id).first()
+        if shop:
+            shop_name = shop.name
+
     r = GiftRecord(
         company_id=current_user.company_id,
         date=req.date,
         order_no=req.order_no,
+        shop_id=req.shop_id,
+        shop_name=shop_name,
         size=req.size,
         model=req.model,
         config=req.config,
@@ -143,8 +155,8 @@ def create_record(
         order_amount=req.order_amount,
         cost=req.cost,
         remark=req.remark,
-        ship_date=req.ship_date,
-        status=req.status,
+        ship_date=req.ship_date or (datetime.now().strftime("%Y-%m-%d") if (req.send_tracking and req.send_tracking.strip()) else ""),
+        status="sent" if (req.send_tracking and req.send_tracking.strip()) else "pending",
         created_by=current_user.id,
     )
     db.add(r)
@@ -172,6 +184,10 @@ def update_record(
         if field == "cashback":
             continue
         setattr(r, field, value)
+    # 状态由发出单号自动决定，出货日期自动填充
+    r.status = "sent" if (r.send_tracking and r.send_tracking.strip()) else "pending"
+    if r.send_tracking and r.send_tracking.strip() and not r.ship_date:
+        r.ship_date = datetime.now().strftime("%Y-%m-%d")
     db.commit()
     db.refresh(r)
     audit_service.log(db, current_user, "update", "gift", r.id,
