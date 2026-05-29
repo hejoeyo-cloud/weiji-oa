@@ -136,15 +136,15 @@ def _migrate_db():
             conn.commit()
 
     with engine.connect() as conn:
-        default_company = conn.execute(text("SELECT id FROM companies WHERE name = '默认公司'")).fetchone()
+        default_company = conn.execute(text("SELECT id FROM companies WHERE name = '微迹OA'")).fetchone()
         if not default_company:
             now = datetime.now()
             conn.execute(
-                text("INSERT INTO companies (name, status, created_at, updated_at) VALUES ('默认公司', 'active', :now, :now)"),
+                text("INSERT INTO companies (name, status, created_at, updated_at) VALUES ('微迹OA', 'active', :now, :now)"),
                 {"now": now},
             )
             conn.commit()
-            default_company = conn.execute(text("SELECT id FROM companies WHERE name = '默认公司'")).fetchone()
+            default_company = conn.execute(text("SELECT id FROM companies WHERE name = '微迹OA'")).fetchone()
         default_company_id = default_company[0]
 
     existing_tables = inspect(engine).get_table_names()
@@ -174,7 +174,7 @@ def _migrate_db():
                 conn.execute(text("ALTER TABLE users ADD COLUMN email VARCHAR(120)"))
                 conn.commit()
             with engine.connect() as conn:
-                conn.execute(text("UPDATE users SET email = 'admin@fries.local' WHERE username = 'admin' AND email IS NULL"))
+                conn.execute(text("UPDATE users SET email = 'admin@weiji.local' WHERE username = 'admin' AND email IS NULL"))
                 conn.commit()
             # 尝试移除 username 的全局唯一约束，改为添加联合唯一索引
             try:
@@ -594,9 +594,9 @@ def init_db():
     db = SessionLocal()
     from auth import get_password_hash
 
-    default_company = db.query(Company).filter(Company.name == "默认公司").first()
+    default_company = db.query(Company).filter(Company.name == "微迹OA").first()
     if not default_company:
-        default_company = Company(name="默认公司", status="active")
+        default_company = Company(name="微迹OA", status="active")
         db.add(default_company)
         db.commit()
         db.refresh(default_company)
@@ -624,7 +624,7 @@ def init_db():
         admin = User(
             company_id=default_company.id,
             is_platform_admin=True,
-            email="admin@fries.local",
+            email="admin@weiji.local",
             username="admin",
             password_hash=get_password_hash("admin"),
             name="管理员",
@@ -647,7 +647,7 @@ def init_db():
             existing.is_platform_admin = True
             db.commit()
         if not existing.email:
-            existing.email = "admin@fries.local"
+            existing.email = "admin@weiji.local"
             db.commit()
         # 确保 admin 的 role 字段与 role_id 一致
         if existing.role_obj and existing.role != existing.role_obj.name:

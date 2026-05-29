@@ -53,7 +53,7 @@ from routers import approval_rules_router
 import finance_router
 from websocket.manager import manager
 
-app = FastAPI(title="Fries OA 内部系统", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="微迹OA 内部系统", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(RateLimitMiddleware, max_requests=600, window_seconds=60, burst_max=30)
 app.middleware("http")(request_log_middleware)

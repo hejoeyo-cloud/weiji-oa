@@ -4,7 +4,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(BASE_DIR)
 
 # 数据库：默认 SQLite，设 DATABASE_URL 环境变量可切换 PostgreSQL
-# 示例: export DATABASE_URL=postgresql://user:pass@host:5432/fries_oa
+# 示例: export DATABASE_URL=postgresql://user:pass@host:5432/weiji_oa
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{os.path.join(PROJECT_DIR, 'data.db')}")
 
 UPLOAD_DIR = os.path.join(PROJECT_DIR, "uploads")
@@ -14,7 +14,7 @@ _jwt = os.getenv("JWT_SECRET")
 if not _jwt:
     import warnings
     warnings.warn("⚠️ JWT_SECRET 未设置，使用开发默认值。生产环境必须配置！")
-    _jwt = "fries-oa-dev-secret"
+    _jwt = "weiji-oa-dev-secret"
 JWT_SECRET = _jwt
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "480"))

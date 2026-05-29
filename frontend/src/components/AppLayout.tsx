@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Ticket, FilePlus, Users, BookOpen,
   Bell, LogOut, Menu, ClipboardList, Gift, DollarSign,
   Megaphone, CheckSquare, Shield, ChevronDown, Calendar, PackageCheck, User, Store,
-  ChevronLeft, ChevronRight, Warehouse, RotateCcw, Wrench, Receipt, CreditCard, Building2,
+  ChevronLeft, ChevronRight, Warehouse, RotateCcw, Wrench, Receipt,
   Fingerprint, Kanban, BarChart3, Settings, Mail, GanttChartSquare
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
@@ -70,9 +70,9 @@ const navGroups: NavGroup[] = [
     permission: ['users:view', 'departments:view', 'audit_logs:view'],
     items: [
       { path: '/users', label: '人员管理', icon: Users, permission: ['users:view'] },
-      { path: '/audit-logs', label: '操作日志', icon: Shield, permission: ['audit_logs:view'] },
       { path: '/module-settings', label: '模块配置', icon: Settings },
       { path: '/approval-rules', label: '审批规则', icon: GanttChartSquare, permission: ['approval_rules:view'] },
+      { path: '/audit-logs', label: '操作日志', icon: Shield, permission: ['audit_logs:view'] },
     ],
   },
 ]
@@ -107,6 +107,7 @@ export default function AppLayout() {
   const [announcementPopup, setAnnouncementPopup] = useState<Announcement | null>(null)
   const [moduleItems, setModuleItems] = useState<{ path: string; label: string; icon: React.ElementType; permission: string[] }[]>([])
   const [warehouseModuleItems, setWarehouseModuleItems] = useState<{ path: string; label: string; icon: React.ElementType; permission: string[] }[]>([])
+  const [ticketsEnabled, setTicketsEnabled] = useState(true)
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -151,8 +152,12 @@ export default function AppLayout() {
   useEffect(() => {
     if (authLoading || !user) return
     getModuleConfigs().then(mods => {
+      // 检查工单系统开关
+      const ticketsMod = mods.find(m => m.module_key === 'tickets')
+      setTicketsEnabled(ticketsMod ? ticketsMod.enabled : true)
+
       const items = mods
-        .filter(m => m.enabled)
+        .filter(m => m.enabled && m.module_key !== 'tickets')
         .map(m => {
           // 优先使用数据库值，回退到注册表默认值
           const reg = MODULE_REGISTRY[m.module_key]
@@ -222,6 +227,10 @@ export default function AppLayout() {
       // Merge dynamic module items into 客服业务 / 仓储业务
       if (g.label === '客服业务') {
         items = [...items, ...moduleItems]
+        // 工单系统开关：关闭时隐藏工单池和创建工单
+        if (!ticketsEnabled) {
+          items = items.filter(i => i.path !== '/tickets' && i.path !== '/tickets/create')
+        }
       } else if (g.label === '仓储业务') {
         items = [...items, ...warehouseModuleItems]
       }
@@ -259,9 +268,9 @@ export default function AppLayout() {
               </div>
               <div className="ml-3 min-w-0">
                 <h1 className="text-sm font-bold text-white leading-tight line-clamp-2 break-all">
-                  {user?.company_name || 'Fries OA'}
+                  {user?.company_name || '微迹OA'}
                 </h1>
-                <p className="text-[10px]" style={{ color: '#71717a' }}>内部智能管理系统</p>
+                <p className="text-[10px]" style={{ color: '#71717a' }}>内部数字化管理系统</p>
               </div>
               <button
                 onClick={toggleSidebarCollapse}

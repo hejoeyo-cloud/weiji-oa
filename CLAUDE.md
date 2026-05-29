@@ -33,13 +33,13 @@ No test framework is configured.
 ### Backend (Python / FastAPI)
 
 - **Entry point**: `backend/main.py` — mounts routers, middleware, static file serving
-- **Database**: SQLAlchemy 2.0 with `backend/models/base.py` providing `Engine`, `SessionLocal`, `Base`. SQLite by default; PostgreSQL via `DATABASE_URL` env var. Custom `JSONType` auto-selects JSONB on Postgres.
+- **Database**: SQLAlchemy 2.0 with `backend/models/base.py` providing `Engine`, `SessionLocal`, `Base`. SQLite by default (stored as `data.db` in project root); PostgreSQL via `DATABASE_URL` env var. Custom `JSONType` auto-selects JSONB on Postgres.
 - **Auth**: `backend/auth.py` — JWT (python-jose) + bcrypt. Role-based with fine-grained permissions (`tickets:view`, `tickets:edit`, etc.). Three built-in roles: `admin`, `technician`, `customer`.
-- **Multi-tenancy**: `backend/middleware/company_guard.py` — most models have `company_id` foreign keys; middleware enforces tenant isolation.
+- **Multi-tenancy**: `backend/middleware/company_guard.py` — most models have `company_id` foreign keys; actual tenant isolation is enforced per-router via query scoping (the middleware is a pattern enforcer, not an active filter).
 - **Routers**: ~28 FastAPI routers in `backend/routers/`, one per business domain
 - **Schemas**: Pydantic v2 models in `backend/schemas/`
 - **Services**: Business logic in `backend/services/` (audit, notifications, DingTalk sync, subscriptions, charges)
-- **File storage**: `backend/storage.py` — abstract `StorageBackend` with Local and S3 (Tencent COS / AWS S3 / MinIO) implementations. Switch via `STORAGE_BACKEND=s3`.
+- **File storage**: `backend/storage.py` — abstract `StorageBackend` with Local and S3 (Tencent COS / AWS S3 / MinIO) implementations. Switch via `STORAGE_BACKEND=s3`. Local uploads stored in `uploads/` at project root.
 - **WebSocket**: `backend/websocket/` — `ConnectionManager` for per-user push notifications
 - **Subscription guard**: `subscription_write_guard` middleware blocks writes for expired subscriptions
 
@@ -80,4 +80,5 @@ When working on this project, check which branch you're on before making changes
 - Adding a new module requires updates in both the backend and frontend module registries
 - The `company_guard` middleware means most queries must be scoped to `company_id`
 - Auth permissions are checked via `require_permission` dependency in backend routers and `useAuth().hasPermission()` hook in frontend
+- Database sessions in routers use `Depends(get_db)` from `database.py`, not `SessionLocal()` directly
 - File uploads go through `backend/storage.py` — don't write direct file I/O for uploads
