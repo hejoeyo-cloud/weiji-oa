@@ -38,6 +38,17 @@ class ModuleDefinition:
 # ============================================================
 
 MODULE_REGISTRY: Dict[str, ModuleDefinition] = {
+    "tickets": ModuleDefinition(
+        module_key="tickets",
+        display_name="工单系统",
+        icon="Ticket",
+        route_path="/tickets",
+        navigation_group="客服业务",
+        permissions=["tickets:view"],
+        sort_order=0,
+        enabled_by_default=True,
+        fields=[],
+    ),
     "return_exchange": ModuleDefinition(
         module_key="return_exchange",
         display_name="退换登记",
@@ -103,7 +114,7 @@ MODULE_REGISTRY: Dict[str, ModuleDefinition] = {
         display_name="返现登记",
         icon="DollarSign",
         route_path="/gift-cashback",
-        navigation_group="仓储业务",
+        navigation_group="客服业务",
         permissions=["gift_cashback:view"],
         sort_order=2,
         fields=[

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -11,7 +12,7 @@ from services.dingtalk_sync import sync_attendance_for_company
 router = APIRouter(prefix="/api/dingtalk", tags=["dingtalk"])
 
 
-@router.get("/config", response_model=DingtalkConfigOut | None)
+@router.get("/config", response_model=Optional[DingtalkConfigOut])
 def get_config(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),

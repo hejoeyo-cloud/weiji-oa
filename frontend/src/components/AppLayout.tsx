@@ -70,8 +70,6 @@ const navGroups: NavGroup[] = [
     permission: ['users:view', 'departments:view', 'audit_logs:view'],
     items: [
       { path: '/users', label: '人员管理', icon: Users, permission: ['users:view'] },
-      { path: '/billing', label: '订阅续费', icon: CreditCard },
-      { path: '/platform', label: '平台管理', icon: Building2, platformOnly: true },
       { path: '/audit-logs', label: '操作日志', icon: Shield, permission: ['audit_logs:view'] },
       { path: '/module-settings', label: '模块配置', icon: Settings },
       { path: '/approval-rules', label: '审批规则', icon: GanttChartSquare, permission: ['approval_rules:view'] },
@@ -109,6 +107,7 @@ export default function AppLayout() {
   const [announcementPopup, setAnnouncementPopup] = useState<Announcement | null>(null)
   const [moduleItems, setModuleItems] = useState<{ path: string; label: string; icon: React.ElementType; permission: string[] }[]>([])
   const [warehouseModuleItems, setWarehouseModuleItems] = useState<{ path: string; label: string; icon: React.ElementType; permission: string[] }[]>([])
+  const [ticketsEnabled, setTicketsEnabled] = useState(true)
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -153,8 +152,12 @@ export default function AppLayout() {
   useEffect(() => {
     if (authLoading || !user) return
     getModuleConfigs().then(mods => {
+      // 检查 tickets 模块是否启用
+      const ticketsMod = mods.find(m => m.module_key === 'tickets')
+      setTicketsEnabled(ticketsMod ? ticketsMod.enabled : true)
+
       const items = mods
-        .filter(m => m.enabled)
+        .filter(m => m.enabled && m.module_key !== 'tickets') // 排除 tickets，因为它是硬编码的
         .map(m => {
           // 优先使用数据库值，回退到注册表默认值
           const reg = MODULE_REGISTRY[m.module_key]
@@ -229,7 +232,13 @@ export default function AppLayout() {
       }
       return {
         ...g,
-        items: items.filter(item => (!item.platformOnly || user?.is_platform_admin) && (!item.permission || hasPermission(...item.permission))),
+        items: items.filter(item => {
+          // 如果工单模块被禁用，隐藏工单池和创建工单
+          if (!ticketsEnabled && (item.path === '/tickets' || item.path === '/tickets/create')) {
+            return false
+          }
+          return (!item.platformOnly || user?.is_platform_admin) && (!item.permission || hasPermission(...item.permission))
+        }),
       }
     })
     .filter(g => g.items.length > 0)
@@ -263,7 +272,7 @@ export default function AppLayout() {
                 <h1 className="text-sm font-bold text-white leading-tight line-clamp-2 break-all">
                   {user?.company_name || 'Fries OA'}
                 </h1>
-                <p className="text-[10px]" style={{ color: '#71717a' }}>内部智能管理系统</p>
+                <p className="text-[10px]" style={{ color: '#71717a' }}>智能内部管理系统</p>
               </div>
               <button
                 onClick={toggleSidebarCollapse}

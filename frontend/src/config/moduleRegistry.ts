@@ -5,7 +5,7 @@
  */
 
 import {
-  RotateCcw, Wrench, Gift, DollarSign, PackageCheck,
+  RotateCcw, Wrench, Gift, DollarSign, PackageCheck, Ticket,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -39,7 +39,7 @@ export interface ModuleDefinition {
 // ============================================================
 
 export const ICON_MAP: Record<string, LucideIcon> = {
-  RotateCcw, Wrench, Gift, DollarSign, PackageCheck,
+  RotateCcw, Wrench, Gift, DollarSign, PackageCheck, Ticket,
 }
 
 // ============================================================
@@ -47,6 +47,17 @@ export const ICON_MAP: Record<string, LucideIcon> = {
 // ============================================================
 
 export const MODULE_REGISTRY: Record<string, ModuleDefinition> = {
+  tickets: {
+    moduleKey: 'tickets',
+    displayName: '工单系统',
+    icon: 'Ticket',
+    routePath: '/tickets',
+    navigationGroup: '客服业务',
+    permissions: ['tickets:view'],
+    sortOrder: 0,
+    enabledByDefault: true,
+    fields: [],
+  },
   return_exchange: {
     moduleKey: 'return_exchange',
     displayName: '退换登记',
@@ -114,7 +125,7 @@ export const MODULE_REGISTRY: Record<string, ModuleDefinition> = {
     displayName: '返现登记',
     icon: 'DollarSign',
     routePath: '/gift-cashback',
-    navigationGroup: '仓储业务',
+    navigationGroup: '客服业务',
     permissions: ['gift_cashback:view'],
     sortOrder: 2,
     enabledByDefault: true,

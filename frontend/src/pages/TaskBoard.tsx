@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, GripVertical, AlertCircle, Clock, CheckCircle2, RefreshCw, User as UserIcon } from 'lucide-react'
+import { Plus, Trash2, GripVertical, AlertCircle, Clock, CheckCircle2, RefreshCw, User as UserIcon, ChevronLeft, ChevronRight } from 'lucide-react'
 import { getTasks, createTask, updateTask, deleteTask } from '../api/tasks'
 import { getUsers } from '../api/users'
 import type { TaskItem, User } from '../types'
@@ -21,6 +21,8 @@ const PRIORITY_LABELS: Record<string, string> = {
   low: '低', normal: '中', high: '高', urgent: '紧急',
 }
 
+const PAGE_SIZE = 15
+
 export default function TaskBoard() {
   const [tasks, setTasks] = useState<TaskItem[]>([])
   const [users, setUsers] = useState<User[]>([])
@@ -32,12 +34,15 @@ export default function TaskBoard() {
   const [formAssignee, setFormAssignee] = useState<number | undefined>(undefined)
   const [formDueDate, setFormDueDate] = useState('')
   const [msg, setMsg] = useState('')
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
 
-  const loadTasks = async () => {
+  const loadTasks = async (p?: number) => {
     setLoading(true)
     try {
-      const data = await getTasks()
-      setTasks(data)
+      const data = await getTasks({ page: p || page, page_size: PAGE_SIZE })
+      setTasks(data.items)
+      setTotal(data.total)
     } finally {
       setLoading(false)
     }
@@ -53,6 +58,11 @@ export default function TaskBoard() {
 
   useEffect(() => { loadTasks(); loadUsers() }, [])
 
+  // page 变化时重新加载
+  useEffect(() => { loadTasks(page) }, [page])
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+
   const handleCreate = async () => {
     if (!formTitle.trim()) return
     setMsg('')
@@ -66,7 +76,8 @@ export default function TaskBoard() {
       })
       setFormTitle(''); setFormDesc(''); setFormPriority('normal')
       setFormAssignee(undefined); setFormDueDate(''); setShowForm(false)
-      loadTasks()
+      setPage(1)
+      loadTasks(1)
     } catch (err: any) {
       setMsg(err.response?.data?.detail || '创建失败')
     }
@@ -94,7 +105,7 @@ export default function TaskBoard() {
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-gray-800">任务看板</h2>
         <div className="flex items-center gap-3">
-          <button onClick={loadTasks} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"><RefreshCw size={15} /></button>
+          <button onClick={() => loadTasks()} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"><RefreshCw size={15} /></button>
           <button
             onClick={() => setShowForm(!showForm)}
             className="px-4 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-2"
@@ -214,6 +225,31 @@ export default function TaskBoard() {
           )
         })}
       </div>
+
+      {/* 翻页控件 */}
+      {total > PAGE_SIZE && (
+        <div className="flex items-center justify-center gap-4 pt-2">
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page <= 1}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
+            style={{ borderColor: '#e5e5e5' }}
+          >
+            <ChevronLeft size={14} /> 上一页
+          </button>
+          <span className="text-sm text-gray-500">
+            第 {page} / {totalPages} 页 · 共 {total} 条
+          </span>
+          <button
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
+            style={{ borderColor: '#e5e5e5' }}
+          >
+            下一页 <ChevronRight size={14} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -6,7 +7,7 @@ from config import FIRST_YEAR_PRICE, RENEWAL_YEAR_PRICE, SUBSCRIPTION_GRACE_DAYS
 from database import PaymentOrder, Subscription
 
 
-def normalize_subscription(sub: Subscription | None) -> dict:
+def normalize_subscription(sub: Optional[Subscription]) -> dict:
     if not sub:
         return {
             "status": "expired",
@@ -50,7 +51,7 @@ def next_plan(sub: Subscription) -> tuple[str, float]:
     return "first_year", FIRST_YEAR_PRICE
 
 
-def apply_paid_order(db: Session, order: PaymentOrder, trade_no: str = "", paid_at: datetime | None = None) -> Subscription:
+def apply_paid_order(db: Session, order: PaymentOrder, trade_no: str = "", paid_at: Optional[datetime] = None) -> Subscription:
     if order.status == "paid":
         return order.subscription
     now = paid_at or datetime.now()

@@ -1,5 +1,6 @@
 """收费审批服务 — 退换/维修通用"""
 from typing import Union
+from datetime import datetime
 from sqlalchemy.orm import Session
 from database import User, RepairRecord, ReturnExchangeRecord, AfterSalesRecord, RepairChargeRequest, AfterSalesChargeRequest
 from routers.approval_rules_router import evaluate_rules
@@ -94,6 +95,61 @@ def create_charge_request(
 
 # Backward compatible alias
 create_aftersales_charge_request = create_charge_request
+
+
+def mark_charge_paid(
+    db: Session,
+    charge_request: RepairChargeRequest,
+    current_user: User,
+    paid_amount: float,
+    amount_change_note: str = "",
+):
+    """标记维修收费为已收款"""
+    charge_request.status = "paid"
+    charge_request.paid_amount = paid_amount
+    charge_request.amount_change_note = amount_change_note or ""
+    charge_request.paid_by = current_user.id
+    charge_request.paid_at = datetime.now()
+
+    record = charge_request.record
+    if record:
+        record.charge_status = "paid"
+        record.current_paid_amount = (record.current_paid_amount or 0) + paid_amount
+        record.current_expected_amount = charge_request.expected_amount
+
+    db.commit()
+    db.refresh(charge_request)
+    return charge_request
+
+
+def cancel_charge_request(
+    db: Session,
+    charge_request: RepairChargeRequest,
+    current_user: User,
+    reason: str = "",
+):
+    """取消维修收费申请"""
+    charge_request.status = "cancelled"
+    charge_request.amount_change_note = reason or ""
+    charge_request.updated_at = datetime.now()
+
+    record = charge_request.record
+    if record:
+        has_pending = db.query(RepairChargeRequest).filter(
+            RepairChargeRequest.repair_record_id == record.id,
+            RepairChargeRequest.id != charge_request.id,
+            RepairChargeRequest.status == "pending_charge",
+        ).first()
+        if not has_pending:
+            has_paid = db.query(RepairChargeRequest).filter(
+                RepairChargeRequest.repair_record_id == record.id,
+                RepairChargeRequest.status == "paid",
+            ).first()
+            record.charge_status = "paid" if has_paid else "none"
+
+    db.commit()
+    db.refresh(charge_request)
+    return charge_request
 
 
 def _append_approvers(note: str, names: list[str], ids: list[int]) -> str:

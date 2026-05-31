@@ -274,9 +274,14 @@ export default function RepairList() {
   }
 
   const openDetail = async (record: RepairRecord) => {
-    await loadDetailArtifacts(record.id)
-    resetChargeForms()
-    setShowDetail(true)
+    try {
+      await loadDetailArtifacts(record.id)
+      resetChargeForms()
+      setShowDetail(true)
+    } catch (e) {
+      console.error('加载详情失败:', e)
+      alert('加载详情失败，请重试')
+    }
   }
 
   const handleSubmit = async () => {

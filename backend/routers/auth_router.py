@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -14,7 +15,7 @@ from auth import (
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
-def _build_user_info(u: User, db: Session | None = None) -> UserInfo:
+def _build_user_info(u: User, db: Optional[Session] = None) -> UserInfo:
     """构建用户信息，包含角色标签和权限列表"""
     permissions = []
     if u.role == "admin":

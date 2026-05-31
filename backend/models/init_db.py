@@ -162,7 +162,7 @@ def _migrate_db():
                 conn.execute(text("ALTER TABLE users ADD COLUMN email VARCHAR(120)"))
                 conn.commit()
             with engine.connect() as conn:
-                conn.execute(text("UPDATE users SET email = 'admin@fries-oa.local' WHERE username = 'admin' AND email IS NULL"))
+                conn.execute(text("UPDATE users SET email = 'admin@weiji.local' WHERE username = 'admin' AND email IS NULL"))
                 conn.commit()
             # 尝试移除 username 的全局唯一约束，改为添加联合唯一索引
             try:
@@ -600,7 +600,7 @@ def init_db():
         admin = User(
             company_id=default_company.id,
             is_platform_admin=True,
-            email="admin@fries-oa.local",
+            email="admin@weiji.local",
             username="admin",
             password_hash=get_password_hash("admin"),
             name="管理员",
@@ -623,7 +623,7 @@ def init_db():
             existing.is_platform_admin = True
             db.commit()
         if not existing.email:
-            existing.email = "admin@fries-oa.local"
+            existing.email = "admin@weiji.local"
             db.commit()
         # 确保 admin 的 role 字段与 role_id 一致
         if existing.role_obj and existing.role != existing.role_obj.name:

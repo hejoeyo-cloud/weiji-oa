@@ -3,6 +3,7 @@
 使用经典 OAPI 接口：https://open.dingtalk.com/document/orgapp-server/attendance-clock-in-record-is-open
 """
 from datetime import datetime, timedelta
+from typing import Optional
 import json
 import time
 
@@ -12,7 +13,7 @@ from sqlalchemy.orm import Session
 from database import DingtalkConfig, AttendanceRecord, User
 
 
-def _get_access_token(config: DingtalkConfig) -> str | None:
+def _get_access_token(config: DingtalkConfig) -> Optional[str]:
     """获取钉钉 access_token"""
     if not config.app_key or not config.app_secret:
         return None

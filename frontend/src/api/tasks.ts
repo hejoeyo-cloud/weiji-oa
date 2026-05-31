@@ -1,8 +1,8 @@
 import client from './client'
 import type { TaskItem } from '../types'
 
-export function getTasks(status = '') {
-  return client.get<TaskItem[]>('/tasks', { params: { status } }).then(r => r.data)
+export function getTasks(params: { status?: string; page?: number; page_size?: number } = {}) {
+  return client.get<{ total: number; page: number; page_size: number; items: TaskItem[] }>('/tasks', { params }).then(r => r.data)
 }
 
 export function createTask(data: { title: string; description?: string; priority?: string; assignee_id?: number; due_date?: string }) {

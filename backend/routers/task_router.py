@@ -30,9 +30,11 @@ def _task_to_out(t: TaskBoard) -> TaskOut:
     )
 
 
-@router.get("", response_model=list[TaskOut])
+@router.get("", response_model=dict)
 def list_tasks(
     status: str = Query("", description="filter by status: todo, in_progress, done"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -41,8 +43,15 @@ def list_tasks(
     )
     if status:
         query = query.filter(TaskBoard.status == status)
-    tasks = query.order_by(TaskBoard.sort_order.asc(), TaskBoard.created_at.desc()).all()
-    return [_task_to_out(t) for t in tasks]
+    total = query.count()
+    tasks = query.order_by(TaskBoard.sort_order.asc(), TaskBoard.created_at.desc()) \
+        .offset((page - 1) * page_size).limit(page_size).all()
+    return {
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "items": [_task_to_out(t) for t in tasks],
+    }
 
 
 @router.post("", response_model=TaskOut)

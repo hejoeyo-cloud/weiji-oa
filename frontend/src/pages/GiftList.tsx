@@ -144,7 +144,7 @@ export default function GiftList() {
           if (canCostView) {
             row['订单金额'] = r.order_amount || 0
             row['产品成本'] = r.cost || 0
-            row['利润'] = r.profit || 0
+            row['毛利'] = r.profit || 0
           }
           return row
         })
@@ -288,7 +288,7 @@ export default function GiftList() {
               )}
               <th className="text-left px-4 py-3 font-medium text-gray-600">返现</th>
               {canCostView && (
-                <th className="text-left px-4 py-3 font-medium text-gray-600">利润</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">毛利</th>
               )}
               <th className="text-left px-4 py-3 font-medium text-gray-600">状态</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">操作</th>
@@ -325,7 +325,7 @@ export default function GiftList() {
                     {r.profit > 0 ? `¥${r.profit.toFixed(2)}` : r.profit < 0 ? `-¥${Math.abs(r.profit).toFixed(2)}` : '-'}
                   </td>
                 )}
-                <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
+                <td className="px-4 py-3"><StatusBadge status={r.send_tracking ? 'sent' : 'pending'} /></td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <button onClick={() => openDetail(r)} className="text-gray-400 hover:text-violet-600"><Eye size={14} /></button>
@@ -435,7 +435,10 @@ export default function GiftList() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">发出单号</label>
                   <input value={form.send_tracking}
-                    onChange={e => setForm({ ...form, send_tracking: e.target.value })}
+                    onChange={e => {
+                      const tracking = e.target.value
+                      setForm({ ...form, send_tracking: tracking, status: tracking ? 'sent' : 'pending' })
+                    }}
                     placeholder="请输入快递单号"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
                 </div>
@@ -456,11 +459,9 @@ export default function GiftList() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">状态</label>
-                  <select value={form.status}
-                    onChange={e => setForm({ ...form, status: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
-                    {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                  </select>
+                  <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50">
+                    <StatusBadge status={form.send_tracking ? 'sent' : 'pending'} />
+                  </div>
                 </div>
               </div>
 
@@ -542,13 +543,13 @@ export default function GiftList() {
               )}
               {canCostView && detailRecord.profit !== undefined && (
                 <div>
-                  <span className="text-gray-500">利润：</span>
+                  <span className="text-gray-500">毛利：</span>
                   <span className={detailRecord.profit > 0 ? 'text-green-600' : detailRecord.profit < 0 ? 'text-red-600' : 'text-gray-500'}>
                     {detailRecord.profit > 0 ? `¥${detailRecord.profit.toFixed(2)}` : detailRecord.profit < 0 ? `-¥${Math.abs(detailRecord.profit).toFixed(2)}` : '-'}
                   </span>
                 </div>
               )}
-              <div><span className="text-gray-500">状态：</span><StatusBadge status={detailRecord.status} /></div>
+              <div><span className="text-gray-500">状态：</span><StatusBadge status={detailRecord.send_tracking ? 'sent' : 'pending'} /></div>
               <div className="col-span-2"><span className="text-gray-500">备注：</span>{detailRecord.remark || '-'}</div>
               <div className="col-span-2"><span className="text-gray-500">登记人：</span>{detailRecord.creator_name || '-'}</div>
               <div className="col-span-2"><span className="text-gray-500">登记时间：</span>{detailRecord.created_at ? detailRecord.created_at.slice(0, 16).replace('T', ' ') : '-'}</div>
