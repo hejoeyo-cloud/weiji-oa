@@ -45,9 +45,9 @@ export default function Login() {
             </div>
           </div>
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: '#1f1f1f' }}>
-            微迹 OA
+            微迹OA
           </h1>
-          <p className="text-sm mt-2 tracking-wide" style={{ color: '#a3a3a3' }}>智能内部管理系统</p>
+          <p className="text-sm mt-2 tracking-wide" style={{ color: '#a3a3a3' }}>数字化内部管理系统</p>
         </div>
 
         <div className="bg-white rounded-2xl p-8 relative"
@@ -112,7 +112,7 @@ export default function Login() {
 
         <div className="text-center mt-6">
           <p className="text-xs tracking-wider" style={{ color: '#d4d4d4' }}>
-            微迹内部管理系统 v2.0
+            微迹 OA INTERNAL SYSTEM v2.0
           </p>
         </div>
       </div>

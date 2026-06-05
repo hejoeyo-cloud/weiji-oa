@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 钉钉考勤数据同步服务
 使用经典 OAPI 接口：https://open.dingtalk.com/document/orgapp-server/attendance-clock-in-record-is-open

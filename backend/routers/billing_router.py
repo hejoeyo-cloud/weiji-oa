@@ -122,7 +122,7 @@ def create_payment_order(
             "out_trade_no": order.order_no,
             "product_code": "FAST_INSTANT_TRADE_PAY",
             "total_amount": f"{order.amount:.2f}",
-            "subject": "Fries OA 年度订阅",
+            "subject": "微迹OA 年度订阅",
         }, ensure_ascii=False),
     }
     if configured:

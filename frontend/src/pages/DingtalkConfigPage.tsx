@@ -75,7 +75,7 @@ export default function DingtalkConfigPage() {
             ，用公司钉钉管理员账号登录
           </li>
           <li>点击「应用开发」→「企业内部应用」→「创建应用」</li>
-          <li>填写应用名称（如「Fries OA考勤同步」），选择「小程序+H5微应用」</li>
+          <li>填写应用名称（如「微迹OA考勤同步」），选择「小程序+H5微应用」</li>
           <li>创建完成后，在「凭证与基础信息」页面找到 <b>AppKey</b> 和 <b>AppSecret</b></li>
           <li>在「权限管理」中搜索并申请以下权限：
             <ul className="list-disc pl-5 mt-1 space-y-0.5">

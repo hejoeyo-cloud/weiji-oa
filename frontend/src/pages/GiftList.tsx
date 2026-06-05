@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Eye, Download } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Eye, Download, Settings } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { getGiftList, createGift, updateGift, deleteGift, addGiftFeedback, getGiftFeedbacks } from '../api/gifts'
+import { getShops, createShop as apiCreateShop, deleteShop as apiDeleteShop, Shop } from '../api/shops'
 import { useAuth } from '../hooks/useAuth'
 import { GiftRecord, GiftFeedback } from '../types'
 import * as XLSX from 'xlsx'
@@ -40,7 +41,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 const emptyForm = {
-  date: '', order_no: '', size: '', model: '', config: '', color: '',
+  date: '', shop_id: null as number | null, shop_name: '', order_no: '', size: '', model: '', config: '', color: '',
   quantity: 1, accessories: '', customer_info: '', send_tracking: '',
   shipping_fee: 0, order_amount: 0, cost: 0, remark: '', ship_date: '', status: 'pending',
 }
@@ -79,6 +80,10 @@ export default function GiftList() {
   const [feedbacks, setFeedbacks] = useState<GiftFeedback[]>([])
   const [feedbackText, setFeedbackText] = useState('')
   const [addingFeedback, setAddingFeedback] = useState(false)
+  // 店铺
+  const [shops, setShops] = useState<Shop[]>([])
+  const [showShopModal, setShowShopModal] = useState(false)
+  const [newShopName, setNewShopName] = useState('')
   const pageSize = 15
 
   // 高亮动画样式
@@ -104,6 +109,8 @@ export default function GiftList() {
 
   useEffect(() => { load() }, [load])
 
+  useEffect(() => { getShops().then(setShops).catch(console.error) }, [])
+
   // 高亮滚动效果
   useEffect(() => {
     if (highlightId && highlightRef.current) {
@@ -123,6 +130,7 @@ export default function GiftList() {
           const row: Record<string, any> = {
             '序号': idx + 1,
             '日期': r.date || '',
+            '店铺': r.shop_name || '',
             '订单编号': r.order_no || '',
             '型号': r.model || '',
             '配置': r.config || '',
@@ -157,7 +165,7 @@ export default function GiftList() {
   const openEdit = (r: GiftRecord) => {
     setEditRecord(r)
     setForm({
-      date: r.date, order_no: r.order_no, size: r.size, model: r.model,
+      date: r.date, shop_id: r.shop_id || null, shop_name: r.shop_name || '', order_no: r.order_no, size: r.size, model: r.model,
       config: r.config, color: r.color, quantity: r.quantity,
       accessories: r.accessories, customer_info: r.customer_info,
       send_tracking: r.send_tracking, shipping_fee: r.shipping_fee,
@@ -178,7 +186,12 @@ export default function GiftList() {
 
   const handleSave = () => {
     setSaving(true)
-    const promise = editRecord ? updateGift(editRecord.id, form) : createGift(form)
+    const submitData = {
+      ...form,
+      status: form.send_tracking?.trim() ? 'sent' : 'pending',
+      ship_date: form.ship_date || (form.send_tracking?.trim() ? todayStr() : ''),
+    }
+    const promise = editRecord ? updateGift(editRecord.id, submitData) : createGift(submitData)
     promise.then((saved) => {
       const newId = saved?.id || editRecord?.id
       const changes: string[] = []
@@ -187,8 +200,8 @@ export default function GiftList() {
       } else {
         const old = editRecord
         if (old.date !== form.date) changes.push(`日期: ${old.date || '无'} → ${form.date || '无'}`)
+        if (old.shop_name !== form.shop_name) changes.push(`店铺: ${old.shop_name || '无'} → ${form.shop_name || '无'}`)
         if (old.order_no !== form.order_no) changes.push(`订单编号: ${old.order_no || '无'} → ${form.order_no || '无'}`)
-        if (old.status !== form.status) changes.push(`状态: ${old.status || '无'} → ${form.status || '无'}`)
         if (old.send_tracking !== form.send_tracking) changes.push(`发出单号: ${old.send_tracking || '无'} → ${form.send_tracking || '无'}`)
         if (old.ship_date !== form.ship_date) changes.push(`出货日期: ${old.ship_date || '无'} → ${form.ship_date || '无'}`)
         if (old.remark !== form.remark) changes.push(`备注: ${old.remark || '无'} → ${form.remark || '无'}`)
@@ -219,6 +232,18 @@ export default function GiftList() {
       })
       .catch(console.error)
       .finally(() => setAddingFeedback(false))
+  }
+
+  const handleAddShop = () => {
+    if (!newShopName.trim()) return
+    apiCreateShop({ name: newShopName.trim() })
+      .then(shop => { setShops(prev => [...prev, shop]); setNewShopName('') })
+      .catch(console.error)
+  }
+
+  const handleDeleteShop = (id: number) => {
+    if (!confirm('确认删除此店铺？')) return
+    apiDeleteShop(id).then(() => setShops(prev => prev.filter(s => s.id !== id))).catch(console.error)
   }
 
   const totalPages = Math.ceil(total / pageSize)
@@ -275,6 +300,7 @@ export default function GiftList() {
             <tr>
               <th className="text-left px-4 py-3 font-medium text-gray-600">#</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">日期</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-600">店铺</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">订单编号</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">型号/配置</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">颜色</th>
@@ -296,9 +322,9 @@ export default function GiftList() {
           </thead>
           <tbody className="divide-y divide-gray-50">
             {loading ? (
-              <tr><td colSpan={canCostView ? 13 : 10} className="text-center py-8 text-gray-400">加载中...</td></tr>
+              <tr><td colSpan={canCostView ? 14 : 11} className="text-center py-8 text-gray-400">加载中...</td></tr>
             ) : records.length === 0 ? (
-              <tr><td colSpan={canCostView ? 13 : 10} className="text-center py-8 text-gray-400">暂无数据</td></tr>
+              <tr><td colSpan={canCostView ? 14 : 11} className="text-center py-8 text-gray-400">暂无数据</td></tr>
             ) : records.map((r, idx) => (
               <tr
                 key={r.id}
@@ -308,6 +334,7 @@ export default function GiftList() {
               >
                 <td className="px-4 py-3 text-gray-400">{(page - 1) * pageSize + idx + 1}</td>
                 <td className="px-4 py-3 text-gray-600">{r.date || '-'}</td>
+                <td className="px-4 py-3 text-gray-600">{r.shop_name || '-'}</td>
                 <td className="px-4 py-3 font-medium">{r.order_no || '-'}</td>
                 <td className="px-4 py-3 text-gray-600">{r.model || '-'}{r.config ? ` / ${r.config}` : ''}</td>
                 <td className="px-4 py-3">{r.color || '-'}</td>
@@ -362,12 +389,31 @@ export default function GiftList() {
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">日期</label>
                   <input type="date" value={form.date}
                     onChange={e => setForm({ ...form, date: e.target.value })}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    店铺
+                    <button type="button" onClick={() => setShowShopModal(true)}
+                      className="ml-2 text-gray-400 hover:text-violet-600 align-middle">
+                      <Settings size={12} />
+                    </button>
+                  </label>
+                  <select value={form.shop_id || ''}
+                    onChange={e => {
+                      const id = e.target.value ? parseInt(e.target.value) : null
+                      const shop = shops.find(s => s.id === id)
+                      setForm({ ...form, shop_id: id, shop_name: shop?.name || '' })
+                    }}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
+                    <option value="">请选择店铺</option>
+                    {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">订单编号</label>
@@ -431,8 +477,8 @@ export default function GiftList() {
                   placeholder="姓名/电话/地址"
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">发出单号</label>
                   <input value={form.send_tracking}
                     onChange={e => {
@@ -442,14 +488,6 @@ export default function GiftList() {
                     placeholder="请输入快递单号"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">出货日期</label>
-                  <input type="date" value={form.ship_date}
-                    onChange={e => setForm({ ...form, ship_date: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">运费</label>
                   <input type="number" step="0.01" min="0"
@@ -521,6 +559,7 @@ export default function GiftList() {
             </div>
             <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
               <div><span className="text-gray-500">日期：</span><span className="font-medium">{detailRecord.date || '-'}</span></div>
+              <div><span className="text-gray-500">店铺：</span><span className="font-medium">{detailRecord.shop_name || '-'}</span></div>
               <div><span className="text-gray-500">订单编号：</span><span className="font-medium">{detailRecord.order_no || '-'}</span></div>
               <div><span className="text-gray-500">型号：</span>{detailRecord.model || '-'}</div>
               <div><span className="text-gray-500">配置：</span>{detailRecord.config || '-'}</div>
@@ -590,6 +629,42 @@ export default function GiftList() {
                 className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 text-sm">
                 编辑
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 店铺管理弹窗 */}
+      {showShopModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">管理店铺</h3>
+              <button onClick={() => setShowShopModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            </div>
+            <div className="flex gap-2 mb-4">
+              <input value={newShopName}
+                onChange={e => setNewShopName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAddShop()}
+                placeholder="输入新店铺名称"
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              <button onClick={handleAddShop}
+                className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 text-sm">
+                添加
+              </button>
+            </div>
+            <div className="space-y-2">
+              {shops.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-4">暂无店铺</p>
+              ) : shops.map(s => (
+                <div key={s.id} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg">
+                  <span className="text-sm text-gray-700">{s.name}</span>
+                  <button onClick={() => handleDeleteShop(s.id)}
+                    className="text-gray-400 hover:text-red-500">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         </div>

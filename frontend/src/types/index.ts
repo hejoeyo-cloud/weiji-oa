@@ -257,6 +257,8 @@ export interface GiftRecord {
   id: number
   date: string
   order_no: string
+  shop_id?: number
+  shop_name: string
   size: string
   model: string
   config: string

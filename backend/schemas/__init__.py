@@ -15,6 +15,7 @@ from .misc import *
 from .notification import *
 from .role import *
 from .schedule import *
+from .shop import *
 from .task import *
 from .ticket import *
 from .warehouse import *

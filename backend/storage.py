@@ -70,7 +70,7 @@ class S3Storage(StorageBackend):
                 endpoint_url=os.getenv("S3_ENDPOINT"),
                 region_name=os.getenv("S3_REGION", "ap-guangzhou"),
             )
-            self.bucket = os.getenv("S3_BUCKET", "fries-oa")
+            self.bucket = os.getenv("S3_BUCKET", "weiji-oa")
         except ImportError:
             raise RuntimeError("boto3 is required for S3 storage. Install: pip install boto3")
 

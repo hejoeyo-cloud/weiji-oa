@@ -250,7 +250,7 @@ export default function AttendancePage() {
               <ol className="list-decimal pl-5 space-y-2">
                 <li>打开 <a href="https://open-dev.dingtalk.com" target="_blank" rel="noreferrer" className="underline inline-flex items-center gap-0.5">钉钉开放平台 <ExternalLink size={12} /></a>，用管理员账号登录</li>
                 <li>点击「应用开发」→「企业内部应用」→「创建应用」</li>
-                <li>填写应用名称（如「Fries OA考勤同步」），选择「小程序+H5微应用」</li>
+                <li>填写应用名称（如「微迹OA考勤同步」），选择「小程序+H5微应用」</li>
                 <li>创建后，在「凭证与基础信息」找到 <b>AppKey</b> 和 <b>AppSecret</b></li>
                 <li>在「权限管理」中申请：企业员工手机号信息、考勤组管理、考勤打卡记录</li>
                 <li>将凭证填入下方，员工在个人中心绑定钉钉 UserID 即可同步</li>

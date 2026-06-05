@@ -46,7 +46,6 @@ MODULE_REGISTRY: Dict[str, ModuleDefinition] = {
         navigation_group="客服业务",
         permissions=["tickets:view"],
         sort_order=0,
-        enabled_by_default=True,
         fields=[],
     ),
     "return_exchange": ModuleDefinition(
@@ -128,7 +127,7 @@ MODULE_REGISTRY: Dict[str, ModuleDefinition] = {
         display_name="礼品补发",
         icon="PackageCheck",
         route_path="/gift-resend",
-        navigation_group="仓储业务",
+        navigation_group="客服业务",
         permissions=["gift_resend:view"],
         sort_order=3,
         fields=[

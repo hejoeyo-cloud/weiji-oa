@@ -140,7 +140,7 @@ export const MODULE_REGISTRY: Record<string, ModuleDefinition> = {
     displayName: '礼品补发',
     icon: 'PackageCheck',
     routePath: '/gift-resend',
-    navigationGroup: '仓储业务',
+    navigationGroup: '客服业务',
     permissions: ['gift_resend:view'],
     sortOrder: 3,
     enabledByDefault: true,

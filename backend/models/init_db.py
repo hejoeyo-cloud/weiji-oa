@@ -24,7 +24,7 @@ def _migrate_db():
         "warehouse_outbound", "warehouse_inbound_feedbacks",
         "warehouse_outbound_feedbacks", "customer_invoice_requests",
         "sales_invoices", "purchase_invoices", "expense_invoices",
-        "attendance_records", "task_boards",
+        "attendance_records", "task_boards", "shops",
     ]
 
     if "companies" not in existing_tables:
@@ -123,16 +123,28 @@ def _migrate_db():
             """))
             conn.commit()
 
+    if "shops" not in existing_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE shops (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER REFERENCES companies(id),
+                    name VARCHAR(200) DEFAULT '',
+                    created_at DATETIME
+                )
+            """))
+            conn.commit()
+
     with engine.connect() as conn:
-        default_company = conn.execute(text("SELECT id FROM companies WHERE name = '默认公司'")).fetchone()
+        default_company = conn.execute(text("SELECT id FROM companies WHERE name = '微迹OA'")).fetchone()
         if not default_company:
             now = datetime.now()
             conn.execute(
-                text("INSERT INTO companies (name, status, created_at, updated_at) VALUES ('默认公司', 'active', :now, :now)"),
+                text("INSERT INTO companies (name, status, created_at, updated_at) VALUES ('微迹OA', 'active', :now, :now)"),
                 {"now": now},
             )
             conn.commit()
-            default_company = conn.execute(text("SELECT id FROM companies WHERE name = '默认公司'")).fetchone()
+            default_company = conn.execute(text("SELECT id FROM companies WHERE name = '微迹OA'")).fetchone()
         default_company_id = default_company[0]
 
     existing_tables = inspect(engine).get_table_names()
@@ -517,6 +529,18 @@ def _migrate_db():
             """))
             conn.commit()
 
+    # ── 迁移：gift_records 新增 shop_id / shop_name 列 ─────────────
+    if 'gift_records' in existing_tables:
+        columns = [c['name'] for c in inspector.get_columns('gift_records')]
+        if 'shop_id' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE gift_records ADD COLUMN shop_id INTEGER REFERENCES shops(id)"))
+                conn.commit()
+        if 'shop_name' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE gift_records ADD COLUMN shop_name VARCHAR(200) DEFAULT ''"))
+                conn.commit()
+
     # ── 迁移：users 表新增 role_id 列 ──────────────────────────────
     if 'users' in existing_tables:
         columns = [c['name'] for c in inspector.get_columns('users')]
@@ -570,9 +594,9 @@ def init_db():
     db = SessionLocal()
     from auth import get_password_hash
 
-    default_company = db.query(Company).filter(Company.name == "默认公司").first()
+    default_company = db.query(Company).filter(Company.name == "微迹OA").first()
     if not default_company:
-        default_company = Company(name="默认公司", status="active")
+        default_company = Company(name="微迹OA", status="active")
         db.add(default_company)
         db.commit()
         db.refresh(default_company)

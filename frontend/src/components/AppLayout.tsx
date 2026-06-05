@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Ticket, FilePlus, Users, BookOpen,
   Bell, LogOut, Menu, ClipboardList, Gift, DollarSign,
   Megaphone, CheckSquare, Shield, ChevronDown, Calendar, PackageCheck, User, Store,
-  ChevronLeft, ChevronRight, Warehouse, RotateCcw, Wrench, Receipt, CreditCard, Building2,
+  ChevronLeft, ChevronRight, Warehouse, RotateCcw, Wrench, Receipt,
   Fingerprint, Kanban, BarChart3, Settings, Mail, GanttChartSquare
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
@@ -70,9 +70,9 @@ const navGroups: NavGroup[] = [
     permission: ['users:view', 'departments:view', 'audit_logs:view'],
     items: [
       { path: '/users', label: '人员管理', icon: Users, permission: ['users:view'] },
-      { path: '/audit-logs', label: '操作日志', icon: Shield, permission: ['audit_logs:view'] },
       { path: '/module-settings', label: '模块配置', icon: Settings },
       { path: '/approval-rules', label: '审批规则', icon: GanttChartSquare, permission: ['approval_rules:view'] },
+      { path: '/audit-logs', label: '操作日志', icon: Shield, permission: ['audit_logs:view'] },
     ],
   },
 ]
@@ -152,12 +152,12 @@ export default function AppLayout() {
   useEffect(() => {
     if (authLoading || !user) return
     getModuleConfigs().then(mods => {
-      // 检查 tickets 模块是否启用
+      // 检查工单系统开关
       const ticketsMod = mods.find(m => m.module_key === 'tickets')
       setTicketsEnabled(ticketsMod ? ticketsMod.enabled : true)
 
       const items = mods
-        .filter(m => m.enabled && m.module_key !== 'tickets') // 排除 tickets，因为它是硬编码的
+        .filter(m => m.enabled && m.module_key !== 'tickets')
         .map(m => {
           // 优先使用数据库值，回退到注册表默认值
           const reg = MODULE_REGISTRY[m.module_key]
@@ -227,6 +227,10 @@ export default function AppLayout() {
       // Merge dynamic module items into 客服业务 / 仓储业务
       if (g.label === '客服业务') {
         items = [...items, ...moduleItems]
+        // 工单系统开关：关闭时隐藏工单池和创建工单
+        if (!ticketsEnabled) {
+          items = items.filter(i => i.path !== '/tickets' && i.path !== '/tickets/create')
+        }
       } else if (g.label === '仓储业务') {
         items = [...items, ...warehouseModuleItems]
       }
@@ -270,9 +274,9 @@ export default function AppLayout() {
               </div>
               <div className="ml-3 min-w-0">
                 <h1 className="text-sm font-bold text-white leading-tight line-clamp-2 break-all">
-                  {user?.company_name || 'Fries OA'}
+                  {user?.company_name || '微迹OA'}
                 </h1>
-                <p className="text-[10px]" style={{ color: '#71717a' }}>智能内部管理系统</p>
+                <p className="text-[10px]" style={{ color: '#71717a' }}>内部数字化管理系统</p>
               </div>
               <button
                 onClick={toggleSidebarCollapse}
@@ -504,18 +508,6 @@ export default function AppLayout() {
             )}
           </div>
         </header>
-        {user?.subscription && !user.subscription.is_writable && (
-          <div className="px-6 py-3 bg-red-50 border-b border-red-100 text-sm text-red-700 flex items-center justify-between">
-            <span>订阅已到期，当前只能查看数据。请续费后继续新增或编辑。</span>
-            <button onClick={() => navigate('/billing')} className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs">去续费</button>
-          </div>
-        )}
-        {user?.subscription?.status === 'grace' && user.subscription.is_writable && (
-          <div className="px-6 py-3 bg-amber-50 border-b border-amber-100 text-sm text-amber-700 flex items-center justify-between">
-            <span>订阅已到期，当前处于 {user.subscription.days_remaining} 天宽限期。</span>
-            <button onClick={() => navigate('/billing')} className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs">去续费</button>
-          </div>
-        )}
 
         {/* Page content - key 确保路由切换时内容区重新挂载，滚动位置自动归零 */}
         <main key={location.pathname} ref={mainRef} className="flex-1 p-4 lg:p-6 overflow-auto">
