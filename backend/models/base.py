@@ -26,5 +26,11 @@ class JSONType(TypeDecorator):
 
 _is_sqlite = "sqlite" in DATABASE_URL
 _engine_args = {"connect_args": {"check_same_thread": False}} if _is_sqlite else {}
-engine = create_engine(DATABASE_URL, **_engine_args)
+engine = create_engine(
+    DATABASE_URL,
+    **_engine_args,
+    pool_pre_ping=True,
+    pool_recycle=1800,
+    pool_timeout=10,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

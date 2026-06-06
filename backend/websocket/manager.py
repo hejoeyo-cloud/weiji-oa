@@ -1,7 +1,10 @@
 import json
-from typing import Dict, Set
+import logging
+from typing import Dict
 
 from fastapi import WebSocket
+
+logger = logging.getLogger("websocket")
 
 
 class ConnectionManager:
@@ -18,11 +21,20 @@ class ConnectionManager:
     async def send_to_user(self, user_id: int, message: dict):
         ws = self.active_connections.get(user_id)
         if ws:
-            await ws.send_json(message)
+            try:
+                await ws.send_json(message)
+            except Exception:
+                self.disconnect(user_id)
 
     async def broadcast(self, message: dict):
-        for ws in self.active_connections.values():
-            await ws.send_json(message)
+        dead = []
+        for user_id, ws in self.active_connections.items():
+            try:
+                await ws.send_json(message)
+            except Exception:
+                dead.append(user_id)
+        for uid in dead:
+            self.active_connections.pop(uid, None)
 
 
 manager = ConnectionManager()
