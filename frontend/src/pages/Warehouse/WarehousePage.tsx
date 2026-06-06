@@ -1383,6 +1383,7 @@ function OutboundTab({
 // ═══════════════════════════════════════════════════════════════════════
 
 function ReturnToFactoryTab({ canCreate, canDelete, onStatsRefresh }: { canCreate: boolean; canDelete: boolean; onStatsRefresh: () => void }) {
+  const { user } = useAuth()
   const [items, setItems] = useState<WarehouseReturnToFactory[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -1396,7 +1397,7 @@ function ReturnToFactoryTab({ canCreate, canDelete, onStatsRefresh }: { canCreat
   const [products, setProducts] = useState<WarehouseProduct[]>([])
   const [productSearch, setProductSearch] = useState('')
   const [showProductDropdown, setShowProductDropdown] = useState(false)
-  const [form, setForm] = useState<ReturnToFactoryCreateData>({ date: todayStr(), product_id: 0, quantity: 1, reason: '', operator: '', remark: '' })
+  const [form, setForm] = useState<ReturnToFactoryCreateData>({ date: todayStr(), product_id: 0, quantity: 1, reason: '', operator: user?.name || '', remark: '' })
   const [saving, setSaving] = useState(false)
   const [detailRecord, setDetailRecord] = useState<WarehouseReturnToFactory | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
@@ -1422,7 +1423,7 @@ function ReturnToFactoryTab({ canCreate, canDelete, onStatsRefresh }: { canCreat
 
   const openCreate = async () => {
     try { const data = await getProductList({ all: true }); setProducts(data.items) } catch (e) { console.error(e) }
-    setForm({ date: todayStr(), product_id: 0, quantity: 1, reason: '', operator: '', remark: '' })
+    setForm({ date: todayStr(), product_id: 0, quantity: 1, reason: '', operator: user?.name || '', remark: '' })
     setProductSearch(''); setShowProductDropdown(false); setShowModal(true)
   }
 
