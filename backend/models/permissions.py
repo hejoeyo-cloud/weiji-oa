@@ -21,6 +21,8 @@ ALL_PERMISSIONS = [
     "warehouse_inbound:view", "warehouse_inbound:create", "warehouse_inbound:edit", "warehouse_inbound:delete",
     # 仓储业务 - 出库管理
     "warehouse_outbound:view", "warehouse_outbound:create", "warehouse_outbound:edit", "warehouse_outbound:delete",
+    # 仓储业务 - 返厂出库
+    "warehouse_return_to_factory:view", "warehouse_return_to_factory:create", "warehouse_return_to_factory:edit", "warehouse_return_to_factory:delete",
     # 公告
     "announcements:view", "announcements:create", "announcements:edit",
     # 审批
@@ -63,6 +65,7 @@ PERMISSION_GROUPS = [
     {"key": "warehouse_products", "label": "仓储-货品管理", "perms": ["view", "create", "edit", "delete"]},
     {"key": "warehouse_inbound", "label": "仓储-入库管理", "perms": ["view", "create", "edit", "delete"]},
     {"key": "warehouse_outbound", "label": "仓储-出库管理", "perms": ["view", "create", "edit", "delete"]},
+    {"key": "warehouse_return_to_factory", "label": "仓储-返厂出库", "perms": ["view", "create", "edit", "delete"]},
     {"key": "announcements", "label": "公告通知", "perms": ["view", "create", "edit"]},
     {"key": "approvals", "label": "审批管理", "perms": ["view", "create", "process"]},
     {"key": "schedule", "label": "排班管理", "perms": ["view", "create", "edit"]},

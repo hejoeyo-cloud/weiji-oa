@@ -677,7 +677,7 @@ def list_return_to_factory(
 def create_return_to_factory(
     data: WarehouseReturnToFactoryCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("warehouse:create")),
+    current_user: User = Depends(require_permission("warehouse_return_to_factory:create")),
 ):
     product = db.query(WarehouseProduct).filter(
         WarehouseProduct.id == data.product_id,
@@ -709,7 +709,7 @@ def update_return_to_factory(
     record_id: int,
     data: WarehouseReturnToFactoryUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("warehouse:edit")),
+    current_user: User = Depends(require_permission("warehouse_return_to_factory:edit")),
 ):
     r = db.query(WarehouseReturnToFactory).filter(
         WarehouseReturnToFactory.id == record_id,
@@ -734,7 +734,7 @@ def update_return_to_factory(
 def delete_return_to_factory(
     record_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("warehouse:delete")),
+    current_user: User = Depends(require_permission("warehouse_return_to_factory:delete")),
 ):
     r = db.query(WarehouseReturnToFactory).filter(
         WarehouseReturnToFactory.id == record_id,
