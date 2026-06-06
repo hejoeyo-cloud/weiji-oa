@@ -78,6 +78,8 @@ PERMISSION_GROUPS = [
     {"key": "finance_expense_invoice", "label": "财务-报销发票", "perms": ["view", "create", "edit", "delete"]},
     {"key": "attendance", "label": "考勤打卡", "perms": ["view", "manage"]},
     {"key": "tasks", "label": "任务看板", "perms": ["view", "create", "edit", "delete"]},
+    {"key": "messages", "label": "内部邮件", "perms": ["view", "send"]},
+    {"key": "approval_rules", "label": "审批规则", "perms": ["view"]},
 ]
 
 # 默认角色种子数据（仅 admin 为内置角色，不可删除；其他角色可自由编辑和删除）
