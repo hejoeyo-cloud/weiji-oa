@@ -554,6 +554,38 @@ export interface WarehouseOutboundFeedback {
   user_name: string
 }
 
+// ── 返厂出库 ─────────────────────────────────────────────────────────
+
+export interface WarehouseReturnToFactory {
+  id: number
+  date: string
+  product_id: number
+  product_code: string
+  category: string
+  product_name: string
+  spec: string
+  location: string
+  quantity: number
+  reason: string
+  status: string
+  repaired_at?: string
+  operator: string
+  remark: string
+  created_by?: number
+  creator_name: string
+  created_at?: string
+  updated_at?: string
+}
+
+export interface WarehouseReturnToFactoryFeedback {
+  id: number
+  record_id: number
+  user_id: number
+  content: string
+  created_at?: string
+  user_name: string
+}
+
 // ── 角色管理 ─────────────────────────────────────────────────────────
 export interface Role {
   id: number

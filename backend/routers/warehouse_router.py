@@ -4,12 +4,15 @@ from sqlalchemy import func
 
 from database import get_db, WarehouseProduct, WarehouseInbound, WarehouseOutbound, User
 from database import WarehouseInboundFeedback, WarehouseOutboundFeedback
+from database import WarehouseReturnToFactory, WarehouseReturnToFactoryFeedback
 from schemas import (
     WarehouseProductCreate, WarehouseProductUpdate, WarehouseProductOut,
     WarehouseInboundCreate, WarehouseInboundUpdate, WarehouseInboundOut,
     WarehouseOutboundCreate, WarehouseOutboundUpdate, WarehouseOutboundOut,
     WarehouseInboundFeedbackCreate, WarehouseInboundFeedbackOut,
     WarehouseOutboundFeedbackCreate, WarehouseOutboundFeedbackOut,
+    WarehouseReturnToFactoryCreate, WarehouseReturnToFactoryUpdate, WarehouseReturnToFactoryOut,
+    WarehouseReturnToFactoryFeedbackCreate, WarehouseReturnToFactoryFeedbackOut,
 )
 from auth import get_current_user, require_permission
 from services import audit_service
@@ -26,7 +29,17 @@ def _calc_stock(db: Session, product_id: int, initial_qty: int, company_id: int)
         WarehouseOutbound.product_id == product_id,
         WarehouseOutbound.company_id == company_id,
     ).scalar() or 0
-    return initial_qty + inbound - outbound
+    return_factory = db.query(func.sum(WarehouseReturnToFactory.quantity)).filter(
+        WarehouseReturnToFactory.product_id == product_id,
+        WarehouseReturnToFactory.company_id == company_id,
+        WarehouseReturnToFactory.status == "repairing",
+    ).scalar() or 0
+    repaired = db.query(func.sum(WarehouseReturnToFactory.quantity)).filter(
+        WarehouseReturnToFactory.product_id == product_id,
+        WarehouseReturnToFactory.company_id == company_id,
+        WarehouseReturnToFactory.status == "repaired",
+    ).scalar() or 0
+    return initial_qty + inbound - outbound - return_factory + repaired
 
 
 def product_to_out(p: WarehouseProduct, db: Session) -> WarehouseProductOut:
@@ -38,7 +51,17 @@ def product_to_out(p: WarehouseProduct, db: Session) -> WarehouseProductOut:
         WarehouseOutbound.product_id == p.id
         , WarehouseOutbound.company_id == p.company_id
     ).scalar() or 0
-    current_qty = (p.initial_qty or 0) + inbound_qty - outbound_qty
+    return_factory_qty = db.query(func.sum(WarehouseReturnToFactory.quantity)).filter(
+        WarehouseReturnToFactory.product_id == p.id,
+        WarehouseReturnToFactory.company_id == p.company_id,
+        WarehouseReturnToFactory.status == "repairing",
+    ).scalar() or 0
+    repaired_qty = db.query(func.sum(WarehouseReturnToFactory.quantity)).filter(
+        WarehouseReturnToFactory.product_id == p.id,
+        WarehouseReturnToFactory.company_id == p.company_id,
+        WarehouseReturnToFactory.status == "repaired",
+    ).scalar() or 0
+    current_qty = (p.initial_qty or 0) + inbound_qty - outbound_qty - return_factory_qty + repaired_qty
     return WarehouseProductOut(
         id=p.id,
         code=p.code or "",
@@ -602,3 +625,164 @@ def get_stats(
         "low_stock_count": len(low_stock_items),
         "low_stock_items": low_stock_items[:10],
     }
+
+
+# ══════════════════════════════════════════════════════
+# 返厂出库
+# ══════════════════════════════════════════════════════
+
+def _return_to_factory_to_out(r: WarehouseReturnToFactory, db: Session) -> WarehouseReturnToFactoryOut:
+    return WarehouseReturnToFactoryOut(
+        id=r.id, date=r.date or "", product_id=r.product_id,
+        product_code=r.product_code or "", category=r.category or "",
+        product_name=r.product_name or "", spec=r.spec or "", location=r.location or "",
+        quantity=r.quantity or 0, reason=r.reason or "", status=r.status or "repairing",
+        repaired_at=r.repaired_at, operator=r.operator or "", remark=r.remark or "",
+        created_by=r.created_by, creator_name=r.creator.name if r.creator else "",
+        created_at=r.created_at, updated_at=r.updated_at,
+    )
+
+
+@router.get("/return-to-factory")
+def list_return_to_factory(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    search: str = Query(""),
+    status: str = Query(""),
+    start_date: str = Query(""),
+    end_date: str = Query(""),
+):
+    q = db.query(WarehouseReturnToFactory).filter(WarehouseReturnToFactory.company_id == current_user.company_id)
+    if search:
+        like = f"%{search}%"
+        q = q.filter(
+            (WarehouseReturnToFactory.product_name.ilike(like)) |
+            (WarehouseReturnToFactory.product_code.ilike(like)) |
+            (WarehouseReturnToFactory.operator.ilike(like))
+        )
+    if status:
+        q = q.filter(WarehouseReturnToFactory.status == status)
+    if start_date:
+        q = q.filter(WarehouseReturnToFactory.date >= start_date)
+    if end_date:
+        q = q.filter(WarehouseReturnToFactory.date <= end_date)
+    total = q.count()
+    items = q.order_by(WarehouseReturnToFactory.id.desc()).offset((page - 1) * page_size).limit(page_size).all()
+    return {"total": total, "page": page, "page_size": page_size, "items": [_return_to_factory_to_out(i, db) for i in items]}
+
+
+@router.post("/return-to-factory")
+def create_return_to_factory(
+    data: WarehouseReturnToFactoryCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("warehouse:create")),
+):
+    product = db.query(WarehouseProduct).filter(
+        WarehouseProduct.id == data.product_id,
+        WarehouseProduct.company_id == current_user.company_id,
+    ).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="货品不存在")
+    stock = _calc_stock(db, product.id, product.initial_qty or 0, current_user.company_id)
+    if data.quantity > stock:
+        raise HTTPException(status_code=400, detail=f"库存不足，当前库存: {stock}")
+    if not data.reason:
+        raise HTTPException(status_code=400, detail="返厂原因不能为空")
+    r = WarehouseReturnToFactory(
+        company_id=current_user.company_id, date=data.date,
+        product_id=product.id, product_code=product.code, category=product.category,
+        product_name=product.name, spec=product.spec, location=product.location,
+        quantity=data.quantity, reason=data.reason, status="repairing",
+        operator=data.operator, remark=data.remark, created_by=current_user.id,
+    )
+    db.add(r)
+    db.commit()
+    db.refresh(r)
+    audit_service.log(db, current_user, "warehouse_return_to_factory", "create", r.id, f"返厂出库: {product.name} x{data.quantity}")
+    return _return_to_factory_to_out(r, db)
+
+
+@router.put("/return-to-factory/{record_id}")
+def update_return_to_factory(
+    record_id: int,
+    data: WarehouseReturnToFactoryUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("warehouse:edit")),
+):
+    r = db.query(WarehouseReturnToFactory).filter(
+        WarehouseReturnToFactory.id == record_id,
+        WarehouseReturnToFactory.company_id == current_user.company_id,
+    ).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="记录不存在")
+    old_status = r.status
+    for k, v in data.model_dump(exclude_unset=True).items():
+        setattr(r, k, v)
+    # 如果状态从维修中变为已返库，记录返库时间
+    if old_status == "repairing" and data.status == "repaired":
+        from datetime import datetime as _dt
+        r.repaired_at = _dt.now()
+    db.commit()
+    db.refresh(r)
+    audit_service.log(db, current_user, "warehouse_return_to_factory", "update", r.id, f"更新返厂出库记录")
+    return _return_to_factory_to_out(r, db)
+
+
+@router.delete("/return-to-factory/{record_id}")
+def delete_return_to_factory(
+    record_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("warehouse:delete")),
+):
+    r = db.query(WarehouseReturnToFactory).filter(
+        WarehouseReturnToFactory.id == record_id,
+        WarehouseReturnToFactory.company_id == current_user.company_id,
+    ).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="记录不存在")
+    audit_service.log(db, current_user, "warehouse_return_to_factory", "delete", r.id, f"删除返厂出库: {r.product_name} x{r.quantity}")
+    db.delete(r)
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/return-to-factory/{record_id}/feedbacks")
+def get_return_to_factory_feedbacks(
+    record_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    items = db.query(WarehouseReturnToFactoryFeedback).filter(
+        WarehouseReturnToFactoryFeedback.record_id == record_id,
+        WarehouseReturnToFactoryFeedback.company_id == current_user.company_id,
+    ).order_by(WarehouseReturnToFactoryFeedback.id.asc()).all()
+    return [{"id": f.id, "record_id": f.record_id, "user_id": f.user_id,
+             "content": f.content, "created_at": f.created_at,
+             "user_name": f.user.name if f.user else ""} for f in items]
+
+
+@router.post("/return-to-factory/{record_id}/feedback")
+def add_return_to_factory_feedback(
+    record_id: int,
+    data: WarehouseReturnToFactoryFeedbackCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    r = db.query(WarehouseReturnToFactory).filter(
+        WarehouseReturnToFactory.id == record_id,
+        WarehouseReturnToFactory.company_id == current_user.company_id,
+    ).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="记录不存在")
+    f = WarehouseReturnToFactoryFeedback(
+        company_id=current_user.company_id, record_id=record_id,
+        user_id=current_user.id, content=data.content,
+    )
+    db.add(f)
+    db.commit()
+    db.refresh(f)
+    return {"id": f.id, "record_id": f.record_id, "user_id": f.user_id,
+            "content": f.content, "created_at": f.created_at,
+            "user_name": current_user.name}

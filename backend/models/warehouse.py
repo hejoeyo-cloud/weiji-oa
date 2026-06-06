@@ -103,4 +103,49 @@ class WarehouseOutboundFeedback(Base):
     user = relationship("User")
 
 
+# ── 返厂出库 ─────────────────────────────────────────────────────────────
+
+class WarehouseReturnToFactory(Base):
+    """返厂出库记录"""
+    __tablename__ = "warehouse_return_to_factory"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    date = Column(String(20), default="")
+    product_id = Column(Integer, ForeignKey("warehouse_products.id"), nullable=False, index=True)
+    product_code = Column(String(50), default="")
+    category = Column(String(50), default="")
+    product_name = Column(String(200), default="")
+    spec = Column(String(200), default="")
+    location = Column(String(100), default="")
+    quantity = Column(Integer, default=0)
+    reason = Column(String(200), default="")            # 返厂原因
+    status = Column(String(20), default="repairing")    # repairing=维修中, repaired=已返库
+    repaired_at = Column(DateTime, nullable=True)        # 返库时间
+    operator = Column(String(50), default="")
+    remark = Column(Text, default="")
+    created_by = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    creator = relationship("User", foreign_keys=[created_by])
+    product = relationship("WarehouseProduct", foreign_keys=[product_id])
+    feedbacks = relationship("WarehouseReturnToFactoryFeedback", back_populates="record", cascade="all, delete-orphan")
+
+
+class WarehouseReturnToFactoryFeedback(Base):
+    """返厂出库备注记录"""
+    __tablename__ = "warehouse_return_to_factory_feedbacks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    record_id = Column(Integer, ForeignKey("warehouse_return_to_factory.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.now)
+
+    record = relationship("WarehouseReturnToFactory", back_populates="feedbacks")
+    user = relationship("User")
+
+
 # ── 财务业务 ─────────────────────────────────────────────────────────────

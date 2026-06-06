@@ -255,4 +255,62 @@ class WarehouseOutboundFeedbackOut(BaseModel):
         from_attributes = True
 
 
+# ── 返厂出库 ─────────────────────────────────────────────────────────
+
+class WarehouseReturnToFactoryCreate(BaseModel):
+    date: str = ""
+    product_id: int
+    quantity: int = 0
+    reason: str = ""
+    operator: str = ""
+    remark: str = ""
+
+class WarehouseReturnToFactoryUpdate(BaseModel):
+    date: Optional[str] = None
+    product_id: Optional[int] = None
+    quantity: Optional[int] = None
+    reason: Optional[str] = None
+    status: Optional[str] = None
+    operator: Optional[str] = None
+    remark: Optional[str] = None
+
+class WarehouseReturnToFactoryOut(BaseModel):
+    id: int
+    date: str = ""
+    product_id: int
+    product_code: str = ""
+    category: str = ""
+    product_name: str = ""
+    spec: str = ""
+    location: str = ""
+    quantity: int = 0
+    reason: str = ""
+    status: str = "repairing"
+    repaired_at: Optional[datetime] = None
+    operator: str = ""
+    remark: str = ""
+    created_by: Optional[int] = None
+    creator_name: str = ""
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class WarehouseReturnToFactoryFeedbackCreate(BaseModel):
+    content: str = ""
+
+class WarehouseReturnToFactoryFeedbackOut(BaseModel):
+    id: int
+    record_id: int
+    user_id: int
+    content: str
+    created_at: Optional[datetime] = None
+    user_name: str = ""
+
+    class Config:
+        from_attributes = True
+
+
 # ── 角色管理 ─────────────────────────────────────────────────────────

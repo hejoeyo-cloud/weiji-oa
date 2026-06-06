@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight,
   Package, TrendingUp, TrendingDown, AlertTriangle, Boxes,
-  Download, RefreshCw, Eye, Send
+  Download, RefreshCw, Eye, Send, RotateCcw
 } from 'lucide-react'
 import {
   getProductList, createProduct, updateProduct, deleteProduct,
@@ -11,9 +11,11 @@ import {
   getWarehouseStats,
   getInboundFeedbacks, addInboundFeedback,
   getOutboundFeedbacks, addOutboundFeedback,
-  type ProductCreateData, type InboundCreateData, type OutboundCreateData
+  getReturnToFactoryList, createReturnToFactory, updateReturnToFactory, deleteReturnToFactory,
+  getReturnToFactoryFeedbacks, addReturnToFactoryFeedback,
+  type ProductCreateData, type InboundCreateData, type OutboundCreateData, type ReturnToFactoryCreateData
 } from '../../api/warehouse'
-import type { WarehouseProduct, WarehouseInbound, WarehouseOutbound, WarehouseStats, WarehouseInboundFeedback, WarehouseOutboundFeedback } from '../../types'
+import type { WarehouseProduct, WarehouseInbound, WarehouseOutbound, WarehouseStats, WarehouseInboundFeedback, WarehouseOutboundFeedback, WarehouseReturnToFactory, WarehouseReturnToFactoryFeedback } from '../../types'
 import { useAuth } from '../../hooks/useAuth'
 import * as XLSX from 'xlsx'
 
@@ -60,7 +62,7 @@ function Modal({ title, onClose, children, wide }: {
 
 // ── 标签页类型 ────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'products' | 'inbound' | 'outbound'
+type Tab = 'overview' | 'products' | 'inbound' | 'outbound' | 'returnToFactory'
 
 // ── 主组件 ────────────────────────────────────────────────────────────
 
@@ -79,6 +81,9 @@ export default function WarehousePage() {
   const canViewOutbound = hasPermission('warehouse_outbound:view')
   const canCreateOutbound = hasPermission('warehouse_outbound:create')
   const canDeleteOutbound = hasPermission('warehouse_outbound:delete')
+  const canViewReturnToFactory = hasPermission('warehouse_return_to_factory:view')
+  const canCreateReturnToFactory = hasPermission('warehouse_return_to_factory:create')
+  const canDeleteReturnToFactory = hasPermission('warehouse_return_to_factory:delete')
 
   const loadStats = useCallback(async () => {
     try {
@@ -96,6 +101,7 @@ export default function WarehousePage() {
     { key: 'products', label: '货品管理', icon: Package, permission: canViewProducts },
     { key: 'inbound', label: '入库记录', icon: TrendingUp, permission: canViewInbound },
     { key: 'outbound', label: '出库记录', icon: TrendingDown, permission: canViewOutbound },
+    { key: 'returnToFactory', label: '返厂出库', icon: RotateCcw, permission: canViewReturnToFactory },
   ]
 
   return (
@@ -161,6 +167,13 @@ export default function WarehousePage() {
         <OutboundTab
           canCreate={canCreateOutbound}
           canDelete={canDeleteOutbound}
+          onStatsRefresh={loadStats}
+        />
+      )}
+      {tab === 'returnToFactory' && canViewReturnToFactory && (
+        <ReturnToFactoryTab
+          canCreate={canCreateReturnToFactory}
+          canDelete={canDeleteReturnToFactory}
           onStatsRefresh={loadStats}
         />
       )}
@@ -1354,6 +1367,311 @@ function OutboundTab({
                 >
                   <Send className="w-3.5 h-3.5" />
                   {addingFeedback ? '添加中...' : '添加'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  )
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// 返厂出库 Tab
+// ═══════════════════════════════════════════════════════════════════════
+
+function ReturnToFactoryTab({ canCreate, canDelete, onStatsRefresh }: { canCreate: boolean; canDelete: boolean; onStatsRefresh: () => void }) {
+  const [items, setItems] = useState<WarehouseReturnToFactory[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [pageSize] = useState(20)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [products, setProducts] = useState<WarehouseProduct[]>([])
+  const [productSearch, setProductSearch] = useState('')
+  const [showProductDropdown, setShowProductDropdown] = useState(false)
+  const [form, setForm] = useState<ReturnToFactoryCreateData>({ date: todayStr(), product_id: 0, quantity: 1, reason: '', operator: '', remark: '' })
+  const [saving, setSaving] = useState(false)
+  const [detailRecord, setDetailRecord] = useState<WarehouseReturnToFactory | null>(null)
+  const [showDetailModal, setShowDetailModal] = useState(false)
+  const [feedbacks, setFeedbacks] = useState<WarehouseReturnToFactoryFeedback[]>([])
+  const [feedbackText, setFeedbackText] = useState('')
+  const [addingFeedback, setAddingFeedback] = useState(false)
+  const productRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!showProductDropdown) return
+    const handler = (e: MouseEvent) => { if (productRef.current && !productRef.current.contains(e.target as Node)) setShowProductDropdown(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showProductDropdown])
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const data = await getReturnToFactoryList({ page, page_size: pageSize, search, status: statusFilter, start_date: startDate, end_date: endDate })
+      setItems(data.items); setTotal(data.total)
+    } catch (e) { console.error(e) } finally { setLoading(false) }
+  }, [page, pageSize, search, statusFilter, startDate, endDate])
+  useEffect(() => { load() }, [load])
+
+  const openCreate = async () => {
+    try { const data = await getProductList({ all: true }); setProducts(data.items) } catch (e) { console.error(e) }
+    setForm({ date: todayStr(), product_id: 0, quantity: 1, reason: '', operator: '', remark: '' })
+    setProductSearch(''); setShowProductDropdown(false); setShowModal(true)
+  }
+
+  const handleSave = async () => {
+    if (!form.product_id || !form.quantity || !form.reason) { alert('请填写货品、数量和返厂原因'); return }
+    setSaving(true)
+    try {
+      await createReturnToFactory(form)
+      setShowModal(false); load(); onStatsRefresh()
+    } catch (e: any) { alert(e.response?.data?.detail || '保存失败') } finally { setSaving(false) }
+  }
+
+  const handleDelete = async (item: WarehouseReturnToFactory) => {
+    if (!confirm(`确定删除 ${item.product_name} x${item.quantity} 的返厂记录？`)) return
+    try { await deleteReturnToFactory(item.id); load(); onStatsRefresh() } catch (e) { console.error(e) }
+  }
+
+  const handleRepair = async (item: WarehouseReturnToFactory) => {
+    if (!confirm(`确认 ${item.product_name} x${item.quantity} 已维修完成返库？`)) return
+    try { await updateReturnToFactory(item.id, { status: 'repaired' }); load(); onStatsRefresh() } catch (e: any) { alert(e.response?.data?.detail || '操作失败') }
+  }
+
+  const openDetail = async (item: WarehouseReturnToFactory) => {
+    setDetailRecord(item); setShowDetailModal(true)
+    try { const data = await getReturnToFactoryFeedbacks(item.id); setFeedbacks(data) } catch (e) { console.error(e) }
+  }
+
+  const handleAddFeedback = async () => {
+    if (!feedbackText.trim() || !detailRecord) return
+    setAddingFeedback(true)
+    try {
+      await addReturnToFactoryFeedback(detailRecord.id, feedbackText)
+      setFeedbackText('')
+      const data = await getReturnToFactoryFeedbacks(detailRecord.id); setFeedbacks(data)
+    } catch (e) { console.error(e) } finally { setAddingFeedback(false) }
+  }
+
+  const handleExport = async () => {
+    try {
+      const data = await getReturnToFactoryList({ page: 1, page_size: 100000, search, status: statusFilter, start_date: startDate, end_date: endDate })
+      const rows = data.items.map((r: WarehouseReturnToFactory, idx: number) => ({
+        '序号': idx + 1, '日期': r.date, '货品名称': r.product_name, '货品编码': r.product_code,
+        '数量': r.quantity, '返厂原因': r.reason, '状态': r.status === 'repaired' ? '已返库' : '维修中',
+        '经手人': r.operator, '备注': r.remark, '登记人': r.creator_name,
+        '登记时间': r.created_at?.slice(0, 16).replace('T', ' ') || '',
+      }))
+      const wb = XLSX.utils.book_new()
+      const ws = XLSX.utils.json_to_sheet(rows)
+      XLSX.utils.book_append_sheet(wb, ws, '返厂出库')
+      const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer
+      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a'); a.href = url; a.download = `返厂出库_${todayStr()}.xlsx`
+      document.body.appendChild(a); a.click(); document.body.removeChild(a)
+      setTimeout(() => URL.revokeObjectURL(url), 5000)
+    } catch (e) { alert('导出失败') }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
+            placeholder="搜索货品名称/编码/经手人..."
+            className="w-full pl-9 pr-3 py-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-gray-300"
+            style={{ borderColor: '#e5e5e5' }} />
+        </div>
+        <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
+          className="px-3 py-2 text-sm border rounded-lg outline-none" style={{ borderColor: '#e5e5e5' }}>
+          <option value="">全部状态</option>
+          <option value="repairing">维修中</option>
+          <option value="repaired">已返库</option>
+        </select>
+        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+          className="px-3 py-2 text-sm border rounded-lg outline-none" style={{ borderColor: '#e5e5e5' }} />
+        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+          className="px-3 py-2 text-sm border rounded-lg outline-none" style={{ borderColor: '#e5e5e5' }} />
+        <button onClick={handleExport} className="flex items-center gap-1 px-3 py-2 text-sm border rounded-lg hover:bg-gray-50" style={{ borderColor: '#e5e5e5' }}>
+          <Download className="w-4 h-4" /> 导出
+        </button>
+        {canCreate && (
+          <button onClick={openCreate} className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-white rounded-lg" style={{ background: '#404040' }}>
+            <Plus className="w-4 h-4" /> 新增返厂
+          </button>
+        )}
+      </div>
+
+      <div className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: '#e5e5e5' }}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b" style={{ borderColor: '#f0f0f0', background: '#fafafa' }}>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">日期</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">货品编码</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">货品名称</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">数量</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">返厂原因</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">状态</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">经手人</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">加载中...</td></tr>
+              ) : items.length === 0 ? (
+                <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">暂无数据</td></tr>
+              ) : items.map(item => (
+                <tr key={item.id} className="border-b hover:bg-gray-50" style={{ borderColor: '#f0f0f0' }}>
+                  <td className="px-4 py-3 whitespace-nowrap">{item.date}</td>
+                  <td className="px-4 py-3 text-gray-500">{item.product_code}</td>
+                  <td className="px-4 py-3 font-medium">{item.product_name}</td>
+                  <td className="px-4 py-3">{item.quantity}</td>
+                  <td className="px-4 py-3 max-w-[200px] truncate text-gray-500">{item.reason}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${item.status === 'repaired' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                      {item.status === 'repaired' ? '已返库' : '维修中'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-gray-500">{item.operator}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => openDetail(item)} className="p-1 text-gray-400 hover:text-blue-500" title="详情"><Eye className="w-4 h-4" /></button>
+                      {item.status === 'repairing' && (
+                        <button onClick={() => handleRepair(item)} className="px-2 py-0.5 text-xs font-medium text-white bg-green-500 rounded hover:bg-green-600" title="维修完成返库">返库</button>
+                      )}
+                      {canDelete && (
+                        <button onClick={() => handleDelete(item)} className="p-1 text-gray-400 hover:text-red-500" title="删除"><Trash2 className="w-4 h-4" /></button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {total > pageSize && (
+          <div className="flex items-center justify-between px-4 py-3 border-t" style={{ borderColor: '#f0f0f0' }}>
+            <span className="text-sm text-gray-500">共 {total} 条</span>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                className="p-1.5 rounded-lg border disabled:opacity-30" style={{ borderColor: '#e5e5e5' }}><ChevronLeft className="w-4 h-4" /></button>
+              <span className="px-3 py-1 text-sm">{page} / {Math.ceil(total / pageSize)}</span>
+              <button onClick={() => setPage(p => p + 1)} disabled={page >= Math.ceil(total / pageSize)}
+                className="p-1.5 rounded-lg border disabled:opacity-30" style={{ borderColor: '#e5e5e5' }}><ChevronRight className="w-4 h-4" /></button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {showModal && (
+        <Modal title="新增返厂出库" onClose={() => setShowModal(false)}>
+          <div className="p-6 space-y-4">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">货品 *</label>
+              <div className="relative" ref={productRef}>
+                <input type="text"
+                  value={showProductDropdown ? productSearch : (products.find(p => p.id === form.product_id) ? `${products.find(p => p.id === form.product_id)!.name}（${products.find(p => p.id === form.product_id)!.code}）` : '')}
+                  onChange={e => { setProductSearch(e.target.value); setShowProductDropdown(true); setForm(prev => ({ ...prev, product_id: 0 })) }}
+                  onFocus={() => { setShowProductDropdown(true); setProductSearch('') }}
+                  placeholder="输入名称或货号搜索..."
+                  className="w-full px-3 py-2 text-sm border rounded-lg outline-none" style={{ borderColor: '#e5e5e5' }} />
+                {showProductDropdown && (
+                  <div className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-auto" style={{ borderColor: '#e5e5e5' }}>
+                    {products.filter(p => !productSearch || p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.code.toLowerCase().includes(productSearch.toLowerCase())).length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-gray-400">无匹配货品</div>
+                    ) : products.filter(p => !productSearch || p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.code.toLowerCase().includes(productSearch.toLowerCase())).map(p => (
+                      <div key={p.id} className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-50"
+                        onClick={() => { setForm(prev => ({ ...prev, product_id: p.id })); setProductSearch(''); setShowProductDropdown(false) }}>
+                        {p.name}（{p.code}）- 库存: {p.current_qty} {p.unit}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><label className="block text-xs text-gray-500 mb-1">日期</label>
+                <input type="date" value={form.date} onChange={e => setForm(prev => ({ ...prev, date: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border rounded-lg outline-none" style={{ borderColor: '#e5e5e5' }} /></div>
+              <div><label className="block text-xs text-gray-500 mb-1">数量 *</label>
+                <input type="number" min="1" value={form.quantity} onChange={e => setForm(prev => ({ ...prev, quantity: parseInt(e.target.value) || 0 }))}
+                  className="w-full px-3 py-2 text-sm border rounded-lg outline-none" style={{ borderColor: '#e5e5e5' }} /></div>
+            </div>
+            <div><label className="block text-xs text-gray-500 mb-1">返厂原因 *</label>
+              <input value={form.reason} onChange={e => setForm(prev => ({ ...prev, reason: e.target.value }))}
+                placeholder="如：配件故障需返厂维修"
+                className="w-full px-3 py-2 text-sm border rounded-lg outline-none" style={{ borderColor: '#e5e5e5' }} /></div>
+            <div><label className="block text-xs text-gray-500 mb-1">经手人</label>
+              <input value={form.operator} onChange={e => setForm(prev => ({ ...prev, operator: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border rounded-lg outline-none" style={{ borderColor: '#e5e5e5' }} /></div>
+            <div><label className="block text-xs text-gray-500 mb-1">备注</label>
+              <textarea rows={2} value={form.remark} onChange={e => setForm(prev => ({ ...prev, remark: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border rounded-lg outline-none" style={{ borderColor: '#e5e5e5' }} /></div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50" style={{ borderColor: '#e5e5e5' }}>取消</button>
+              <button onClick={handleSave} disabled={saving}
+                className="px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50" style={{ background: '#404040' }}>
+                {saving ? '保存中...' : '确认返厂'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {showDetailModal && detailRecord && (
+        <Modal title="返厂出库详情" onClose={() => setShowDetailModal(false)}>
+          <div className="p-6 space-y-4">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><span className="text-gray-500">日期：</span>{detailRecord.date}</div>
+              <div><span className="text-gray-500">状态：</span>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${detailRecord.status === 'repaired' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                  {detailRecord.status === 'repaired' ? '已返库' : '维修中'}
+                </span>
+              </div>
+              <div><span className="text-gray-500">货品：</span>{detailRecord.product_name}（{detailRecord.product_code}）</div>
+              <div><span className="text-gray-500">数量：</span>{detailRecord.quantity}</div>
+              <div className="col-span-2"><span className="text-gray-500">返厂原因：</span>{detailRecord.reason}</div>
+              <div><span className="text-gray-500">经手人：</span>{detailRecord.operator}</div>
+              <div><span className="text-gray-500">登记人：</span>{detailRecord.creator_name}</div>
+              {detailRecord.repaired_at && <div className="col-span-2"><span className="text-gray-500">返库时间：</span>{detailRecord.repaired_at?.slice(0, 16).replace('T', ' ')}</div>}
+              {detailRecord.remark && <div className="col-span-2"><span className="text-gray-500">备注：</span>{detailRecord.remark}</div>}
+            </div>
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium text-gray-800 mb-3">处理记录</h4>
+              {feedbacks.length === 0 ? (
+                <p className="text-sm text-gray-400">暂无处理记录</p>
+              ) : (
+                <div className="space-y-2">
+                  {feedbacks.map(f => (
+                    <div key={f.id} className="p-3 bg-gray-50 rounded-lg text-sm">
+                      <div className="flex justify-between text-xs text-gray-500 mb-1">
+                        <span>{f.user_name}</span>
+                        <span>{f.created_at?.slice(0, 16).replace('T', ' ')}</span>
+                      </div>
+                      <div>{f.content}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2 mt-3">
+                <input value={feedbackText} onChange={e => setFeedbackText(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAddFeedback()}
+                  placeholder="添加处理记录..."
+                  className="flex-1 px-3 py-2 text-sm border rounded-lg outline-none" style={{ borderColor: '#e5e5e5' }} />
+                <button onClick={handleAddFeedback} disabled={addingFeedback || !feedbackText.trim()}
+                  className="px-3 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50" style={{ background: '#404040' }}>
+                  <Send className="w-4 h-4" />
                 </button>
               </div>
             </div>

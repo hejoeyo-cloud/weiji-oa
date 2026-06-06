@@ -1,5 +1,5 @@
 import client from './client'
-import type { WarehouseProduct, WarehouseInbound, WarehouseOutbound, WarehouseStats, WarehouseInboundFeedback, WarehouseOutboundFeedback } from '../types'
+import type { WarehouseProduct, WarehouseInbound, WarehouseOutbound, WarehouseStats, WarehouseInboundFeedback, WarehouseOutboundFeedback, WarehouseReturnToFactory, WarehouseReturnToFactoryFeedback } from '../types'
 
 // ── 货品管理 ──────────────────────────────────────────────────────────
 
@@ -132,3 +132,44 @@ export const getOutboundFeedbacks = (recordId: number) =>
 
 export const addOutboundFeedback = (recordId: number, content: string) =>
   client.post<WarehouseOutboundFeedback>(`/warehouse/outbound/${recordId}/feedback`, { content }).then(r => r.data)
+
+
+// ── 返厂出库 ────────────────────────────────────────────────────────
+
+export interface ReturnToFactoryListParams {
+  page?: number
+  page_size?: number
+  search?: string
+  status?: string
+  start_date?: string
+  end_date?: string
+}
+
+export interface ReturnToFactoryCreateData {
+  date: string
+  product_id: number
+  quantity: number
+  reason: string
+  operator?: string
+  remark?: string
+}
+
+export const getReturnToFactoryList = (params: ReturnToFactoryListParams = {}) =>
+  client.get<{ total: number; items: WarehouseReturnToFactory[]; page: number; page_size: number }>(
+    '/warehouse/return-to-factory', { params }
+  ).then(r => r.data)
+
+export const createReturnToFactory = (data: ReturnToFactoryCreateData) =>
+  client.post<WarehouseReturnToFactory>('/warehouse/return-to-factory', data).then(r => r.data)
+
+export const updateReturnToFactory = (id: number, data: Partial<ReturnToFactoryCreateData & { status: string }>) =>
+  client.put<WarehouseReturnToFactory>(`/warehouse/return-to-factory/${id}`, data).then(r => r.data)
+
+export const deleteReturnToFactory = (id: number) =>
+  client.delete(`/warehouse/return-to-factory/${id}`).then(r => r.data)
+
+export const getReturnToFactoryFeedbacks = (recordId: number) =>
+  client.get<WarehouseReturnToFactoryFeedback[]>(`/warehouse/return-to-factory/${recordId}/feedbacks`).then(r => r.data)
+
+export const addReturnToFactoryFeedback = (recordId: number, content: string) =>
+  client.post<WarehouseReturnToFactoryFeedback>(`/warehouse/return-to-factory/${recordId}/feedback`, { content }).then(r => r.data)
