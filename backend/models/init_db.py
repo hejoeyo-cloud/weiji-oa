@@ -571,6 +571,44 @@ def _migrate_db():
                 conn.execute(text("ALTER TABLE announcements ADD COLUMN target_departments TEXT DEFAULT ''"))
                 conn.commit()
 
+    # ── 迁移：shops 表（店铺管理） ────────────────────────────────────
+    if "shops" not in existing_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE shops (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER REFERENCES companies(id),
+                    name VARCHAR(200) DEFAULT '',
+                    created_at DATETIME,
+                    updated_at DATETIME,
+                    UNIQUE(company_id, name)
+                )
+            """))
+            conn.commit()
+    else:
+        # 表可能由 create_all 创建但缺少列，补全
+        columns = [c['name'] for c in inspector.get_columns('shops')]
+        if 'updated_at' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE shops ADD COLUMN updated_at DATETIME"))
+                conn.commit()
+
+    # ── 迁移：return_exchange_records 新增 shop_name 列 ───────────────
+    if 'return_exchange_records' in existing_tables:
+        columns = [c['name'] for c in inspector.get_columns('return_exchange_records')]
+        if 'shop_name' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE return_exchange_records ADD COLUMN shop_name VARCHAR(200) DEFAULT ''"))
+                conn.commit()
+
+    # ── 迁移：gift_records 新增 shop_name 列 ─────────────────────────
+    if 'gift_records' in existing_tables:
+        columns = [c['name'] for c in inspector.get_columns('gift_records')]
+        if 'shop_name' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE gift_records ADD COLUMN shop_name VARCHAR(200) DEFAULT ''"))
+                conn.commit()
+
 
 def _sync_user_role_ids():
     """将现有用户的 role 字符串与 roles 表的 id 关联"""

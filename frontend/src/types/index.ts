@@ -160,10 +160,18 @@ export interface AfterSalesRecord {
   updated_at?: string
 }
 
+// ── 店铺 ─────────────────────────────────────────────────────────────
+export interface Shop {
+  id: number
+  name: string
+  created_at?: string
+}
+
 // ── 退换登记 ─────────────────────────────────────────────────────────
 export interface ReturnExchangeRecord {
   id: number
   apply_date: string
+  shop_name: string
   order_no: string
   return_reason: string
   size: string
@@ -256,9 +264,9 @@ export interface RepairChargeRequest {
 export interface GiftRecord {
   id: number
   date: string
-  order_no: string
   shop_id?: number
   shop_name: string
+  order_no: string
   size: string
   model: string
   config: string
@@ -641,6 +649,7 @@ export interface DashboardResponse {
   overview_cards: DashboardOverviewCard[]
   shortcuts: DashboardShortcut[]
   recent_activity: DashboardRecentActivityItem[]
+  unread_messages?: any[]
 }
 
 // ── 考勤打卡 ─────────────────────────────────────────────────────────

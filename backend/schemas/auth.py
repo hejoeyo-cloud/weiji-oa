@@ -6,6 +6,7 @@ from .company import SubscriptionInfo
 class LoginRequest(BaseModel):
     email: str
     password: str
+    remember_me: bool = False
 
 class RegisterRequest(BaseModel):
     company_name: str

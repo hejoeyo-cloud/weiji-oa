@@ -25,6 +25,7 @@ def record_to_out(r: ReturnExchangeRecord) -> ReturnExchangeOut:
     return ReturnExchangeOut(
         id=r.id,
         apply_date=r.apply_date or "",
+        shop_name=r.shop_name or "",
         order_no=r.order_no or "",
         return_reason=r.return_reason or "",
         size=r.size or "",
@@ -113,6 +114,7 @@ def create_record(
     r = ReturnExchangeRecord(
         company_id=current_user.company_id,
         apply_date=req.apply_date,
+        shop_name=req.shop_name,
         order_no=req.order_no,
         return_reason=req.return_reason,
         size=req.size,

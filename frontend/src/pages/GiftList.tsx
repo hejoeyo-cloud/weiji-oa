@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import { getGiftList, createGift, updateGift, deleteGift, addGiftFeedback, getGiftFeedbacks } from '../api/gifts'
 import { getShops, createShop as apiCreateShop, deleteShop as apiDeleteShop, Shop } from '../api/shops'
 import { useAuth } from '../hooks/useAuth'
+import ShopSelect from '../components/ShopSelect'
 import { GiftRecord, GiftFeedback } from '../types'
 import * as XLSX from 'xlsx'
 

@@ -51,6 +51,7 @@ from routers import messages_router
 from routers import shop_router
 from routers import approval_rules_router
 import finance_router
+from routers import shop_router
 from websocket.manager import manager
 
 app = FastAPI(title="微迹OA 内部系统", version="1.0.0", lifespan=lifespan)
@@ -95,6 +96,7 @@ app.include_router(messages_router.router)
 app.include_router(shop_router.router)
 app.include_router(approval_rules_router.router)
 app.include_router(finance_router.router, prefix="/api")
+app.include_router(shop_router.router)
 
 
 @app.websocket("/ws/{user_id}")

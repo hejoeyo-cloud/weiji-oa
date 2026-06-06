@@ -3,6 +3,7 @@ import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Eye, Gift, D
 import { useSearchParams } from 'react-router-dom'
 import { getGiftResendList, createGiftResend, updateGiftResend, deleteGiftResend, addGiftResendFeedback, getGiftResendFeedbacks } from '../api/giftResend'
 import { GiftResendRecord, GiftResendFeedback } from '../types'
+import ShopSelect from '../components/ShopSelect'
 import * as XLSX from 'xlsx'
 
 /** 通用 Excel 导出（浏览器端） */
@@ -372,7 +373,10 @@ export default function GiftResendList() {
               <div className="grid grid-cols-2 gap-4">
                 <F label="申请时间" value={form.apply_date} s={v => setForm(f => ({ ...f, apply_date: v }))} type="date" />
                 <F label="订单编号" value={form.order_no} s={v => setForm(f => ({ ...f, order_no: v }))} />
-                <F label="店铺名称" value={form.shop_name} s={v => setForm(f => ({ ...f, shop_name: v }))} />
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">店铺名称</label>
+                  <ShopSelect value={form.shop_name} onChange={v => setForm(f => ({ ...f, shop_name: v }))} />
+                </div>
                 <F label="类型" value={form.type} s={v => setForm(f => ({ ...f, type: v }))} />
               </div>
               <F label="礼品明细" value={form.gift_detail} s={v => setForm(f => ({ ...f, gift_detail: v }))} />

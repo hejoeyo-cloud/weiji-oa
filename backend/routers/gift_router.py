@@ -30,7 +30,6 @@ def record_to_out(db: Session, r: GiftRecord, has_cost_permission: bool = False)
     out = GiftRecordOut(
         id=r.id,
         date=r.date or "",
-        order_no=r.order_no or "",
         shop_id=r.shop_id,
         shop_name=r.shop_name or "",
         size=r.size or "",

@@ -4,8 +4,9 @@ import { Store, Eye, EyeOff } from 'lucide-react'
 import { login } from '../api/auth'
 
 export default function Login() {
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(() => localStorage.getItem('remembered_email') || '')
   const [password, setPassword] = useState('')
+  const [remember, setRemember] = useState(() => !!localStorage.getItem('remembered_email'))
   const [showPwd, setShowPwd] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -17,9 +18,14 @@ export default function Login() {
     setLoading(true)
     setError('')
     try {
-      const res = await login(email, password)
+      const res = await login(email, password, remember)
       localStorage.setItem('token', res.data.token)
       localStorage.setItem('user', JSON.stringify(res.data.user))
+      if (remember) {
+        localStorage.setItem('remembered_email', email)
+      } else {
+        localStorage.removeItem('remembered_email')
+      }
       navigate('/')
     } catch (err: any) {
       setError(err.response?.data?.detail || '登录失败，请检查邮箱密码')
@@ -98,6 +104,16 @@ export default function Login() {
                 </button>
               </div>
             </div>
+
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                className="w-4 h-4 rounded accent-[#404040]"
+              />
+              <span className="text-sm" style={{ color: '#737373' }}>记住我</span>
+            </label>
 
             <button
               type="submit"

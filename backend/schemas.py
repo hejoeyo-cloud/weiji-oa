@@ -14,5 +14,6 @@ from schemas.notification import *
 from schemas.role import *
 from schemas.schedule import *
 from schemas.ticket import *
+from schemas.shop import *
 from schemas.warehouse import *
 

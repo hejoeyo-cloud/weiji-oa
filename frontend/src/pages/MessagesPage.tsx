@@ -10,7 +10,7 @@ import { getInbox, getSent, getDrafts, getTrash, getCounts, sendMessage, saveDra
 import { getUsers } from '../api/users'
 import client from '../api/client'
 
-type Folder = 'inbox' | 'sent' | 'drafts' | 'trash'
+type Folder = 'inbox' | 'sent' | 'drafts' | 'trash' | 'starred'
 type Mode = 'view' | 'compose' | 'reply' | 'forward'
 type User = { id: number; name: string; department?: string; job_title?: string; email?: string }
 
@@ -49,7 +49,7 @@ export default function MessagesPage() {
     setLoading(true)
     try { let data: any
       if (f==='inbox') data = await getInbox(); else if (f==='sent') data = await getSent()
-      else if (f==='drafts') data = await getDrafts(); else if (f==='starred') data = (await getInbox('', true)).data || await getInbox('', true); else if (f==='trash') data = await getTrash()
+      else if (f==='drafts') data = await getDrafts(); else if (f==='starred') data = await getInbox('', true); else if (f==='trash') data = await getTrash()
       setMessages(Array.isArray(data?.data||data) ? (data?.data||data) : [])
     } catch {} finally { setLoading(false) }
   }, [])
@@ -110,9 +110,9 @@ export default function MessagesPage() {
   const handleSend = async () => {
     const rid = to[0]?.id; if (!rid) { alert('请选择收件人'); return }
     setSending(true)
-    try { if (mode==='compose') { await sendMessage({ recipient_id:rid, subject, content:body, draft:false, attachment_ids: uploadedFiles.map(f=>f.id) }); notify('邮件已发送', subject||'') }
-      else if (mode==='reply'&&selected) { await replyMessage(selected.id, { recipient_id:rid, subject, content:body, attachment_ids: uploadedFiles.map(f=>f.id) }) }
-      else if (mode==='forward'&&selected) { await forwardMessage(selected.id, { recipient_id:rid, subject, content:body, attachment_ids: uploadedFiles.map(f=>f.id) }) }
+    try { if (mode==='compose') { await sendMessage({ recipient_id:rid, subject, content:body, draft:false, attachment_ids: uploadedFiles.map(f=>f.id) } as any); notify('邮件已发送', subject||'') }
+      else if (mode==='reply'&&selected) { await replyMessage(selected.id, { recipient_id:rid, subject, content:body, attachment_ids: uploadedFiles.map(f=>f.id) } as any) }
+      else if (mode==='forward'&&selected) { await forwardMessage(selected.id, { recipient_id:rid, subject, content:body, attachment_ids: uploadedFiles.map(f=>f.id) } as any) }
       setMode('view'); setSelected(null); loadFolder('sent') } catch (e:any) { alert(typeof e?.response?.data?.detail==='string'?e.response.data.detail:'发送失败') }
     finally { setSending(false) }
   }

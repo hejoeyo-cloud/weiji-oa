@@ -68,6 +68,7 @@ export const MODULE_REGISTRY: Record<string, ModuleDefinition> = {
     sortOrder: 1,
     enabledByDefault: true,
     fields: [
+      { name: 'shop_name', label: '店铺', type: 'text', required: false, sortOrder: 0 },
       { name: 'model', label: '型号', type: 'text', required: false, sortOrder: 1 },
       { name: 'config', label: '配置', type: 'text', required: false, sortOrder: 2 },
       { name: 'size', label: '规格', type: 'text', required: false, sortOrder: 3 },
@@ -109,6 +110,7 @@ export const MODULE_REGISTRY: Record<string, ModuleDefinition> = {
     sortOrder: 1,
     enabledByDefault: true,
     fields: [
+      { name: 'shop_name', label: '店铺', type: 'text', required: false, sortOrder: 0 },
       { name: 'model', label: '型号', type: 'text', required: false, sortOrder: 1 },
       { name: 'config', label: '配置', type: 'text', required: false, sortOrder: 2 },
       { name: 'color', label: '颜色', type: 'text', required: false, sortOrder: 3 },

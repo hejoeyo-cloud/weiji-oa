@@ -4,8 +4,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(BASE_DIR)
 
 # 数据库：默认 SQLite，设 DATABASE_URL 环境变量可切换 PostgreSQL
-# 示例: export DATABASE_URL=postgresql://user:pass@host:5432/weiji_oa
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{os.path.join(PROJECT_DIR, 'data.db')}")
+# 示例: export DATABASE_URL=postgresql://user:pass@host:5432/fries_oa
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{os.path.join(PROJECT_DIR, 'data.db').replace(chr(92), '/')}")
 
 UPLOAD_DIR = os.path.join(PROJECT_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)

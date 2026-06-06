@@ -41,6 +41,7 @@ class GiftRecord(Base):
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
     date = Column(String(20), default="")               # 日期
+    shop_name = Column(String(200), default="")          # 店铺名称
     order_no = Column(String(100), default="")           # 订单编号
     shop_id = Column(Integer, ForeignKey("shops.id"), nullable=True)  # 店铺
     shop_name = Column(String(200), default="")          # 店铺名称（冗余）

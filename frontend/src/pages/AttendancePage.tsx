@@ -25,7 +25,7 @@ export default function AttendancePage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
   })
   const [monthSelect, setMonthSelect] = useState(currentMonth)
-  const [activeTab, setActiveTab] = useState<'records' | 'dingtalk'>('records')
+  const [activeTab, setActiveTab] = useState<string>('records')
 
   // ── 钉钉配置 ──
   const [dtConfig, setDtConfig] = useState<DingtalkConfig | null>(null)
@@ -97,7 +97,7 @@ export default function AttendancePage() {
     setDtSyncing(true); setDtSyncResult('')
     try {
       const res = await syncDingtalk()
-      setDtSyncResult(`同步完成：新增 ${res.synced} 条，覆盖 ${res.overwrote || 0} 条，跳过 ${res.skipped} 条`); loadDtConfig()
+      setDtSyncResult(`同步完成：新增 ${(res as any).synced || 0} 条，覆盖 ${(res as any).overwrote || 0} 条，跳过 ${(res as any).skipped || 0} 条`); loadDtConfig()
     } catch (err: any) {
       setDtSyncResult(err.response?.data?.detail || '同步失败')
     } finally { setDtSyncing(false) }
@@ -109,10 +109,10 @@ export default function AttendancePage() {
   const timeStr = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
   const dateStr = now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
 
-  const tabs = [
-    { key: 'records' as const, label: '考勤记录' },
+  const tabs: { key: string; label: string }[] = [
+    { key: 'records', label: '考勤记录' },
   ]
-  if (isAdmin) tabs.push({ key: 'dingtalk' as const, label: '钉钉同步' })
+  if (isAdmin) tabs.push({ key: 'dingtalk', label: '钉钉同步' })
 
   return (
     <div className="p-6 space-y-5">

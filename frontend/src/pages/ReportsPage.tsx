@@ -66,7 +66,7 @@ export default function ReportsPage() {
                 data={stats.ticket_status_distribution}
                 dataKey="count" nameKey="name"
                 cx="50%" cy="50%" outerRadius={100}
-                label={({ name, count }) => `${name}: ${count}`}
+                label={({ name, count }: any) => `${name}: ${count}`}
                 labelLine={false}
               >
                 {stats.ticket_status_distribution.map((_, i) => (

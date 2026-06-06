@@ -108,6 +108,7 @@ class GiftResendFeedbackOut(BaseModel):
 
 class GiftRecordCreate(BaseModel):
     date: str = ""
+    shop_name: str = ""
     order_no: str = ""
     shop_id: Optional[int] = None
     shop_name: str = ""
@@ -128,6 +129,7 @@ class GiftRecordCreate(BaseModel):
 
 class GiftRecordUpdate(BaseModel):
     date: Optional[str] = None
+    shop_name: Optional[str] = None
     order_no: Optional[str] = None
     shop_id: Optional[int] = None
     shop_name: Optional[str] = None
@@ -149,6 +151,7 @@ class GiftRecordUpdate(BaseModel):
 class GiftRecordOut(BaseModel):
     id: int
     date: str = ""
+    shop_name: str = ""
     order_no: str = ""
     shop_id: Optional[int] = None
     shop_name: str = ""

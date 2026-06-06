@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight,
   Package, TrendingUp, TrendingDown, AlertTriangle, Boxes,
@@ -552,8 +552,21 @@ function InboundTab({
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [products, setProducts] = useState<WarehouseProduct[]>([])
+  const [productSearch, setProductSearch] = useState('')
+  const [showProductDropdown, setShowProductDropdown] = useState(false)
   const [form, setForm] = useState<InboundCreateData>({ date: todayStr(), product_id: 0, quantity: 1, operator: '', remark: '' })
   const [saving, setSaving] = useState(false)
+
+  // 点击外部关闭货品下拉框
+  const productRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!showProductDropdown) return
+    const handler = (e: MouseEvent) => {
+      if (productRef.current && !productRef.current.contains(e.target as Node)) setShowProductDropdown(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showProductDropdown])
 
   // 详情弹窗状态
   const [detailRecord, setDetailRecord] = useState<WarehouseInbound | null>(null)
@@ -580,6 +593,8 @@ function InboundTab({
       setProducts(data.items)
     } catch (e) { console.error(e) }
     setForm({ date: todayStr(), product_id: 0, quantity: 1, operator: '', remark: '' })
+    setProductSearch('')
+    setShowProductDropdown(false)
     setShowModal(true)
   }
 
@@ -742,17 +757,33 @@ function InboundTab({
           <div className="p-6 space-y-4">
             <div>
               <label className="block text-xs font-medium mb-1.5" style={{ color: '#404040' }}>货品 *</label>
-              <select
-                value={form.product_id}
-                onChange={e => setForm(prev => ({ ...prev, product_id: Number(e.target.value) }))}
-                className="w-full px-3 py-2 text-sm border rounded-lg outline-none"
-                style={{ borderColor: '#e5e5e5', color: '#1f1f1f' }}
-              >
-                <option value={0}>请选择货品</option>
-                {products.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}（{p.code}）- 当前库存: {p.current_qty} {p.unit}</option>
-                ))}
-              </select>
+              <div className="relative" ref={productRef}>
+                <input
+                  type="text"
+                  value={showProductDropdown ? productSearch : (products.find(p => p.id === form.product_id) ? `${products.find(p => p.id === form.product_id)!.name}（${products.find(p => p.id === form.product_id)!.code}）` : '')}
+                  onChange={e => { setProductSearch(e.target.value); setShowProductDropdown(true); setForm(prev => ({ ...prev, product_id: 0 })) }}
+                  onFocus={() => { setShowProductDropdown(true); setProductSearch('') }}
+                  placeholder="输入名称或货号搜索..."
+                  className="w-full px-3 py-2 text-sm border rounded-lg outline-none"
+                  style={{ borderColor: '#e5e5e5', color: '#1f1f1f' }}
+                />
+                {showProductDropdown && (
+                  <div className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-auto" style={{ borderColor: '#e5e5e5' }}>
+                    {products.filter(p => !productSearch || p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.code.toLowerCase().includes(productSearch.toLowerCase())).length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-gray-400">无匹配货品</div>
+                    ) : (
+                      products.filter(p => !productSearch || p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.code.toLowerCase().includes(productSearch.toLowerCase())).map(p => (
+                        <div key={p.id}
+                          className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-50"
+                          onClick={() => { setForm(prev => ({ ...prev, product_id: p.id })); setProductSearch(''); setShowProductDropdown(false) }}
+                        >
+                          {p.name}（{p.code}）- 库存: {p.current_qty} {p.unit}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -936,8 +967,21 @@ function OutboundTab({
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [products, setProducts] = useState<WarehouseProduct[]>([])
+  const [productSearch, setProductSearch] = useState('')
+  const [showProductDropdown, setShowProductDropdown] = useState(false)
   const [form, setForm] = useState<OutboundCreateData>({ date: todayStr(), product_id: 0, quantity: 1, operator: '', remark: '' })
   const [saving, setSaving] = useState(false)
+
+  // 点击外部关闭货品下拉框
+  const productRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!showProductDropdown) return
+    const handler = (e: MouseEvent) => {
+      if (productRef.current && !productRef.current.contains(e.target as Node)) setShowProductDropdown(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showProductDropdown])
 
   // 详情弹窗状态
   const [detailRecord, setDetailRecord] = useState<WarehouseOutbound | null>(null)
@@ -964,6 +1008,8 @@ function OutboundTab({
       setProducts(data.items)
     } catch (e) { console.error(e) }
     setForm({ date: todayStr(), product_id: 0, quantity: 1, operator: '', remark: '' })
+    setProductSearch('')
+    setShowProductDropdown(false)
     setShowModal(true)
   }
 
@@ -1126,20 +1172,34 @@ function OutboundTab({
           <div className="p-6 space-y-4">
             <div>
               <label className="block text-xs font-medium mb-1.5" style={{ color: '#404040' }}>货品 *</label>
-              <select
-                value={form.product_id}
-                onChange={e => setForm(prev => ({ ...prev, product_id: Number(e.target.value) }))}
-                className="w-full px-3 py-2 text-sm border rounded-lg outline-none"
-                style={{ borderColor: '#e5e5e5', color: '#1f1f1f' }}
-              >
-                <option value={0}>请选择货品</option>
-                {products.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}（{p.code}）- 当前库存: {p.current_qty} {p.unit}
-                    {p.current_qty === 0 ? ' ⚠️ 无库存' : p.current_qty <= 20 ? ' ⚠️ 低库存' : ''}
-                  </option>
-                ))}
-              </select>
+              <div className="relative" ref={productRef}>
+                <input
+                  type="text"
+                  value={showProductDropdown ? productSearch : (products.find(p => p.id === form.product_id) ? `${products.find(p => p.id === form.product_id)!.name}（${products.find(p => p.id === form.product_id)!.code}）` : '')}
+                  onChange={e => { setProductSearch(e.target.value); setShowProductDropdown(true); setForm(prev => ({ ...prev, product_id: 0 })) }}
+                  onFocus={() => { setShowProductDropdown(true); setProductSearch('') }}
+                  placeholder="输入名称或货号搜索..."
+                  className="w-full px-3 py-2 text-sm border rounded-lg outline-none"
+                  style={{ borderColor: '#e5e5e5', color: '#1f1f1f' }}
+                />
+                {showProductDropdown && (
+                  <div className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-auto" style={{ borderColor: '#e5e5e5' }}>
+                    {products.filter(p => !productSearch || p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.code.toLowerCase().includes(productSearch.toLowerCase())).length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-gray-400">无匹配货品</div>
+                    ) : (
+                      products.filter(p => !productSearch || p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.code.toLowerCase().includes(productSearch.toLowerCase())).map(p => (
+                        <div key={p.id}
+                          className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-50"
+                          onClick={() => { setForm(prev => ({ ...prev, product_id: p.id })); setProductSearch(''); setShowProductDropdown(false) }}
+                        >
+                          {p.name}（{p.code}）- 库存: {p.current_qty} {p.unit}
+                          {p.current_qty === 0 ? ' ⚠️ 无库存' : p.current_qty <= 20 ? ' ⚠️ 低库存' : ''}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

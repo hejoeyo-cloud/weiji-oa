@@ -67,6 +67,7 @@ class ReturnExchangeRecord(Base):
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
     apply_date = Column(String(20), default="")          # 申请日期
+    shop_name = Column(String(200), default="")          # 店铺名称
     order_no = Column(String(100), default="")           # 订单编号
     return_reason = Column(Text, default="")             # 退货原因
     size = Column(String(50), default="")                # 尺寸

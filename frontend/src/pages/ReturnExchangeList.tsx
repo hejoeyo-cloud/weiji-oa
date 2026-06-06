@@ -11,6 +11,7 @@ import {
 } from '../api/returnExchange'
 import { ReturnExchangeRecord, ReturnExchangeFeedback } from '../types'
 import { useAuth } from '../hooks/useAuth'
+import ShopSelect from '../components/ShopSelect'
 import * as XLSX from 'xlsx'
 
 function exportToExcel(filename: string, rows: Record<string, string | number>[]) {
@@ -58,7 +59,7 @@ function RecordTypeBadge({ recordType }: { recordType: string }) {
 }
 
 const emptyForm = {
-  apply_date: '', order_no: '', return_reason: '', size: '', model: '',
+  apply_date: '', shop_name: '', order_no: '', return_reason: '', size: '', model: '',
   config: '', computer_price: 0, quantity: 1, accessories: '', accessories_price: 0,
   customer_info: '', return_tracking: '', send_tracking: '', handle_result: '',
   progress: 'pending', disassembly_feedback: '', shipping_fee: 0, remark: '',
@@ -172,6 +173,7 @@ export default function ReturnExchangeList() {
     setEditRecord(record)
     setForm({
       apply_date: record.apply_date || '',
+      shop_name: record.shop_name || '',
       order_no: record.order_no || '',
       return_reason: record.return_reason || '',
       size: record.size || '',
@@ -391,6 +393,10 @@ export default function ReturnExchangeList() {
                     className="w-full border rounded-lg px-3 py-2" />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">店铺名称</label>
+                  <ShopSelect value={form.shop_name} onChange={v => setForm({ ...form, shop_name: v })} />
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">订单编号</label>
                   <input type="text" value={form.order_no} onChange={e => setForm({ ...form, order_no: e.target.value })}
                     className="w-full border rounded-lg px-3 py-2" />
@@ -515,6 +521,7 @@ export default function ReturnExchangeList() {
             <div className="p-6">
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div><span className="text-gray-500">申请日期：</span>{detailRecord.apply_date || '-'}</div>
+                <div><span className="text-gray-500">店铺名称：</span>{detailRecord.shop_name || '-'}</div>
                 <div><span className="text-gray-500">订单编号：</span>{detailRecord.order_no || '-'}</div>
                 <div><span className="text-gray-500">型号：</span>{detailRecord.model || '-'}</div>
                 <div><span className="text-gray-500">配置：</span>{detailRecord.config || '-'}</div>

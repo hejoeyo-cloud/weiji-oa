@@ -137,6 +137,7 @@ class AfterSalesChargeRequestOut(BaseModel):
 
 class ReturnExchangeCreate(BaseModel):
     apply_date: str = ""
+    shop_name: str = ""
     order_no: str = ""
     return_reason: str = ""
     size: str = ""
@@ -158,6 +159,7 @@ class ReturnExchangeCreate(BaseModel):
 
 class ReturnExchangeUpdate(BaseModel):
     apply_date: Optional[str] = None
+    shop_name: Optional[str] = None
     order_no: Optional[str] = None
     return_reason: Optional[str] = None
     size: Optional[str] = None
@@ -180,6 +182,7 @@ class ReturnExchangeUpdate(BaseModel):
 class ReturnExchangeOut(BaseModel):
     id: int
     apply_date: str = ""
+    shop_name: str = ""
     order_no: str = ""
     return_reason: str = ""
     size: str = ""

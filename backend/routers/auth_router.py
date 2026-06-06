@@ -57,7 +57,8 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="邮箱或密码错误")
     if user.company and user.company.status == "disabled" and not user.is_platform_admin:
         raise HTTPException(status_code=403, detail="公司账号已停用")
-    token = create_access_token({"user_id": user.id})
+    expire = timedelta(days=30) if req.remember_me else None
+    token = create_access_token({"user_id": user.id}, expires_delta=expire)
     return LoginResponse(token=token, user=_build_user_info(user, db))
 
 
