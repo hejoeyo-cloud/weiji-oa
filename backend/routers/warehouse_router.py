@@ -39,7 +39,7 @@ def _calc_stock(db: Session, product_id: int, initial_qty: int, company_id: int)
         WarehouseReturnToFactory.company_id == company_id,
         WarehouseReturnToFactory.status == "repaired",
     ).scalar() or 0
-    return initial_qty + inbound - outbound - return_factory + repaired
+    return initial_qty + inbound - outbound - return_factory
 
 
 def product_to_out(p: WarehouseProduct, db: Session) -> WarehouseProductOut:
@@ -61,7 +61,7 @@ def product_to_out(p: WarehouseProduct, db: Session) -> WarehouseProductOut:
         WarehouseReturnToFactory.company_id == p.company_id,
         WarehouseReturnToFactory.status == "repaired",
     ).scalar() or 0
-    current_qty = (p.initial_qty or 0) + inbound_qty - outbound_qty - return_factory_qty + repaired_qty
+    current_qty = (p.initial_qty or 0) + inbound_qty - outbound_qty - return_factory_qty
     return WarehouseProductOut(
         id=p.id,
         code=p.code or "",
@@ -698,6 +698,13 @@ def create_return_to_factory(
         operator=data.operator, remark=data.remark, created_by=current_user.id,
     )
     db.add(r)
+    db.flush()
+    # 自动添加创建记录
+    fb = WarehouseReturnToFactoryFeedback(
+        company_id=current_user.company_id, record_id=r.id,
+        user_id=current_user.id, content=f"创建返厂出库：{product.name} x{data.quantity}，原因：{data.reason}",
+    )
+    db.add(fb)
     db.commit()
     db.refresh(r)
     audit_service.log(db, current_user, "warehouse_return_to_factory", "create", r.id, f"返厂出库: {product.name} x{data.quantity}")
@@ -720,10 +727,15 @@ def update_return_to_factory(
     old_status = r.status
     for k, v in data.model_dump(exclude_unset=True).items():
         setattr(r, k, v)
-    # 如果状态从维修中变为已返库，记录返库时间
+    # 如果状态从维修中变为已返库，记录返库时间并自动添加处理记录
     if old_status == "repairing" and data.status == "repaired":
         from datetime import datetime as _dt
         r.repaired_at = _dt.now()
+        fb = WarehouseReturnToFactoryFeedback(
+            company_id=current_user.company_id, record_id=r.id,
+            user_id=current_user.id, content=f"维修完成返库：{r.product_name} x{r.quantity}",
+        )
+        db.add(fb)
     db.commit()
     db.refresh(r)
     audit_service.log(db, current_user, "warehouse_return_to_factory", "update", r.id, f"更新返厂出库记录")
