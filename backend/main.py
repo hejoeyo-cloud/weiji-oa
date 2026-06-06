@@ -143,7 +143,4 @@ if __name__ == "__main__":
         "main:app",
         host=SERVER_HOST,
         port=SERVER_PORT,
-        reload=True,
-        reload_delay=0.5,  # 0.5秒防抖，避免频繁重启
-        reload_dirs=[os.path.dirname(os.path.abspath(__file__))],  # 仅监控后端目录
     )
