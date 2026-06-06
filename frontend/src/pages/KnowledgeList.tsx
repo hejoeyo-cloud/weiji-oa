@@ -54,7 +54,7 @@ export default function KnowledgeList() {
     const name = newCatName.trim()
     if (!name) return
     try {
-      await createKnowledgeCategory({ name })
+      await createKnowledgeCategory({ name, icon: '', sort_order: 0 })
       setNewCatName('')
       setShowNewCat(false)
       getKnowledgeCategories().then((res) => setCategories(res.data))
