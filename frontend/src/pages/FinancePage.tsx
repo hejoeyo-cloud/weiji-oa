@@ -272,10 +272,15 @@ function InvoiceRequestTab() {
                 </select>
               </div>
               <div><label className="block text-xs text-gray-500 mb-1">税额（自动计算）</label><input readOnly className="w-full border rounded px-3 py-1.5 text-sm bg-gray-50" value={form.tax_amount} /></div>
-              <div><label className="block text-xs text-gray-500 mb-1">状态</label>
-                <select className="w-full border rounded px-3 py-1.5 text-sm" value={form.status} onChange={e => F('status', e.target.value)}>
-                  {Object.entries(REQUEST_STATUS_MAP).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                </select>
+              <div className="col-span-2"><label className="block text-xs text-gray-500 mb-1">状态</label>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(REQUEST_STATUS_MAP).map(([k, v]) => (
+                    <button key={k} type="button"
+                      onClick={() => F('status', k)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${form.status === k ? v.color + ' ring-2 ring-offset-1 ring-current shadow-sm' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                    >{v.label}</button>
+                  ))}
+                </div>
               </div>
               {form.invoice_type === '电子发票' ? (
                 <div className="col-span-2"><label className="block text-xs text-gray-500 mb-1">收票邮箱</label><input type="email" className="w-full border rounded px-3 py-1.5 text-sm" value={form.email} onChange={e => F('email', e.target.value)} /></div>
