@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, Plus, Edit, Trash2, BookOpen, ChevronRight } from 'lucide-react'
-import { getKnowledgeCategories, getKnowledgeArticles, deleteKnowledgeCategory, deleteKnowledgeArticle } from '../api/knowledge'
+import { getKnowledgeCategories, getKnowledgeArticles, deleteKnowledgeCategory, deleteKnowledgeArticle, createKnowledgeCategory } from '../api/knowledge'
 import { useAuth } from '../hooks/useAuth'
 import type { KnowledgeCategory, KnowledgeArticle } from '../types'
 
@@ -14,6 +14,8 @@ export default function KnowledgeList() {
   const [articles, setArticles] = useState<KnowledgeArticle[]>([])
   const [search, setSearch] = useState('')
   const [total, setTotal] = useState(0)
+  const [newCatName, setNewCatName] = useState('')
+  const [showNewCat, setShowNewCat] = useState(false)
 
   useEffect(() => {
     getKnowledgeCategories().then((res) => setCategories(res.data)).catch(() => {})
@@ -45,6 +47,17 @@ export default function KnowledgeList() {
       getKnowledgeCategories().then((res) => setCategories(res.data))
       if (selectedCat === id) setSelectedCat(null)
       fetchArticles(null, search)
+    } catch (err) { console.error(err) }
+  }
+
+  const handleCreateCat = async () => {
+    const name = newCatName.trim()
+    if (!name) return
+    try {
+      await createKnowledgeCategory({ name })
+      setNewCatName('')
+      setShowNewCat(false)
+      getKnowledgeCategories().then((res) => setCategories(res.data))
     } catch (err) { console.error(err) }
   }
 
@@ -93,6 +106,32 @@ export default function KnowledgeList() {
                 )}
               </div>
             ))}
+            {isAdmin && (
+              showNewCat ? (
+                <div className="flex items-center gap-1 mt-1">
+                  <input
+                    value={newCatName}
+                    onChange={e => setNewCatName(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleCreateCat(); if (e.key === 'Escape') { setShowNewCat(false); setNewCatName('') } }}
+                    placeholder="分类名称"
+                    autoFocus
+                    className="flex-1 px-2 py-1.5 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-primary-400"
+                    style={{ borderColor: '#e5e5e5' }}
+                  />
+                  <button onClick={handleCreateCat} className="p-1.5 text-white bg-primary-500 rounded-lg hover:bg-primary-600">
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowNewCat(true)}
+                  className="w-full flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-primary-600 hover:bg-gray-50 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  新建分类
+                </button>
+              )
+            )}
           </div>
         </div>
 
