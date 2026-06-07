@@ -20,10 +20,11 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "480"))
 
 # 内网部署时，用 CORS_ORIGINS 环境变量覆盖允许来源（逗号分隔）
+# 默认允许所有来源，方便局域网内其他设备访问
 CORS_ORIGINS = [
     o.strip() for o in os.getenv(
         "CORS_ORIGINS",
-        "http://localhost:5173,http://localhost:8000"
+        "*"
     ).split(",")
 ]
 

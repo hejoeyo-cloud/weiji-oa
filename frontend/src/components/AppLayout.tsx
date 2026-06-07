@@ -172,7 +172,7 @@ export default function AppLayout() {
             icon,
             permission: m.permissions && m.permissions !== '[]'
               ? JSON.parse(m.permissions)
-              : [`${m.module_key}:view`],
+              : (reg?.permissions || []),
             navigationGroup: navGroup,
           }
         })
@@ -249,65 +249,108 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen flex" style={{ background: '#fafaf9' }}>
-      {/* Sidebar - 深灰/近黑色背景 */}
-      <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col transform transition-all duration-300 lg:relative lg:translate-x-0 lg:h-screen lg:sticky lg:top-0 lg:self-start
+      {/* Sidebar */}
+      <style>{`
+        :root {
+          --sb-bg: #17171b;
+          --sb-text: #ffffff;
+          --sb-text-dim: #a1a1aa;
+          --sb-text-muted: #7f7f7f;
+          --sb-hover: rgba(255,255,255,0.06);
+          --sb-active: rgba(255,255,255,0.1);
+          --sb-accent: #ffffff;
+        }
+        .sidebar-nav::-webkit-scrollbar { width: 4px; }
+        .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        .sidebar-nav::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+        .nav-item-active { position: relative; }
+        .nav-item-active::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 3px;
+          height: 60%;
+          border-radius: 0 3px 3px 0;
+          background: var(--sb-accent);
+        }
+        @keyframes sidebarItemIn {
+          from { opacity: 0; transform: translateX(-6px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        .nav-item-enter { animation: sidebarItemIn 0.2s ease-out both; }
+      `}</style>
+      <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col transform transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] lg:relative lg:translate-x-0 lg:h-screen lg:sticky lg:top-0 lg:self-start
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        ${sidebarCollapsed ? 'w-16' : 'w-48'}`}
-        style={{ background: '#27272a', color: 'white' }}>
+        ${sidebarCollapsed ? 'w-[60px]' : 'w-[180px]'}`}
+        style={{ background: 'var(--sb-bg)', color: 'white' }}>
+
         {/* Logo 区域 */}
-        <div className="relative flex items-center py-5 border-b flex-shrink-0 px-3" style={{ borderColor: '#27272a' }}>
+        <div className="relative flex items-center flex-shrink-0 px-3" style={{ height: '64px' }}>
           {sidebarCollapsed ? (
             <button
               onClick={toggleSidebarCollapse}
-              className="mx-auto p-1.5 rounded-lg transition-colors"
-              style={{ color: '#71717a' }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#3f3f46'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              className="mx-auto p-2 rounded-xl transition-all duration-200 hover:scale-105"
+              style={{ color: 'var(--sb-text-dim)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--sb-hover)'; e.currentTarget.style.color = 'var(--sb-text)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--sb-text-dim)' }}
               title="展开侧边栏"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-4 h-4" />
             </button>
           ) : (
             <>
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#3f3f46' }}>
-                <Store className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: 'linear-gradient(135deg, #404040 0%, #2a2a2e 100%)', boxShadow: '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+                <Store className="w-4 h-4" style={{ color: 'var(--sb-text)' }} />
               </div>
-              <div className="ml-3 min-w-0">
-                <h1 className="text-sm font-bold text-white leading-tight line-clamp-2 break-all">
+              <div className="ml-2.5 min-w-0">
+                <h1 className="text-[13px] font-semibold tracking-tight leading-tight truncate" style={{ color: 'var(--sb-accent)' }}>
                   {user?.company_name || '微迹OA'}
                 </h1>
-                <p className="text-[10px]" style={{ color: '#71717a' }}>内部数字化管理系统</p>
+                <p className="text-[10px] tracking-wider" style={{ color: 'var(--sb-text-muted)' }}>INTERNAL SYSTEM</p>
               </div>
               <button
                 onClick={toggleSidebarCollapse}
-                className="absolute right-3 top-5 p-1.5 rounded-lg transition-colors"
-                style={{ color: '#71717a' }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#3f3f46'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-all duration-200"
+                style={{ color: 'var(--sb-text-muted)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--sb-hover)'; e.currentTarget.style.color = 'var(--sb-text)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--sb-text-muted)' }}
                 title="折叠侧边栏"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-3.5 h-3.5" />
               </button>
             </>
           )}
         </div>
 
+        {/* 分隔线 */}
+        <div className="mx-4 flex-shrink-0" style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)' }} />
+
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto scrollbar-hide py-4 px-3 space-y-1">
-          {visibleGroups.map(group => {
+        <nav className="sidebar-nav flex-1 overflow-y-auto py-3 px-2.5 space-y-0.5">
+          {visibleGroups.map((group, groupIdx) => {
             const isCollapsed = collapsedGroups.has(group.label)
             return (
-              <div key={group.label} className="mb-3">
+              <div key={group.label} className={groupIdx > 0 ? 'mt-4' : 'mt-1'}>
+                {/* 分组标题 */}
                 <button
                   onClick={() => toggleGroup(group.label)}
-                  className={`w-full flex items-center justify-between px-3 py-1.5 text-sm font-semibold mb-2 rounded transition-colors hover:bg-white/5 ${sidebarCollapsed ? 'justify-center px-0' : ''}`}
-                  style={{ color: '#a1a1aa', letterSpacing: '0.02em', background: 'rgba(255,255,255,0.04)' }}
+                  className={`w-full flex items-center justify-between text-[12px] font-semibold tracking-widest uppercase mb-1.5 rounded-md transition-all duration-200 ${sidebarCollapsed ? 'justify-center px-0 py-1.5' : 'px-2.5 py-1.5'}`}
+                  style={{ color: 'var(--sb-text-muted)', letterSpacing: '0.08em' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--sb-text-dim)'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--sb-text-muted)'}
                 >
                   {!sidebarCollapsed && <span>{group.label}</span>}
-                  <ChevronDown size={12} style={{ color: '#52525b', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                  {!sidebarCollapsed && (
+                    <ChevronDown size={10} style={{ color: 'var(--sb-text-muted)', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.25s cubic-bezier(0.25,0.1,0.25,1)' }} />
+                  )}
                 </button>
 
-                {!isCollapsed && group.items.map(item => {
+                {/* 导航项 */}
+                {!isCollapsed && group.items.map((item, idx) => {
                   const isActive = item.path === '/'
                     ? location.pathname === '/'
                     : location.pathname === item.path
@@ -317,34 +360,39 @@ export default function AppLayout() {
                       to={item.path}
                       end
                       onClick={() => setSidebarOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm mb-0.5 transition-all duration-200 ${
-                        isActive ? 'font-medium' : ''
-                      } ${sidebarCollapsed ? 'justify-center px-0 w-full' : ''}`}
-                      style={isActive ? {
-                        background: '#3f3f46',
-                        color: 'white',
-                      } : {
-                        color: 'white',
+                      className={`nav-item-enter flex items-center rounded-lg text-[13px] mb-0.5 transition-all duration-200 group/nav
+                        ${isActive ? 'nav-item-active font-medium' : ''}
+                        ${sidebarCollapsed ? 'justify-center px-0 py-2 w-full' : 'gap-2.5 px-2.5 py-[7px]'}`}
+                      style={{
+                        animationDelay: `${(groupIdx * 4 + idx) * 20}ms`,
+                        background: isActive ? 'var(--sb-active)' : 'transparent',
+                        color: isActive ? 'var(--sb-accent)' : 'var(--sb-text)',
                       }}
                       onMouseEnter={(e) => {
-                        if (!isActive) e.currentTarget.style.background = '#3f3f46'
+                        if (!isActive) {
+                          e.currentTarget.style.background = 'var(--sb-hover)'
+                          e.currentTarget.style.color = 'var(--sb-accent)'
+                        }
                       }}
                       onMouseLeave={(e) => {
-                        if (!isActive) e.currentTarget.style.background = 'transparent'
+                        if (!isActive) {
+                          e.currentTarget.style.background = 'transparent'
+                          e.currentTarget.style.color = 'var(--sb-text)'
+                        }
                       }}
                       title={sidebarCollapsed ? item.label : undefined}
                     >
-                      <item.icon className="w-[16px] h-[16px] flex-shrink-0" />
-                      {!sidebarCollapsed && <span>{item.label}</span>}
+                      <item.icon className="w-[15px] h-[15px] flex-shrink-0 transition-transform duration-200 group-hover/nav:scale-110" strokeWidth={isActive ? 2 : 1.5} />
+                      {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
                       {item.path === '/announcements' && unreadAnnCount > 0 && !sidebarCollapsed && (
-                        <span className="ml-auto w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
-                          style={{ background: '#ef4444', color: 'white' }}>
+                        <span className="ml-auto min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[9px] font-bold"
+                          style={{ background: '#dc2626', color: 'white', boxShadow: '0 0 0 2px var(--sb-bg)' }}>
                           {unreadAnnCount > 9 ? '9+' : unreadAnnCount}
                         </span>
                       )}
                       {item.path === '/approvals' && pendingApprovalCount > 0 && !sidebarCollapsed && (
-                        <span className="ml-auto w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
-                          style={{ background: '#ef4444', color: 'white' }}>
+                        <span className="ml-auto min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[9px] font-bold"
+                          style={{ background: '#dc2626', color: 'white', boxShadow: '0 0 0 2px var(--sb-bg)' }}>
                           {pendingApprovalCount > 9 ? '9+' : pendingApprovalCount}
                         </span>
                       )}
@@ -356,54 +404,56 @@ export default function AppLayout() {
           })}
         </nav>
 
+        {/* 分隔线 */}
+        <div className="mx-4 flex-shrink-0" style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)' }} />
+
         {/* User Info */}
-        <div className={`px-4 py-4 border-t flex-shrink-0 ${sidebarCollapsed ? 'px-2' : ''}`} style={{ borderColor: '#27272a' }}>
+        <div className={`flex-shrink-0 ${sidebarCollapsed ? 'px-2 py-3' : 'px-3 py-3'}`}>
           {sidebarCollapsed ? (
             <div className="flex flex-col items-center gap-2">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-                style={{ background: '#3f3f46', color: 'white' }}>
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold ring-1"
+                style={{ background: 'var(--sb-hover)', color: 'var(--sb-text-dim)', ringColor: 'rgba(255,255,255,0.1)' }}>
                 {user?.name?.[0] || '?'}
               </div>
               <button onClick={handleLogout}
-                className="p-2 rounded-lg transition-colors"
-                style={{ color: '#71717a' }}
-                onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
-                onMouseLeave={(e) => e.currentTarget.style.color = '#71717a'}
+                className="p-1.5 rounded-lg transition-all duration-200"
+                style={{ color: 'var(--sb-text-muted)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--sb-text-muted)'; e.currentTarget.style.background = 'transparent' }}
                 title="退出登录"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-3.5 h-3.5" />
               </button>
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-                  style={{ background: '#3f3f46', color: 'white' }}>
+              <div className="flex items-center gap-2.5 mb-2.5 px-1">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold ring-1"
+                  style={{ background: 'var(--sb-hover)', color: 'var(--sb-text)', ringColor: 'rgba(255,255,255,0.1)' }}>
                   {user?.name?.[0] || '?'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate text-white">{user?.name}</p>
-                  <p className="text-[11px]" style={{ color: '#71717a' }}>{user?.role_label || ROLE_LABELS[user?.role || ''] || user?.role}</p>
+                  <p className="text-[13px] font-medium truncate" style={{ color: 'var(--sb-accent)' }}>{user?.name}</p>
+                  <p className="text-[10px]" style={{ color: 'var(--sb-text-muted)' }}>{user?.role_label || ROLE_LABELS[user?.role || ''] || user?.role}</p>
                 </div>
               </div>
 
               <NavLink to="/profile"
-                className="flex items-center gap-2 text-sm mb-2 px-1 transition-colors"
-                style={{ color: '#a1a1aa' }}
-                onMouseEnter={(e) => e.currentTarget.style.color = 'white'}
-                onMouseLeave={(e) => e.currentTarget.style.color = '#a1a1aa'}
+                className="flex items-center gap-2 text-[12px] mb-1 px-2 py-1.5 rounded-md transition-all duration-200"
+                style={{ color: 'var(--sb-text-dim)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--sb-hover)'; e.currentTarget.style.color = 'var(--sb-text)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--sb-text-dim)' }}
               >
-                <User size={14} />
+                <User size={13} strokeWidth={1.5} />
                 个人中心
               </NavLink>
-              <div className="h-px mb-2" style={{ background: '#27272a' }} />
               <button onClick={handleLogout}
-                className="flex items-center gap-2 text-sm w-full px-1 transition-colors"
-                style={{ color: '#71717a' }}
-                onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
-                onMouseLeave={(e) => e.currentTarget.style.color = '#71717a'}
+                className="flex items-center gap-2 text-[12px] w-full px-2 py-1.5 rounded-md transition-all duration-200"
+                style={{ color: 'var(--sb-text-muted)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.06)'; e.currentTarget.style.color = '#ef4444' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--sb-text-muted)' }}
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut size={13} strokeWidth={1.5} />
                 退出登录
               </button>
             </>

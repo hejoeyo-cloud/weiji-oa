@@ -128,7 +128,7 @@ export default function Login() {
 
         <div className="text-center mt-6">
           <p className="text-xs tracking-wider" style={{ color: '#d4d4d4' }}>
-            微迹 OA INTERNAL SYSTEM v2.0
+            微迹 OA INTERNAL SYSTEM v1.0
           </p>
         </div>
       </div>

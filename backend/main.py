@@ -2,7 +2,7 @@ import os
 import json
 from datetime import datetime
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -51,7 +51,6 @@ from routers import messages_router
 from routers import shop_router
 from routers import approval_rules_router
 import finance_router
-from routers import shop_router
 from websocket.manager import manager
 
 app = FastAPI(title="微迹OA 内部系统", version="1.0.0", lifespan=lifespan)
@@ -63,7 +62,6 @@ app.middleware("http")(company_guard)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -96,7 +94,6 @@ app.include_router(messages_router.router)
 app.include_router(shop_router.router)
 app.include_router(approval_rules_router.router)
 app.include_router(finance_router.router, prefix="/api")
-app.include_router(shop_router.router)
 
 
 @app.websocket("/ws/{user_id}")
@@ -113,7 +110,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int):
 
 
 @app.get("/api/files/{filepath:path}")
-def serve_file(filepath: str):
+def serve_file(filepath: str, current_user: User = Depends(get_current_user)):
     """通过存储抽象层提供文件下载 / 展示"""
     try:
         content = storage.read(filepath)

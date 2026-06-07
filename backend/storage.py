@@ -41,14 +41,18 @@ class LocalStorage(StorageBackend):
         return filename
 
     def read(self, filepath: str) -> bytes:
-        path = os.path.join(self.base, filepath)
+        path = os.path.realpath(os.path.join(self.base, filepath))
+        if not path.startswith(os.path.realpath(self.base)):
+            raise FileNotFoundError(filepath)
         if not os.path.exists(path):
             raise FileNotFoundError(filepath)
         with open(path, "rb") as f:
             return f.read()
 
     def delete(self, filepath: str) -> bool:
-        path = os.path.join(self.base, filepath)
+        path = os.path.realpath(os.path.join(self.base, filepath))
+        if not path.startswith(os.path.realpath(self.base)):
+            return False
         if os.path.exists(path):
             os.remove(path)
             return True

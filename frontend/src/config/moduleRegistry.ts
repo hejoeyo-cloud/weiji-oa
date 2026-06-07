@@ -106,7 +106,7 @@ export const MODULE_REGISTRY: Record<string, ModuleDefinition> = {
     icon: 'Gift',
     routePath: '/gifts',
     navigationGroup: '仓储业务',
-    permissions: ['gift:view'],
+    permissions: ['gifts:view'],
     sortOrder: 1,
     enabledByDefault: true,
     fields: [

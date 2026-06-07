@@ -4,6 +4,10 @@ node_modules/
 .venv39/
 venv/
 
+# Environment secrets
+.env
+.env.*
+
 # Database
 *.db
 *.sqlite

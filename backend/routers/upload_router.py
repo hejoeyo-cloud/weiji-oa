@@ -24,7 +24,7 @@ async def upload_image(
 
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail="File too large (max 10MB)")
+        raise HTTPException(status_code=400, detail="文件大小超出限制（最大 20MB）")
 
     filename = f"{uuid.uuid4().hex}{ext}"
     save_name = f"shared/{filename}"
