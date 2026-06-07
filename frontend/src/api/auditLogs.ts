@@ -7,6 +7,8 @@ export interface AuditLogParams {
   resource_type?: string
   action?: string
   username?: string
+  start_date?: string
+  end_date?: string
 }
 
 export const getAuditLogs = (params: AuditLogParams = {}) =>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Search, Shield, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Shield, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
 import { getAuditLogs } from '../api/auditLogs'
 import { AuditLog } from '../types'
 
@@ -40,16 +40,18 @@ export default function AuditLogPage() {
   const [resourceType, setResourceType] = useState('')
   const [action, setAction] = useState('')
   const [username, setUsername] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [loading, setLoading] = useState(false)
   const pageSize = 30
 
   const load = useCallback(() => {
     setLoading(true)
-    getAuditLogs({ page, page_size: pageSize, resource_type: resourceType, action, username })
+    getAuditLogs({ page, page_size: pageSize, resource_type: resourceType, action, username, start_date: startDate, end_date: endDate })
       .then(data => { setLogs(data.items); setTotal(data.total) })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [page, resourceType, action, username])
+  }, [page, resourceType, action, username, startDate, endDate])
 
   useEffect(() => { load() }, [load])
 
@@ -65,6 +67,11 @@ export default function AuditLogPage() {
           <h2 className="text-xl font-semibold text-gray-800">操作日志</h2>
           <p className="text-sm text-gray-500">系统所有增删改操作记录，共 {total} 条</p>
         </div>
+      </div>
+
+      <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 px-4 py-2.5 rounded-lg border border-amber-200">
+        <CalendarDays size={15} />
+        <span>操作日志仅保留最近三个月的记录</span>
       </div>
 
       {/* 筛选 */}
@@ -86,6 +93,12 @@ export default function AuditLogPage() {
           <option value="update">更新</option>
           <option value="delete">删除</option>
         </select>
+        <input type="date" className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none"
+          value={startDate} onChange={e => { setStartDate(e.target.value); setPage(1) }}
+          placeholder="开始日期" />
+        <input type="date" className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none"
+          value={endDate} onChange={e => { setEndDate(e.target.value); setPage(1) }}
+          placeholder="结束日期" />
       </div>
 
       {/* 日志列表 */}

@@ -716,6 +716,18 @@ def init_db():
     from .seed_modules import seed_module_configs
     seed_module_configs(db, default_company.id)
 
+    # 清理超过3个月的操作日志
+    try:
+        from datetime import datetime, timedelta
+        cutoff = datetime.now() - timedelta(days=90)
+        deleted = db.query(AuditLog).filter(AuditLog.created_at < cutoff).delete()
+        if deleted:
+            print(f"[init_db] 已清理 {deleted} 条超过3个月的操作日志")
+        db.commit()
+    except Exception as e:
+        print(f"[init_db] 清理过期操作日志失败: {e}")
+        db.rollback()
+
     db.close()
 
 

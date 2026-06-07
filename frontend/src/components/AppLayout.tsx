@@ -412,7 +412,7 @@ export default function AppLayout() {
           {sidebarCollapsed ? (
             <div className="flex flex-col items-center gap-2">
               <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold ring-1"
-                style={{ background: 'var(--sb-hover)', color: 'var(--sb-text-dim)', ringColor: 'rgba(255,255,255,0.1)' }}>
+                style={{ background: 'var(--sb-hover)', color: 'var(--sb-text-dim)', '--tw-ring-color': 'rgba(255,255,255,0.1)' } as React.CSSProperties}>
                 {user?.name?.[0] || '?'}
               </div>
               <button onClick={handleLogout}
@@ -429,7 +429,7 @@ export default function AppLayout() {
             <>
               <div className="flex items-center gap-2.5 mb-2.5 px-1">
                 <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold ring-1"
-                  style={{ background: 'var(--sb-hover)', color: 'var(--sb-text)', ringColor: 'rgba(255,255,255,0.1)' }}>
+                  style={{ background: 'var(--sb-hover)', color: 'var(--sb-text)', '--tw-ring-color': 'rgba(255,255,255,0.1)' } as React.CSSProperties}>
                   {user?.name?.[0] || '?'}
                 </div>
                 <div className="flex-1 min-w-0">
