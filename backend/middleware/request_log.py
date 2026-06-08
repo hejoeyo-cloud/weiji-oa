@@ -1,7 +1,10 @@
 """请求日志中间件"""
+import os
 import time
 import logging
 from fastapi import Request
+
+os.makedirs("logs", exist_ok=True)
 
 logger = logging.getLogger("request")
 handler = logging.FileHandler("logs/requests.log")

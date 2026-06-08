@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Eye, Download, Settings } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
-import { getGiftList, createGift, updateGift, deleteGift, addGiftFeedback, getGiftFeedbacks } from '../api/gifts'
+import { getGiftList, getGiftDetail, createGift, updateGift, deleteGift, addGiftFeedback, getGiftFeedbacks } from '../api/gifts'
 import { getShops, createShop as apiCreateShop, deleteShop as apiDeleteShop, Shop } from '../api/shops'
 import { useAuth } from '../hooks/useAuth'
 import ShopSelect from '../components/ShopSelect'
+import FieldSelect from '../components/FieldSelect'
 import { GiftRecord, GiftFeedback } from '../types'
 import * as XLSX from 'xlsx'
 
@@ -34,6 +35,8 @@ function exportToExcel(filename: string, rows: Record<string, any>[]) {
 const STATUSES = [
   { value: 'pending', label: '待发货', color: 'bg-amber-100 text-amber-700' },
   { value: 'sent', label: '已发出', color: 'bg-blue-100 text-blue-700' },
+  { value: 'intercepted', label: '已拦截', color: 'bg-red-100 text-red-700' },
+  { value: 'torn', label: '已撕单', color: 'bg-gray-100 text-gray-700' },
 ]
 
 function StatusBadge({ status }: { status: string }) {
@@ -42,9 +45,10 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 const emptyForm = {
-  date: '', shop_id: null as number | null, shop_name: '', order_no: '', size: '', model: '', config: '', color: '',
+  date: '', shop_id: null as number | null, shop_name: '', order_no: '', product: '', size: '', model: '', config: '', color: '',
   quantity: 1, accessories: '', customer_info: '', send_tracking: '',
-  shipping_fee: 0, order_amount: 0, cost: 0, remark: '', ship_date: '', status: 'pending',
+  shipping_fee: 0, order_amount: 0, cost: 0, gift_costs: [] as { name: string; amount: number }[],
+  remark: '', ship_date: '', status: 'pending',
 }
 
 /** 获取本地 YYYY-MM-DD 格式日期字符串 */
@@ -166,11 +170,12 @@ export default function GiftList() {
   const openEdit = (r: GiftRecord) => {
     setEditRecord(r)
     setForm({
-      date: r.date, shop_id: r.shop_id || null, shop_name: r.shop_name || '', order_no: r.order_no, size: r.size, model: r.model,
+      date: r.date, shop_id: r.shop_id || null, shop_name: r.shop_name || '', order_no: r.order_no, product: r.product || '', size: r.size, model: r.model,
       config: r.config, color: r.color, quantity: r.quantity,
       accessories: r.accessories, customer_info: r.customer_info,
       send_tracking: r.send_tracking, shipping_fee: r.shipping_fee,
       order_amount: r.order_amount, cost: r.cost,
+      gift_costs: r.gift_costs || [],
       remark: r.remark, ship_date: r.ship_date, status: r.status,
     })
     setShowDetail(false)
@@ -189,7 +194,7 @@ export default function GiftList() {
     setSaving(true)
     const submitData = {
       ...form,
-      status: form.send_tracking?.trim() ? 'sent' : 'pending',
+      status: form.status || (form.send_tracking?.trim() ? 'sent' : 'pending'),
       ship_date: form.ship_date || (form.send_tracking?.trim() ? todayStr() : ''),
     }
     const promise = editRecord ? updateGift(editRecord.id, submitData) : createGift(submitData)
@@ -206,6 +211,11 @@ export default function GiftList() {
         if (old.send_tracking !== form.send_tracking) changes.push(`发出单号: ${old.send_tracking || '无'} → ${form.send_tracking || '无'}`)
         if (old.ship_date !== form.ship_date) changes.push(`出货日期: ${old.ship_date || '无'} → ${form.ship_date || '无'}`)
         if (old.remark !== form.remark) changes.push(`备注: ${old.remark || '无'} → ${form.remark || '无'}`)
+        if (old.status !== form.status) {
+          const oldLabel = STATUSES.find(s => s.value === old.status)?.label || old.status
+          const newLabel = STATUSES.find(s => s.value === form.status)?.label || form.status
+          changes.push(`状态: ${oldLabel} → ${newLabel}`)
+        }
         if (changes.length === 0) changes.push(`更新发货登记 #${newId}（无字段变更）`)
       }
       const content = editRecord ? changes.join('；') : `新建发货登记 #${newId}`
@@ -221,6 +231,38 @@ export default function GiftList() {
   const handleDelete = (id: number) => {
     if (!confirm('确认删除这条发货记录？')) return
     deleteGift(id).then(load).catch(console.error)
+  }
+
+  const handleIntercept = () => {
+    if (!detailRecord) return
+    if (!confirm('确认拦截此快递？拦截后状态将变为"已拦截"')) return
+    const oldLabel = STATUSES.find(s => s.value === detailRecord.status)?.label || detailRecord.status
+    updateGift(detailRecord.id, { status: 'intercepted' })
+      .then(() => {
+        addGiftFeedback(detailRecord.id, `拦截快递，状态: ${oldLabel} → 已拦截`).catch(console.error)
+        return getGiftDetail(detailRecord.id)
+      })
+      .then(fresh => {
+        setDetailRecord(fresh)
+        load()
+      })
+      .catch(console.error)
+  }
+
+  const handleTorn = () => {
+    if (!detailRecord) return
+    if (!confirm('确认撕单？撕单后状态将变为"已撕单"')) return
+    const oldLabel = STATUSES.find(s => s.value === detailRecord.status)?.label || detailRecord.status
+    updateGift(detailRecord.id, { status: 'torn' })
+      .then(() => {
+        addGiftFeedback(detailRecord.id, `撕单，状态: ${oldLabel} → 已撕单`).catch(console.error)
+        return getGiftDetail(detailRecord.id)
+      })
+      .then(fresh => {
+        setDetailRecord(fresh)
+        load()
+      })
+      .catch(console.error)
   }
 
   const handleAddFeedback = () => {
@@ -353,7 +395,7 @@ export default function GiftList() {
                     {r.profit > 0 ? `¥${r.profit.toFixed(2)}` : r.profit < 0 ? `-¥${Math.abs(r.profit).toFixed(2)}` : '-'}
                   </td>
                 )}
-                <td className="px-4 py-3"><StatusBadge status={r.send_tracking ? 'sent' : 'pending'} /></td>
+                <td className="px-4 py-3"><StatusBadge status={r.status || (r.send_tracking ? 'sent' : 'pending')} /></td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <button onClick={() => openDetail(r)} className="text-gray-400 hover:text-violet-600"><Eye size={14} /></button>
@@ -401,7 +443,7 @@ export default function GiftList() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     店铺
                     <button type="button" onClick={() => setShowShopModal(true)}
-                      className="ml-2 text-gray-400 hover:text-violet-600 align-middle">
+                      className="ml-1.5 text-gray-400 hover:text-violet-500 align-middle transition-colors">
                       <Settings size={12} />
                     </button>
                   </label>
@@ -426,34 +468,58 @@ export default function GiftList() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">型号</label>
-                  <input value={form.model}
-                    onChange={e => setForm({ ...form, model: e.target.value })}
-                    placeholder="请输入型号"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">产品</label>
+                  <FieldSelect
+                    fieldName="product"
+                    label="产品"
+                    value={form.product}
+                    onChange={v => setForm({ ...form, product: v })}
+                    placeholder="请选择产品"
+                  />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">型号</label>
+                  <FieldSelect
+                    fieldName="model"
+                    label="型号"
+                    value={form.model}
+                    onChange={v => setForm({ ...form, model: v })}
+                    placeholder="请选择型号"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">配置</label>
-                  <input value={form.config}
-                    onChange={e => setForm({ ...form, config: e.target.value })}
-                    placeholder="请输入配置"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  <FieldSelect
+                    fieldName="config"
+                    label="配置"
+                    value={form.config}
+                    onChange={v => setForm({ ...form, config: v })}
+                    placeholder="请选择配置"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">尺寸</label>
+                  <FieldSelect
+                    fieldName="size"
+                    label="尺寸"
+                    value={form.size}
+                    onChange={v => setForm({ ...form, size: v })}
+                    placeholder="请选择尺寸"
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">尺寸</label>
-                  <input value={form.size}
-                    onChange={e => setForm({ ...form, size: e.target.value })}
-                    placeholder="如 13/14寸"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
-                </div>
-                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">颜色</label>
-                  <input value={form.color}
-                    onChange={e => setForm({ ...form, color: e.target.value })}
-                    placeholder="如 银色/深空灰"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  <FieldSelect
+                    fieldName="color"
+                    label="颜色"
+                    value={form.color}
+                    onChange={v => setForm({ ...form, color: v })}
+                    placeholder="请选择颜色"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">数量</label>
@@ -462,13 +528,16 @@ export default function GiftList() {
                     onChange={e => setForm({ ...form, quantity: parseInt(e.target.value) || 1 })}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">配件</label>
-                <input value={form.accessories}
-                  onChange={e => setForm({ ...form, accessories: e.target.value })}
-                  placeholder="请输入配件信息"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">配件</label>
+                  <FieldSelect
+                    fieldName="accessories"
+                    label="配件"
+                    value={form.accessories}
+                    onChange={v => setForm({ ...form, accessories: v })}
+                    placeholder="请选择配件"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">客户信息</label>
@@ -498,9 +567,10 @@ export default function GiftList() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">状态</label>
-                  <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50">
-                    <StatusBadge status={form.send_tracking ? 'sent' : 'pending'} />
-                  </div>
+                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
+                    {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </select>
                 </div>
               </div>
 
@@ -523,6 +593,58 @@ export default function GiftList() {
                         onChange={e => setForm({ ...form, cost: parseFloat(e.target.value) || 0 })}
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
                     </div>
+                  </div>
+
+                  {/* 礼品成本 */}
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-700">礼品成本</label>
+                      <button type="button"
+                        onClick={() => setForm({ ...form, gift_costs: [...form.gift_costs, { name: '', amount: 0 }] })}
+                        className="text-xs text-violet-600 hover:text-violet-700 flex items-center gap-1">
+                        <Plus size={12} /> 添加礼品
+                      </button>
+                    </div>
+                    {form.gift_costs.length > 0 && (
+                      <div className="space-y-2 mb-2">
+                        {form.gift_costs.map((item, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <div className="flex-1">
+                              <FieldSelect
+                                fieldName="gift_name"
+                                label="礼品名称"
+                                value={item.name}
+                                onChange={v => {
+                                  const updated = [...form.gift_costs]
+                                  updated[idx] = { ...updated[idx], name: v }
+                                  setForm({ ...form, gift_costs: updated })
+                                }}
+                                placeholder="请选择或输入礼品名称"
+                              />
+                            </div>
+                            <input type="number" step="0.01" min="0"
+                              value={item.amount}
+                              onChange={e => {
+                                const updated = [...form.gift_costs]
+                                updated[idx] = { ...updated[idx], amount: parseFloat(e.target.value) || 0 }
+                                setForm({ ...form, gift_costs: updated })
+                              }}
+                              placeholder="金额"
+                              className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                            <button type="button"
+                              onClick={() => setForm({ ...form, gift_costs: form.gift_costs.filter((_, i) => i !== idx) })}
+                              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded">
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {form.gift_costs.length > 0 && (
+                      <div className="text-sm text-gray-500 text-right">
+                        礼品合计: <span className="font-medium text-gray-700">¥{form.gift_costs.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -578,6 +700,22 @@ export default function GiftList() {
               {canCostView && detailRecord.cost > 0 && (
                 <div><span className="text-gray-500">产品成本：</span><span className="text-orange-500">¥{detailRecord.cost?.toFixed(2)}</span></div>
               )}
+              {canCostView && detailRecord.gift_costs && detailRecord.gift_costs.length > 0 && (
+                <div className="col-span-2">
+                  <span className="text-gray-500">礼品成本：</span>
+                  <div className="mt-1 space-y-1">
+                    {detailRecord.gift_costs.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-sm">
+                        <span className="text-gray-600">{item.name || '未命名'}</span>
+                        <span className="text-orange-500">¥{item.amount?.toFixed(2) || '0.00'}</span>
+                      </div>
+                    ))}
+                    <div className="text-sm font-medium text-gray-700 pt-1 border-t border-gray-100">
+                      礼品合计: ¥{detailRecord.total_gift_cost?.toFixed(2) || '0.00'}
+                    </div>
+                  </div>
+                </div>
+              )}
               {detailRecord.total_cashback > 0 && (
                 <div><span className="text-gray-500">返现金额：</span><span className="text-red-500">-¥{detailRecord.total_cashback?.toFixed(2)}</span></div>
               )}
@@ -589,7 +727,22 @@ export default function GiftList() {
                   </span>
                 </div>
               )}
-              <div><span className="text-gray-500">状态：</span><StatusBadge status={detailRecord.send_tracking ? 'sent' : 'pending'} /></div>
+              <div className="col-span-2 flex items-center gap-2">
+                <span className="text-gray-500">状态：</span>
+                <StatusBadge status={detailRecord.status || (detailRecord.send_tracking ? 'sent' : 'pending')} />
+                {detailRecord.status === 'sent' && (
+                  <>
+                    <button onClick={handleIntercept}
+                      className="px-2.5 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700">
+                      拦截快递
+                    </button>
+                    <button onClick={handleTorn}
+                      className="px-2.5 py-1 bg-gray-600 text-white rounded text-xs hover:bg-gray-700">
+                      撕单
+                    </button>
+                  </>
+                )}
+              </div>
               <div className="col-span-2"><span className="text-gray-500">备注：</span>{detailRecord.remark || '-'}</div>
               <div className="col-span-2"><span className="text-gray-500">登记人：</span>{detailRecord.creator_name || '-'}</div>
               <div className="col-span-2"><span className="text-gray-500">登记时间：</span>{detailRecord.created_at ? detailRecord.created_at.slice(0, 16).replace('T', ' ') : '-'}</div>
@@ -625,7 +778,7 @@ export default function GiftList() {
               </div>
             </div>
 
-            <div className="flex justify-end mt-4">
+            <div className="flex justify-end gap-3 mt-4">
               <button onClick={() => { setShowDetail(false); openEdit(detailRecord) }}
                 className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 text-sm">
                 编辑

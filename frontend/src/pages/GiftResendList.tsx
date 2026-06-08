@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import { getGiftResendList, createGiftResend, updateGiftResend, deleteGiftResend, addGiftResendFeedback, getGiftResendFeedbacks } from '../api/giftResend'
 import { GiftResendRecord, GiftResendFeedback } from '../types'
 import ShopSelect from '../components/ShopSelect'
+import FieldSelect from '../components/FieldSelect'
 import * as XLSX from 'xlsx'
 
 /** 通用 Excel 导出（浏览器端） */
@@ -379,10 +380,16 @@ export default function GiftResendList() {
                 </div>
                 <F label="类型" value={form.type} s={v => setForm(f => ({ ...f, type: v }))} />
               </div>
-              <F label="礼品明细" value={form.gift_detail} s={v => setForm(f => ({ ...f, gift_detail: v }))} />
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">礼品明细</label>
+                <FieldSelect fieldName="gift_detail" label="礼品明细" value={form.gift_detail} onChange={v => setForm(f => ({ ...f, gift_detail: v }))} placeholder="请选择或输入礼品明细" />
+              </div>
               <F label="客户信息" value={form.customer_info} s={v => setForm(f => ({ ...f, customer_info: v }))} placeholder="姓名 / 手机号 / 地址" />
               <div className="grid grid-cols-2 gap-4">
-                <F label="快递公司" value={form.express_company} s={v => setForm(f => ({ ...f, express_company: v }))} />
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">快递公司</label>
+                  <FieldSelect fieldName="express_company" label="快递公司" value={form.express_company} onChange={v => setForm(f => ({ ...f, express_company: v }))} placeholder="请选择或输入快递公司" />
+                </div>
                 <F label="礼品寄出单号" value={form.tracking_no} s={v => setForm(f => ({ ...f, tracking_no: v }))} />
               </div>
               <F label="备注" value={form.remark} s={v => setForm(f => ({ ...f, remark: v }))} />

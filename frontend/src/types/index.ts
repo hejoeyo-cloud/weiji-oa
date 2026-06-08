@@ -261,12 +261,18 @@ export interface RepairChargeRequest {
 }
 
 // ── 发货登记 ─────────────────────────────────────────────────────────
+export interface GiftCostItem {
+  name: string
+  amount: number
+}
+
 export interface GiftRecord {
   id: number
   date: string
   shop_id?: number
   shop_name: string
   order_no: string
+  product: string
   size: string
   model: string
   config: string
@@ -278,8 +284,10 @@ export interface GiftRecord {
   shipping_fee: number
   order_amount: number   // 订单金额（有权限时显示）
   cost: number          // 产品成本（有权限时显示）
+  gift_costs: GiftCostItem[] // 礼品成本列表
+  total_gift_cost: number // 礼品成本合计
   total_cashback: number // 自动汇总的返现金额（来自返现表）
-  profit: number        // 利润（有权限时显示）
+  profit: number        // 利润 = 订单金额 - 产品成本 - 礼品合计 - 返现
   remark: string
   ship_date: string
   status: string  // pending | sent

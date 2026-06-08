@@ -25,8 +25,10 @@ def get_total_cashback(db: Session, order_no: str, company_id: int) -> float:
 def record_to_out(db: Session, r: GiftRecord, has_cost_permission: bool = False) -> GiftRecordOut:
     """将数据库记录转为输出，has_cost_permission 控制是否返回成本字段"""
     total_cashback = get_total_cashback(db, r.order_no, r.company_id)
-    profit = (r.order_amount or 0) - (r.cost or 0) - total_cashback
-    
+    gift_costs = r.gift_costs or []
+    total_gift_cost = sum(item.get("amount", 0) for item in gift_costs if isinstance(item, dict))
+    profit = (r.order_amount or 0) - (r.cost or 0) - total_gift_cost - total_cashback
+
     out = GiftRecordOut(
         id=r.id,
         date=r.date or "",
@@ -41,6 +43,8 @@ def record_to_out(db: Session, r: GiftRecord, has_cost_permission: bool = False)
         customer_info=r.customer_info or "",
         send_tracking=r.send_tracking or "",
         shipping_fee=r.shipping_fee or 0,
+        gift_costs=[{"name": item.get("name", ""), "amount": item.get("amount", 0)} for item in gift_costs if isinstance(item, dict)],
+        total_gift_cost=total_gift_cost,
         total_cashback=total_cashback,
         profit=profit,
         remark=r.remark or "",
@@ -51,7 +55,7 @@ def record_to_out(db: Session, r: GiftRecord, has_cost_permission: bool = False)
         created_at=r.created_at,
         updated_at=r.updated_at,
     )
-    
+
     # 根据权限决定是否返回成本相关字段
     if has_cost_permission:
         out.order_amount = r.order_amount or 0
@@ -59,7 +63,7 @@ def record_to_out(db: Session, r: GiftRecord, has_cost_permission: bool = False)
     else:
         out.order_amount = 0
         out.cost = 0
-    
+
     return out
 
 
@@ -153,6 +157,7 @@ def create_record(
         shipping_fee=req.shipping_fee,
         order_amount=req.order_amount,
         cost=req.cost,
+        gift_costs=[item.model_dump() for item in req.gift_costs] if req.gift_costs else [],
         remark=req.remark,
         ship_date=req.ship_date or (datetime.now().strftime("%Y-%m-%d") if (req.send_tracking and req.send_tracking.strip()) else ""),
         status="sent" if (req.send_tracking and req.send_tracking.strip()) else "pending",
@@ -178,13 +183,22 @@ def update_record(
     r = db.query(GiftRecord).filter(GiftRecord.id == record_id, GiftRecord.company_id == current_user.company_id).first()
     if not r:
         raise HTTPException(status_code=404, detail="Record not found")
-    for field, value in req.model_dump(exclude_none=True).items():
+    incoming = req.model_dump(exclude_none=True)
+    incoming_status = incoming.pop("status", None)
+    incoming_gift_costs = incoming.pop("gift_costs", None)
+    for field, value in incoming.items():
         # 排除前端传过来的 cashback 字段（现在由返现表独立管理）
         if field == "cashback":
             continue
         setattr(r, field, value)
-    # 状态由发出单号自动决定，出货日期自动填充
-    r.status = "sent" if (r.send_tracking and r.send_tracking.strip()) else "pending"
+    # 处理礼品成本
+    if incoming_gift_costs is not None:
+        r.gift_costs = incoming_gift_costs
+    # 如果前端明确设置了 "intercepted" 或 "torn" 状态，保留它；否则由发出单号自动决定
+    if incoming_status in ("intercepted", "torn"):
+        r.status = incoming_status
+    else:
+        r.status = "sent" if (r.send_tracking and r.send_tracking.strip()) else "pending"
     if r.send_tracking and r.send_tracking.strip() and not r.ship_date:
         r.ship_date = datetime.now().strftime("%Y-%m-%d")
     db.commit()

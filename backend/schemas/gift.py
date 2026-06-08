@@ -106,12 +106,17 @@ class GiftResendFeedbackOut(BaseModel):
 
 # ── 发货登记 ─────────────────────────────────────────────────────
 
+class GiftCostItem(BaseModel):
+    name: str = ""
+    amount: float = 0
+
 class GiftRecordCreate(BaseModel):
     date: str = ""
     shop_name: str = ""
     order_no: str = ""
     shop_id: Optional[int] = None
     shop_name: str = ""
+    product: str = ""
     size: str = ""
     model: str = ""
     config: str = ""
@@ -123,6 +128,7 @@ class GiftRecordCreate(BaseModel):
     shipping_fee: float = 0
     order_amount: float = 0
     cost: float = 0
+    gift_costs: List[GiftCostItem] = []
     remark: str = ""
     ship_date: str = ""
     status: str = "pending"
@@ -133,6 +139,7 @@ class GiftRecordUpdate(BaseModel):
     order_no: Optional[str] = None
     shop_id: Optional[int] = None
     shop_name: Optional[str] = None
+    product: Optional[str] = None
     size: Optional[str] = None
     model: Optional[str] = None
     config: Optional[str] = None
@@ -144,6 +151,7 @@ class GiftRecordUpdate(BaseModel):
     shipping_fee: Optional[float] = None
     order_amount: Optional[float] = None
     cost: Optional[float] = None
+    gift_costs: Optional[List[GiftCostItem]] = None
     remark: Optional[str] = None
     ship_date: Optional[str] = None
     status: Optional[str] = None
@@ -155,6 +163,7 @@ class GiftRecordOut(BaseModel):
     order_no: str = ""
     shop_id: Optional[int] = None
     shop_name: str = ""
+    product: str = ""
     size: str = ""
     model: str = ""
     config: str = ""
@@ -166,8 +175,10 @@ class GiftRecordOut(BaseModel):
     shipping_fee: float = 0
     order_amount: float = 0
     cost: float = 0
+    gift_costs: List[GiftCostItem] = []
+    total_gift_cost: float = 0     # 礼品成本合计
     total_cashback: float = 0      # 自动汇总的返现金额（来自返现表）
-    profit: float = 0              # 利润 = 订单金额 - 成本 - 返现
+    profit: float = 0              # 利润 = 订单金额 - 产品成本 - 礼品合计 - 返现
     remark: str = ""
     ship_date: str = ""
     status: str = "pending"

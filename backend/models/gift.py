@@ -45,6 +45,7 @@ class GiftRecord(Base):
     order_no = Column(String(100), default="")           # 订单编号
     shop_id = Column(Integer, ForeignKey("shops.id"), nullable=True)  # 店铺
     shop_name = Column(String(200), default="")          # 店铺名称（冗余）
+    product = Column(String(200), default="")            # 产品
     size = Column(String(50), default="")                # 尺寸
     model = Column(String(200), default="")              # 型号
     config = Column(String(200), default="")             # 配置
@@ -56,6 +57,7 @@ class GiftRecord(Base):
     shipping_fee = Column(Float, default=0)              # 运费
     order_amount = Column(Float, default=0)              # 订单金额
     cost = Column(Float, default=0)                       # 产品成本
+    gift_costs = Column(JSONType, default=list)           # 礼品成本 [{name, amount}]
     remark = Column(Text, default="")                    # 备注
     ship_date = Column(String(20), default="")           # 出货日期
     status = Column(String(20), default="pending")       # pending/sent

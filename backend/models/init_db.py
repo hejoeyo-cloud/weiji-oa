@@ -609,6 +609,37 @@ def _migrate_db():
                 conn.execute(text("ALTER TABLE gift_records ADD COLUMN shop_name VARCHAR(200) DEFAULT ''"))
                 conn.commit()
 
+    # ── 迁移：gift_records 新增 product 列 ─────────────────────────
+    if 'gift_records' in existing_tables:
+        columns = [c['name'] for c in inspector.get_columns('gift_records')]
+        if 'product' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE gift_records ADD COLUMN product VARCHAR(200) DEFAULT ''"))
+                conn.commit()
+
+    # ── 迁移：gift_records 新增 gift_costs 列 ─────────────────────
+    if 'gift_records' in existing_tables:
+        columns = [c['name'] for c in inspector.get_columns('gift_records')]
+        if 'gift_costs' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE gift_records ADD COLUMN gift_costs TEXT DEFAULT '[]'"))
+                conn.commit()
+
+    # ── 创建字段预设选项表 ──────────────────────────────────────────
+    if "field_options" not in inspector.get_table_names():
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE field_options (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER REFERENCES companies(id),
+                    field_name VARCHAR(50) NOT NULL,
+                    value VARCHAR(200) NOT NULL,
+                    created_at DATETIME,
+                    UNIQUE(company_id, field_name, value)
+                )
+            """))
+            conn.commit()
+
 
 def _sync_user_role_ids():
     """将现有用户的 role 字符串与 roles 表的 id 关联"""

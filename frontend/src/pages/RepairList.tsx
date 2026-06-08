@@ -16,6 +16,7 @@ import {
 } from '../api/repair'
 import { RepairRecord, RepairFeedback, RepairChargeRequest } from '../types'
 import { useAuth } from '../hooks/useAuth'
+import FieldSelect from '../components/FieldSelect'
 import * as XLSX from 'xlsx'
 
 function exportToExcel(filename: string, rows: Record<string, string | number>[]) {
@@ -538,13 +539,11 @@ export default function RepairList() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">型号</label>
-                  <input type="text" value={form.model} onChange={e => setForm({ ...form, model: e.target.value })}
-                    className="w-full border rounded-lg px-3 py-2" />
+                  <FieldSelect fieldName="model" label="型号" value={form.model || ''} onChange={v => setForm({ ...form, model: v })} placeholder="请选择或输入型号" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">配置</label>
-                  <input type="text" value={form.config} onChange={e => setForm({ ...form, config: e.target.value })}
-                    className="w-full border rounded-lg px-3 py-2" />
+                  <FieldSelect fieldName="config" label="配置" value={form.config || ''} onChange={v => setForm({ ...form, config: v })} placeholder="请选择或输入配置" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">数量</label>
@@ -553,8 +552,7 @@ export default function RepairList() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">配件</label>
-                  <input type="text" value={form.accessories} onChange={e => setForm({ ...form, accessories: e.target.value })}
-                    className="w-full border rounded-lg px-3 py-2" />
+                  <FieldSelect fieldName="accessories" label="配件" value={form.accessories || ''} onChange={v => setForm({ ...form, accessories: v })} placeholder="请选择或输入配件" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">维修状态</label>
@@ -637,6 +635,7 @@ export default function RepairList() {
                 <div><span className="text-gray-500">型号：</span>{detailRecord.model || '-'}</div>
                 <div><span className="text-gray-500">配置：</span>{detailRecord.config || '-'}</div>
                 <div><span className="text-gray-500">数量：</span>{detailRecord.quantity || 1}</div>
+                <div><span className="text-gray-500">配件：</span>{detailRecord.accessories || '-'}</div>
                 <div><span className="text-gray-500">维修状态：</span><RepairStatusBadge status={detailRecord.repair_status} /></div>
                 <div><span className="text-gray-500">收费状态：</span><ChargeStatusBadge status={detailRecord.charge_status} /></div>
                 <div className="col-span-2"><span className="text-gray-500">客户信息：</span>{detailRecord.customer_info || '-'}</div>

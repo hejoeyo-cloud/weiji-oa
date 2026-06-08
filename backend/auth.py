@@ -133,7 +133,6 @@ def owner_filter(user: User) -> bool:
 
 
 def apply_owner_filter(query, model, user: User):
-    """对查询应用行级权限过滤 — 非管理员只返回自己创建的数据"""
-    if owner_filter(user):
-        return query
-    return query.filter(model.created_by == user.id)
+    """对查询应用行级权限过滤 — 所有用户都可以看到公司内的所有数据"""
+    # 不再限制用户只能看到自己创建的数据
+    return query

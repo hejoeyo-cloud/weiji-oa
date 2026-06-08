@@ -12,6 +12,7 @@ import {
 import { ReturnExchangeRecord, ReturnExchangeFeedback } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import ShopSelect from '../components/ShopSelect'
+import FieldSelect from '../components/FieldSelect'
 import * as XLSX from 'xlsx'
 
 function exportToExcel(filename: string, rows: Record<string, string | number>[]) {
@@ -403,18 +404,15 @@ export default function ReturnExchangeList() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">型号</label>
-                  <input type="text" value={form.model} onChange={e => setForm({ ...form, model: e.target.value })}
-                    className="w-full border rounded-lg px-3 py-2" />
+                  <FieldSelect fieldName="model" label="型号" value={form.model || ''} onChange={v => setForm({ ...form, model: v })} placeholder="请选择或输入型号" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">配置</label>
-                  <input type="text" value={form.config} onChange={e => setForm({ ...form, config: e.target.value })}
-                    className="w-full border rounded-lg px-3 py-2" />
+                  <FieldSelect fieldName="config" label="配置" value={form.config || ''} onChange={v => setForm({ ...form, config: v })} placeholder="请选择或输入配置" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">尺寸</label>
-                  <input type="text" value={form.size} onChange={e => setForm({ ...form, size: e.target.value })}
-                    className="w-full border rounded-lg px-3 py-2" />
+                  <FieldSelect fieldName="size" label="尺寸" value={form.size || ''} onChange={v => setForm({ ...form, size: v })} placeholder="请选择或输入尺寸" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">数量</label>
@@ -428,8 +426,7 @@ export default function ReturnExchangeList() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">配件</label>
-                  <input type="text" value={form.accessories} onChange={e => setForm({ ...form, accessories: e.target.value })}
-                    className="w-full border rounded-lg px-3 py-2" />
+                  <FieldSelect fieldName="accessories" label="配件" value={form.accessories || ''} onChange={v => setForm({ ...form, accessories: v })} placeholder="请选择或输入配件" />
                 </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">配件价格</label>
@@ -527,6 +524,8 @@ export default function ReturnExchangeList() {
                 <div><span className="text-gray-500">配置：</span>{detailRecord.config || '-'}</div>
                 <div><span className="text-gray-500">尺寸：</span>{detailRecord.size || '-'}</div>
                 <div><span className="text-gray-500">数量：</span>{detailRecord.quantity || 1}</div>
+                <div><span className="text-gray-500">配件：</span>{detailRecord.accessories || '-'}</div>
+                <div><span className="text-gray-500">配件价格：</span>¥{detailRecord.accessories_price?.toFixed(2) || '0.00'}</div>
                 <div><span className="text-gray-500">电脑价格：</span>¥{detailRecord.computer_price?.toFixed(2) || '0.00'}</div>
                 <div><span className="text-gray-500">登记类型：</span><RecordTypeBadge recordType={detailRecord.record_type} /></div>
                 <div><span className="text-gray-500">处理进度：</span><ProgressBadge progress={detailRecord.progress} /></div>

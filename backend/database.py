@@ -19,6 +19,7 @@ from models.notification import *
 from models.schedule import *
 from models.task import *
 from models.ticket import *
+from models.field_option import *
 from models.user import *
 from models.warehouse import *
 
