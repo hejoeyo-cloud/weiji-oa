@@ -47,7 +47,7 @@ export default function UserManage() {
     { key: 'knowledge', label: '知识库', perms: ['view', 'create', 'edit', 'delete'] },
     { key: 'return_exchange', label: '退换登记', perms: ['view', 'create', 'edit', 'delete', 'process'] },
     { key: 'repair', label: '维修登记', perms: ['view', 'create', 'edit', 'delete', 'process'] },
-    { key: 'gifts', label: '发货登记', perms: ['view', 'create', 'edit', 'delete'] },
+    { key: 'gifts', label: '发货登记', perms: ['view', 'create', 'edit', 'delete', 'cost_view'] },
     { key: 'gift_cashback', label: '返现登记', perms: ['view', 'create', 'edit', 'delete'] },
     { key: 'gift_resend', label: '礼品补发', perms: ['view', 'create', 'edit', 'delete'] },
     { key: 'warehouse_products', label: '仓储-货品管理', perms: ['view', 'create', 'edit', 'delete'] },
@@ -68,6 +68,7 @@ export default function UserManage() {
     { key: 'finance_sales_invoice', label: '财务-销项台账', perms: ['view', 'create', 'edit', 'delete'] },
     { key: 'finance_purchase_invoice', label: '财务-进项台账', perms: ['view', 'create', 'edit', 'delete'] },
     { key: 'finance_expense_invoice', label: '财务-报销发票', perms: ['view', 'create', 'edit', 'delete'] },
+    { key: 'field_options', label: '预设选项', perms: ['manage'] },
   ]
 
   const ROLE_CONFIG: Record<string, { label: string; color: string }> = {}
@@ -197,7 +198,7 @@ export default function UserManage() {
     const parts = permKey.split(':')
     const actionLabels: Record<string, string> = {
       view: '查看', create: '创建', edit: '编辑', delete: '删除', process: '处理',
-      cost_view: '成本查看',
+      cost_view: '成本查看', manage: '管理',
     }
     return actionLabels[parts[1]] || parts[1]
   }

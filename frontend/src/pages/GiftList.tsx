@@ -475,6 +475,7 @@ export default function GiftList() {
                     value={form.product}
                     onChange={v => setForm({ ...form, product: v })}
                     placeholder="请选择产品"
+                    showGear={hasPermission('field_options:manage')}
                   />
                 </div>
                 <div>
@@ -485,6 +486,7 @@ export default function GiftList() {
                     value={form.model}
                     onChange={v => setForm({ ...form, model: v })}
                     placeholder="请选择型号"
+                    showGear={hasPermission('field_options:manage')}
                   />
                 </div>
               </div>
@@ -497,6 +499,7 @@ export default function GiftList() {
                     value={form.config}
                     onChange={v => setForm({ ...form, config: v })}
                     placeholder="请选择配置"
+                    showGear={hasPermission('field_options:manage')}
                   />
                 </div>
                 <div>
@@ -507,6 +510,7 @@ export default function GiftList() {
                     value={form.size}
                     onChange={v => setForm({ ...form, size: v })}
                     placeholder="请选择尺寸"
+                    showGear={hasPermission('field_options:manage')}
                   />
                 </div>
               </div>
@@ -519,6 +523,7 @@ export default function GiftList() {
                     value={form.color}
                     onChange={v => setForm({ ...form, color: v })}
                     placeholder="请选择颜色"
+                    showGear={hasPermission('field_options:manage')}
                   />
                 </div>
                 <div>
@@ -536,6 +541,7 @@ export default function GiftList() {
                     value={form.accessories}
                     onChange={v => setForm({ ...form, accessories: v })}
                     placeholder="请选择配件"
+                    showGear={hasPermission('field_options:manage')}
                   />
                 </div>
               </div>
@@ -620,6 +626,7 @@ export default function GiftList() {
                                   setForm({ ...form, gift_costs: updated })
                                 }}
                                 placeholder="请选择或输入礼品名称"
+                                showGear={hasPermission('field_options:manage')}
                               />
                             </div>
                             <input type="number" step="0.01" min="0"

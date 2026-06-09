@@ -17,12 +17,12 @@ function formatNow() {
 
 type Props = {
   user: DashboardUserSummary
-  unreadCount: number
+  pendingDelivery: number
   scheduleDays: number
   recentCount: number
 }
 
-export default function DashboardHero({ user, unreadCount, scheduleDays, recentCount }: Props) {
+export default function DashboardHero({ user, pendingDelivery, scheduleDays, recentCount }: Props) {
   const greeting = getGreeting(new Date().getHours())
 
   return (
@@ -39,13 +39,13 @@ export default function DashboardHero({ user, unreadCount, scheduleDays, recentC
             </h1>
           </div>
           <p className="max-w-2xl text-xs leading-5 text-slate-600">
-            首页已经为你汇总公告、排班和最近动态，可以直接从这里进入今天最需要关注的工作内容。
+            首页已经为你汇总待发货、排班和最近动态，可以直接从这里进入今天最需要关注的工作内容。
           </p>
         </div>
 
         <div className="flex flex-wrap gap-1.5 lg:max-w-[380px] lg:justify-end">
           <div className="rounded-full border border-white/80 bg-white/90 px-2.5 py-1 text-[11px] text-slate-600 shadow-sm">
-              未读公告 <span className="ml-1 font-semibold text-slate-900">{unreadCount}</span>
+              待发货 <span className="ml-1 font-semibold text-slate-900">{pendingDelivery}</span>
           </div>
           <div className="rounded-full border border-white/80 bg-white/90 px-2.5 py-1 text-[11px] text-slate-600 shadow-sm">
               本月排班 <span className="ml-1 font-semibold text-slate-900">{scheduleDays}</span> 天

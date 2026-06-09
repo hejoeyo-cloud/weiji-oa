@@ -51,6 +51,7 @@ from routers import messages_router
 from routers import shop_router
 from routers import approval_rules_router
 from routers import field_option_router
+from routers import sidebar_badge_router
 import finance_router
 from websocket.manager import manager
 
@@ -95,6 +96,7 @@ app.include_router(messages_router.router)
 app.include_router(shop_router.router)
 app.include_router(approval_rules_router.router)
 app.include_router(field_option_router.router)
+app.include_router(sidebar_badge_router.router)
 app.include_router(finance_router.router, prefix="/api")
 
 

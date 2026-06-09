@@ -395,7 +395,7 @@ export default function ReturnExchangeList() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">店铺名称</label>
-                  <ShopSelect value={form.shop_name} onChange={v => setForm({ ...form, shop_name: v })} />
+                  <ShopSelect value={form.shop_name} onChange={v => setForm({ ...form, shop_name: v })} showGear={hasPermission('field_options:manage')} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">订单编号</label>
@@ -404,15 +404,15 @@ export default function ReturnExchangeList() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">型号</label>
-                  <FieldSelect fieldName="model" label="型号" value={form.model || ''} onChange={v => setForm({ ...form, model: v })} placeholder="请选择或输入型号" />
+                  <FieldSelect fieldName="model" label="型号" value={form.model || ''} onChange={v => setForm({ ...form, model: v })} placeholder="请选择或输入型号" showGear={hasPermission('field_options:manage')} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">配置</label>
-                  <FieldSelect fieldName="config" label="配置" value={form.config || ''} onChange={v => setForm({ ...form, config: v })} placeholder="请选择或输入配置" />
+                  <FieldSelect fieldName="config" label="配置" value={form.config || ''} onChange={v => setForm({ ...form, config: v })} placeholder="请选择或输入配置" showGear={hasPermission('field_options:manage')} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">尺寸</label>
-                  <FieldSelect fieldName="size" label="尺寸" value={form.size || ''} onChange={v => setForm({ ...form, size: v })} placeholder="请选择或输入尺寸" />
+                  <FieldSelect fieldName="size" label="尺寸" value={form.size || ''} onChange={v => setForm({ ...form, size: v })} placeholder="请选择或输入尺寸" showGear={hasPermission('field_options:manage')} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">数量</label>
@@ -426,7 +426,7 @@ export default function ReturnExchangeList() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">配件</label>
-                  <FieldSelect fieldName="accessories" label="配件" value={form.accessories || ''} onChange={v => setForm({ ...form, accessories: v })} placeholder="请选择或输入配件" />
+                  <FieldSelect fieldName="accessories" label="配件" value={form.accessories || ''} onChange={v => setForm({ ...form, accessories: v })} placeholder="请选择或输入配件" showGear={hasPermission('field_options:manage')} />
                 </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">配件价格</label>

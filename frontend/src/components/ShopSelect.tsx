@@ -7,9 +7,10 @@ interface ShopSelectProps {
   value: string
   onChange: (name: string) => void
   className?: string
+  showGear?: boolean
 }
 
-export default function ShopSelect({ value, onChange, className = '' }: ShopSelectProps) {
+export default function ShopSelect({ value, onChange, className = '', showGear = true }: ShopSelectProps) {
   const [shops, setShops] = useState<Shop[]>([])
   const [showModal, setShowModal] = useState(false)
   const [newName, setNewName] = useState('')
@@ -91,14 +92,16 @@ export default function ShopSelect({ value, onChange, className = '' }: ShopSele
             <option value={value}>{value}</option>
           )}
         </select>
-        <button
-          type="button"
-          onClick={() => setShowModal(true)}
-          className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-violet-500 flex-shrink-0 transition-colors"
-          title="管理店铺"
-        >
-          <Settings size={12} />
-        </button>
+        {showGear && (
+          <button
+            type="button"
+            onClick={() => setShowModal(true)}
+            className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-violet-500 flex-shrink-0 transition-colors"
+            title="管理店铺"
+          >
+            <Settings size={12} />
+          </button>
+        )}
       </div>
 
       {/* 店铺管理弹窗 */}

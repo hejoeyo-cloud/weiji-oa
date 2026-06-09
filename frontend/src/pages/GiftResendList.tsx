@@ -3,6 +3,7 @@ import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Eye, Gift, D
 import { useSearchParams } from 'react-router-dom'
 import { getGiftResendList, createGiftResend, updateGiftResend, deleteGiftResend, addGiftResendFeedback, getGiftResendFeedbacks } from '../api/giftResend'
 import { GiftResendRecord, GiftResendFeedback } from '../types'
+import { useAuth } from '../hooks/useAuth'
 import ShopSelect from '../components/ShopSelect'
 import FieldSelect from '../components/FieldSelect'
 import * as XLSX from 'xlsx'
@@ -43,6 +44,7 @@ function todayStr() {
 }
 
 export default function GiftResendList() {
+  const { hasPermission } = useAuth()
   const [searchParams] = useSearchParams()
   const highlightId = searchParams.get('highlight')
   const highlightRef = useRef<HTMLTableRowElement | null>(null)
@@ -376,19 +378,19 @@ export default function GiftResendList() {
                 <F label="订单编号" value={form.order_no} s={v => setForm(f => ({ ...f, order_no: v }))} />
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">店铺名称</label>
-                  <ShopSelect value={form.shop_name} onChange={v => setForm(f => ({ ...f, shop_name: v }))} />
+                  <ShopSelect value={form.shop_name} onChange={v => setForm(f => ({ ...f, shop_name: v }))} showGear={hasPermission('field_options:manage')} />
                 </div>
                 <F label="类型" value={form.type} s={v => setForm(f => ({ ...f, type: v }))} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">礼品明细</label>
-                <FieldSelect fieldName="gift_detail" label="礼品明细" value={form.gift_detail} onChange={v => setForm(f => ({ ...f, gift_detail: v }))} placeholder="请选择或输入礼品明细" />
+                <FieldSelect fieldName="gift_detail" label="礼品明细" value={form.gift_detail} onChange={v => setForm(f => ({ ...f, gift_detail: v }))} placeholder="请选择或输入礼品明细" showGear={hasPermission('field_options:manage')} />
               </div>
               <F label="客户信息" value={form.customer_info} s={v => setForm(f => ({ ...f, customer_info: v }))} placeholder="姓名 / 手机号 / 地址" />
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">快递公司</label>
-                  <FieldSelect fieldName="express_company" label="快递公司" value={form.express_company} onChange={v => setForm(f => ({ ...f, express_company: v }))} placeholder="请选择或输入快递公司" />
+                  <FieldSelect fieldName="express_company" label="快递公司" value={form.express_company} onChange={v => setForm(f => ({ ...f, express_company: v }))} placeholder="请选择或输入快递公司" showGear={hasPermission('field_options:manage')} />
                 </div>
                 <F label="礼品寄出单号" value={form.tracking_no} s={v => setForm(f => ({ ...f, tracking_no: v }))} />
               </div>

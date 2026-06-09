@@ -14,6 +14,7 @@ from database import (
     ApprovalStep,
     GiftRecord,
     GiftResendRecord,
+    ReturnExchangeRecord,
     ScheduleShift,
     ScheduleSlot,
     Ticket,
@@ -189,6 +190,18 @@ def build_overview_cards(
         if not slot.get("shift_is_rest")
     ])
 
+    # 待发货订单（发货登记中 status=pending）
+    pending_delivery_count = db.query(GiftRecord).filter(
+        GiftRecord.status == "pending",
+        GiftRecord.company_id == current_user.company_id,
+    ).count()
+
+    # 退换待处理（退换登记中 progress=pending 或 processing）
+    pending_return_exchange_count = db.query(ReturnExchangeRecord).filter(
+        ReturnExchangeRecord.progress.in_(["pending", "processing"]),
+        ReturnExchangeRecord.company_id == current_user.company_id,
+    ).count()
+
     if current_user.role == "admin":
         return [
             {
@@ -200,12 +213,12 @@ def build_overview_cards(
                 "path": "/approvals",
             },
             {
-                "key": "announcement_unread",
-                "title": "公告未读",
-                "value": announcement_summary["unread_count"],
-                "subtext": "当前账号尚未确认的公告数量",
+                "key": "pending_delivery",
+                "title": "待发货订单",
+                "value": pending_delivery_count,
+                "subtext": "发货登记中待发货的订单数量",
                 "status": "info",
-                "path": "/announcements",
+                "path": "/gifts",
             },
             {
                 "key": "schedule_coverage",
@@ -216,12 +229,12 @@ def build_overview_cards(
                 "path": "/schedule",
             },
             {
-                "key": "open_tickets",
-                "title": "开放工单",
-                "value": open_ticket_count,
-                "subtext": "待处理、处理中与需寄回工单总量",
+                "key": "pending_return_exchange",
+                "title": "退换待处理",
+                "value": pending_return_exchange_count,
+                "subtext": "退换登记中待处理与处理中的记录",
                 "status": "warning",
-                "path": "/tickets",
+                "path": "/return-exchange",
             },
         ]
 
@@ -236,12 +249,20 @@ def build_overview_cards(
                 "path": "/tickets",
             },
             {
-                "key": "processing_tickets",
-                "title": "处理中工单",
-                "value": processing_ticket_count,
-                "subtext": "当前技术处理中工单",
+                "key": "pending_delivery",
+                "title": "待发货订单",
+                "value": pending_delivery_count,
+                "subtext": "发货登记中待发货的订单数量",
                 "status": "info",
-                "path": "/tickets",
+                "path": "/gifts",
+            },
+            {
+                "key": "pending_return_exchange",
+                "title": "退换待处理",
+                "value": pending_return_exchange_count,
+                "subtext": "退换登记中待处理与处理中的记录",
+                "status": "warning",
+                "path": "/return-exchange",
             },
             {
                 "key": "pending_my_approval",
@@ -263,20 +284,20 @@ def build_overview_cards(
             "path": "/approvals",
         },
         {
-            "key": "my_tickets",
-            "title": "我创建的工单",
-            "value": my_ticket_count,
-            "subtext": f"其中 {my_open_ticket_count} 条仍在流转中",
-            "status": "warning",
-            "path": "/tickets",
+            "key": "pending_delivery",
+            "title": "待发货订单",
+            "value": pending_delivery_count,
+            "subtext": "发货登记中待发货的订单数量",
+            "status": "info",
+            "path": "/gifts",
         },
         {
-            "key": "announcement_unread",
-            "title": "公告未读",
-            "value": announcement_summary["unread_count"],
-            "subtext": "建议及时查看组织通知",
-            "status": "info",
-            "path": "/announcements",
+            "key": "pending_return_exchange",
+            "title": "退换待处理",
+            "value": pending_return_exchange_count,
+            "subtext": "退换登记中待处理与处理中的记录",
+            "status": "warning",
+            "path": "/return-exchange",
         },
         {
             "key": "schedule_coverage",

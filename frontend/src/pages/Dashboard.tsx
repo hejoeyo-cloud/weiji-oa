@@ -74,7 +74,7 @@ export default function Dashboard() {
     <div className="mx-auto max-w-7xl space-y-6">
       <DashboardHero
         user={dashboard.user_summary}
-        unreadCount={dashboard.announcement_summary.unread_count}
+        pendingDelivery={Number(dashboard.overview_cards.find(c => c.key === 'pending_delivery')?.value ?? 0)}
         scheduleDays={dashboard.schedule_summary.slots.filter(slot => !slot.shift_is_rest).length}
         recentCount={dashboard.recent_activity.length}
       />

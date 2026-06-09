@@ -12,6 +12,7 @@ import { useWebSocket } from '../hooks/useWebSocket'
 import { markNotificationRead, markAllNotificationsRead, getNotifications } from '../api/notifications'
 import { getUnreadAnnouncementCount, getAnnouncements, markAnnouncementRead } from '../api/announcements'
 import { getApprovals } from '../api/approvals'
+import { getSidebarBadges, type SidebarBadges } from '../api/sidebarBadges'
 import type { Notification, Announcement } from '../types'
 import { getModuleConfigs } from '../api/moduleConfig'
 import { MODULE_REGISTRY, ICON_MAP } from '../config/moduleRegistry'
@@ -104,6 +105,11 @@ export default function AppLayout() {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
   const [unreadAnnCount, setUnreadAnnCount] = useState(0)
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0)
+  const [badges, setBadges] = useState<SidebarBadges>({
+    pending_my_approval: 0, pending_tasks: 0, unread_messages: 0,
+    pending_tickets: 0, pending_delivery: 0, pending_return_exchange: 0,
+    pending_repair: 0, pending_finance: 0, pending_schedule: 0,
+  })
   const [announcementPopup, setAnnouncementPopup] = useState<Announcement | null>(null)
   const [moduleItems, setModuleItems] = useState<{ path: string; label: string; icon: React.ElementType; permission: string[] }[]>([])
   const [warehouseModuleItems, setWarehouseModuleItems] = useState<{ path: string; label: string; icon: React.ElementType; permission: string[] }[]>([])
@@ -218,6 +224,17 @@ export default function AppLayout() {
     getApprovals({ page: 1, page_size: 50, pending_my_approval: true })
       .then(data => setPendingApprovalCount(data.total || 0))
       .catch(console.error)
+  }, [user?.id])
+
+  // 侧边栏红点：轮询待处理数量
+  useEffect(() => {
+    if (!user?.id) return
+    const fetchBadges = () => {
+      getSidebarBadges().then(setBadges).catch(console.error)
+    }
+    fetchBadges()
+    const timer = setInterval(fetchBadges, 60000)
+    return () => clearInterval(timer)
   }, [user?.id])
 
   const visibleGroups = navGroups
@@ -396,6 +413,26 @@ export default function AppLayout() {
                           {pendingApprovalCount > 9 ? '9+' : pendingApprovalCount}
                         </span>
                       )}
+                      {(() => {
+                        const badgeMap: Record<string, number> = {
+                          '/tickets': badges.pending_tickets,
+                          '/tasks': badges.pending_tasks,
+                          '/messages': badges.unread_messages,
+                          '/gifts': badges.pending_delivery,
+                          '/return-exchange': badges.pending_return_exchange,
+                          '/repair': badges.pending_repair,
+                          '/finance': badges.pending_finance,
+                          '/schedule': badges.pending_schedule,
+                        }
+                        const count = badgeMap[item.path]
+                        if (!count || count <= 0 || sidebarCollapsed) return null
+                        return (
+                          <span className="ml-auto min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[9px] font-bold"
+                            style={{ background: '#dc2626', color: 'white', boxShadow: '0 0 0 2px var(--sb-bg)' }}>
+                            {count > 9 ? '9+' : count}
+                          </span>
+                        )
+                      })()}
                     </NavLink>
                   )
                 })}

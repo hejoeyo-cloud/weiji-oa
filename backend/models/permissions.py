@@ -51,6 +51,8 @@ ALL_PERMISSIONS = [
     "messages:view", "messages:send",
     # 审批规则
     "approval_rules:view",
+    # 预设选项管理
+    "field_options:manage",
 ]
 
 # 模块分组（用于 UI 展示）
@@ -80,6 +82,7 @@ PERMISSION_GROUPS = [
     {"key": "tasks", "label": "任务看板", "perms": ["view", "create", "edit", "delete"]},
     {"key": "messages", "label": "内部邮件", "perms": ["view", "send"]},
     {"key": "approval_rules", "label": "审批规则", "perms": ["view"]},
+    {"key": "field_options", "label": "预设选项", "perms": ["manage"]},
 ]
 
 # 默认角色种子数据（仅 admin 为内置角色，不可删除；其他角色可自由编辑和删除）

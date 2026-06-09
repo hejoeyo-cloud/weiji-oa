@@ -15,6 +15,7 @@ interface FieldSelectProps {
   onChange: (value: string) => void
   placeholder?: string
   className?: string
+  showGear?: boolean
 }
 
 export default function FieldSelect({
@@ -23,7 +24,8 @@ export default function FieldSelect({
   value,
   onChange,
   placeholder = '',
-  className = ''
+  className = '',
+  showGear = true
 }: FieldSelectProps) {
   const [options, setOptions] = useState<FieldOption[]>([])
   const [showDropdown, setShowDropdown] = useState(false)
@@ -151,14 +153,16 @@ export default function FieldSelect({
             </div>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => setShowModal(true)}
-          className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-violet-500 flex-shrink-0 transition-colors"
-          title={`管理${label}`}
-        >
-          <Settings size={12} />
-        </button>
+        {showGear && (
+          <button
+            type="button"
+            onClick={() => setShowModal(true)}
+            className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-violet-500 flex-shrink-0 transition-colors"
+            title={`管理${label}`}
+          >
+            <Settings size={12} />
+          </button>
+        )}
       </div>
 
       {/* 选项管理弹窗 */}
