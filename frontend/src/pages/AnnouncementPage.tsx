@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Plus, Pin, Edit2, Trash2, X, Megaphone, ChevronLeft, ChevronRight, Building2 } from 'lucide-react'
 import { getAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement, markAnnouncementRead } from '../api/announcements'
 import { getDepartments } from '../api/departments'
@@ -28,6 +29,9 @@ export default function AnnouncementPage() {
   const [expanded, setExpanded] = useState<number | null>(null)
   const [viewingAnn, setViewingAnn] = useState<Announcement | null>(null)
   const [departments, setDepartments] = useState<Department[]>([])
+  const [searchParams] = useSearchParams()
+  const highlightId = searchParams.get('highlight')
+  const highlightRef = useRef<HTMLDivElement | null>(null)
   const pageSize = 20
 
   // 加载部门列表
@@ -45,6 +49,18 @@ export default function AnnouncementPage() {
   }, [page, activeOnly])
 
   useEffect(() => { load() }, [load])
+
+  // 高亮定位
+  useEffect(() => {
+    if (!highlightId || items.length === 0) return
+    const target = items.find(a => a.id.toString() === highlightId)
+    if (target) {
+      setExpanded(target.id)
+      setTimeout(() => {
+        highlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+    }
+  }, [items, highlightId])
 
   // 标记公告已读
   const handleMarkRead = (a: Announcement) => {
@@ -115,6 +131,12 @@ export default function AnnouncementPage() {
 
   return (
     <div className="p-6 space-y-5">
+      <style>{`
+        @keyframes highlight-flash-ann {
+          0%, 30% { background: #fef9c3; box-shadow: 0 0 0 2px #fde047; }
+          100% { background: transparent; box-shadow: none; }
+        }
+      `}</style>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
@@ -151,7 +173,7 @@ export default function AnnouncementPage() {
             <p>暂无公告</p>
           </div>
         ) : items.map(a => (
-          <div key={a.id} className={`bg-white rounded-xl shadow-sm border transition-all ${a.is_pinned ? 'border-orange-200 shadow-orange-50' : 'border-gray-100'} ${!a.is_active ? 'opacity-60' : ''}`}>
+          <div key={a.id} ref={a.id.toString() === highlightId ? highlightRef : undefined} className={`bg-white rounded-xl shadow-sm border transition-all ${a.is_pinned ? 'border-orange-200 shadow-orange-50' : 'border-gray-100'} ${!a.is_active ? 'opacity-60' : ''} ${a.id.toString() === highlightId ? 'highlight-row-ann' : ''}`} style={a.id.toString() === highlightId ? { animation: 'highlight-flash-ann 3s ease-out' } : {}}>
             <div className="p-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3 flex-1 min-w-0">

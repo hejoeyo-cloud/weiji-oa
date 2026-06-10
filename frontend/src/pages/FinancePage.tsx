@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight,
   Download, FileText, TrendingUp, TrendingDown, Receipt, AlertTriangle, Eye, Upload, File
@@ -82,6 +83,9 @@ function InvoiceRequestTab() {
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [previewInvoice, setPreviewInvoice] = useState<{ url: string; filename: string } | null>(null)
+  const [searchParams] = useSearchParams()
+  const highlightId = searchParams.get('highlight')
+  const highlightRef = useRef<HTMLTableRowElement | null>(null)
   const pageSize = 15
 
   const load = useCallback(() => {
@@ -90,6 +94,17 @@ function InvoiceRequestTab() {
       .then(r => { setRecords(r.data.items); setTotal(r.data.total) })
       .catch(console.error).finally(() => setLoading(false))
   }, [page, keyword, filterStatus, filterType, startDate, endDate])
+
+  // 高亮定位
+  useEffect(() => {
+    if (!highlightId || records.length === 0) return
+    const target = records.find(r => r.id.toString() === highlightId)
+    if (target) {
+      setTimeout(() => {
+        highlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+    }
+  }, [records, highlightId])
 
   useEffect(() => { load() }, [load])
 
@@ -148,6 +163,12 @@ function InvoiceRequestTab() {
 
   return (
     <div>
+      <style>{`
+        @keyframes highlight-flash-finance {
+          0%, 30% { background: #fef9c3; }
+          100% { background: transparent; }
+        }
+      `}</style>
       {/* 筛选栏 */}
       <div className="flex flex-wrap gap-2 mb-4">
         <div className="relative flex-1 min-w-[160px]">
@@ -198,7 +219,7 @@ function InvoiceRequestTab() {
             ) : records.length === 0 ? (
               <tr><td colSpan={10} className="text-center py-8 text-gray-400">暂无数据</td></tr>
             ) : records.map(r => (
-              <tr key={r.id} className="hover:bg-gray-50">
+              <tr key={r.id} ref={r.id.toString() === highlightId ? highlightRef : undefined} className={`hover:bg-gray-50 ${r.id.toString() === highlightId ? 'highlight-row-finance' : ''}`} style={r.id.toString() === highlightId ? { animation: 'highlight-flash-finance 3s ease-out' } : {}}>
                 <td className="px-3 py-2">{r.apply_date}</td>
                 <td className="px-3 py-2 font-mono text-xs">{r.order_no}</td>
                 <td className="px-3 py-2">{r.shop_name}</td>

@@ -2,6 +2,7 @@
  * MessagesPage — Gmail-style three-panel email client
  */
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 import { Edit2, Star, Trash2, Search, Reply, Forward, Download, Inbox, Send, FileText, RefreshCw, X, ChevronDown, ChevronRight, Users, Paperclip } from 'lucide-react'
@@ -39,6 +40,9 @@ export default function MessagesPage() {
   const quillRef = useRef<any>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [searchParams] = useSearchParams()
+  const highlightId = searchParams.get('highlight')
+  const highlightRowRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission() }, [])
   const notify = useCallback((t: string, b: string) => {
@@ -54,6 +58,18 @@ export default function MessagesPage() {
     } catch {} finally { setLoading(false) }
   }, [])
   useEffect(() => { loadFolder(folder); loadCounts(); loadUsers() }, [folder])
+
+  // 高亮定位：自动选中并滚动到目标邮件
+  useEffect(() => {
+    if (!highlightId || messages.length === 0) return
+    const target = messages.find((m: any) => m.id.toString() === highlightId)
+    if (target) {
+      selectMessage(target)
+      setTimeout(() => {
+        highlightRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+    }
+  }, [messages, highlightId])
 
   const loadCounts = async () => { try { const cnts = (await getCounts()).data || {}; setCounts(cnts) } catch {} }
   const loadUsers = async () => { try { setUsers((await getUsers()).data || (await getUsers()) || []) } catch {} }
@@ -145,6 +161,12 @@ export default function MessagesPage() {
 
   return (
     <div className="flex h-[calc(100vh-80px)] bg-white border rounded-lg overflow-hidden" style={{borderColor:'#e5e7eb'}}>
+      <style>{`
+        @keyframes highlight-flash-msg {
+          0%, 30% { background: #fef9c3; }
+          100% { background: transparent; }
+        }
+      `}</style>
       {/* Left Nav */}
       <div className="p-2 flex-shrink-0 border-r flex flex-col" style={{width:180, borderColor:'#e5e7eb'}}>
         <button onClick={()=>openCompose('compose')} className="w-full px-3 py-2.5 bg-blue-600 text-white text-sm rounded-lg mb-3 flex items-center gap-2 justify-center hover:bg-blue-700">
@@ -230,7 +252,7 @@ export default function MessagesPage() {
             <div className="flex-1 overflow-auto">
               {loading && <div className="text-center py-12 text-gray-400 text-sm">加载中...</div>}
               {!loading && filtered.length===0 && <div className="text-center py-16 text-gray-400 text-sm">{folder==='inbox'?'收件箱为空':'暂无邮件'}</div>}
-              {filtered.map((msg:any)=>(<div key={msg.id} onClick={()=>selectMessage(msg)} className={'px-3 py-3 cursor-pointer border-b '+(selected?.id===msg.id?'bg-blue-50':'hover:bg-gray-50')} style={{borderColor:'#f3f4f6'}}>
+              {filtered.map((msg:any)=>(<div key={msg.id} ref={msg.id.toString() === highlightId ? highlightRowRef : undefined} onClick={()=>selectMessage(msg)} className={'px-3 py-3 cursor-pointer border-b '+(selected?.id===msg.id?'bg-blue-50':'hover:bg-gray-50')+(msg.id.toString()===highlightId?' highlight-row-msg':'')} style={{borderColor:'#f3f4f6', animation: msg.id.toString()===highlightId ? 'highlight-flash-msg 3s ease-out' : undefined }}>
                 <div className="flex items-center justify-between mb-0.5">
                   <span className={'text-sm truncate pr-2 '+(msg.is_read===0?'font-semibold text-gray-900':'text-gray-700')}>{msg.sender_name||msg.recipient_name||'?'}</span>
                   <span className="text-xs text-gray-400 flex-shrink-0">{fmt(msg.created_at)}</span></div>

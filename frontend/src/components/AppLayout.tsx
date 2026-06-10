@@ -102,6 +102,7 @@ export default function AppLayout() {
     return saved === 'true'
   })
   const [notifList, setNotifList] = useState<Notification[]>([])
+  const [selectedNotif, setSelectedNotif] = useState<Notification | null>(null)
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
   const [unreadAnnCount, setUnreadAnnCount] = useState(0)
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0)
@@ -263,6 +264,21 @@ export default function AppLayout() {
       }
     })
     .filter(g => g.items.length > 0)
+
+  // 通知跳转路径构建
+  const getNotifPath = (n: Notification): string => {
+    const hid = n.resource_id || n.ticket_id
+    if (n.resource_type === 'return_exchange' && n.resource_id) return `/return-exchange?highlight=${n.resource_id}`
+    if (n.resource_type === 'repair' && n.resource_id) return `/repair?highlight=${n.resource_id}`
+    if (n.resource_type === 'gift' && n.resource_id) return `/gifts?highlight=${n.resource_id}`
+    if (n.resource_type === 'gift_resend' && n.resource_id) return `/gift-resend?highlight=${n.resource_id}`
+    if (n.resource_type === 'invoice_request' && n.resource_id) return `/finance?highlight=${n.resource_id}`
+    if (n.resource_type === 'message' && n.resource_id) return `/messages?highlight=${n.resource_id}`
+    if (n.resource_type === 'announcement' && n.resource_id) return `/announcements?highlight=${n.resource_id}`
+    if (n.resource_type === 'task' && n.resource_id) return `/tasks?highlight=${n.resource_id}`
+    if (n.ticket_id) return `/tickets/${n.ticket_id}?highlight=${n.ticket_id}`
+    return '/'
+  }
 
   return (
     <div className="min-h-screen flex" style={{ background: '#fafaf9' }}>
@@ -565,21 +581,8 @@ export default function AppLayout() {
                           // 标记已读
                           await markNotificationRead(n.id)
                           setUnreadCount(prev => Math.max(0, prev - 1))
-                          // 构建跳转路径（带高亮参数）
-                          let path = '/'
-                          const highlightId = n.resource_id || n.ticket_id
-                          if (n.resource_type === 'return_exchange' && n.resource_id) {
-                            path = `/return-exchange?highlight=${n.resource_id}`
-                          } else if (n.resource_type === 'repair' && n.resource_id) {
-                            path = `/repair?highlight=${n.resource_id}`
-                          } else if (n.resource_type === 'gift' && n.resource_id) {
-                            path = `/gifts?highlight=${n.resource_id}`
-                          } else if (n.resource_type === 'gift_resend' && n.resource_id) {
-                            path = `/gift-resend?highlight=${n.resource_id}`
-                          } else if (n.ticket_id) {
-                            path = `/tickets/${n.ticket_id}?highlight=${n.ticket_id}`
-                          }
-                          navigate(path)
+                          // 弹出详情弹窗
+                          setSelectedNotif(n)
                           setShowPanel(false)
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#fafaf9'}
@@ -635,6 +638,62 @@ export default function AppLayout() {
                 onMouseLeave={(e) => e.currentTarget.style.background = '#404040'}
               >
                 我已知晓
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 通知详情弹窗 */}
+      {selectedNotif && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/20 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="flex items-center gap-3 p-5 border-b" style={{ borderColor: '#f0f0f0' }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: '#dbeafe' }}>
+                <Bell className="w-5 h-5" style={{ color: '#2563eb' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium" style={{ color: '#1f1f1f' }}>通知详情</p>
+                <p className="text-xs mt-0.5" style={{ color: '#a3a3a3' }}>
+                  {selectedNotif.created_at?.slice(0, 16).replace('T', ' ')}
+                </p>
+              </div>
+              <button onClick={() => setSelectedNotif(null)}
+                className="p-1 rounded-lg transition-colors"
+                style={{ color: '#a3a3a3' }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#f5f5f5'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+              </button>
+            </div>
+            <div className="p-5 min-w-0">
+              <h4 className="text-lg font-semibold mb-3 break-words" style={{ color: '#1f1f1f' }}>{selectedNotif.title}</h4>
+              <p className="text-sm whitespace-pre-wrap break-words max-h-60 overflow-y-auto" style={{ color: '#737373' }}>{selectedNotif.content}</p>
+            </div>
+            <div className="flex items-center justify-end gap-3 p-5 border-t" style={{ borderColor: '#f0f0f0' }}>
+              <button
+                onClick={() => setSelectedNotif(null)}
+                className="px-4 py-2 text-sm rounded-lg transition-colors"
+                style={{ color: '#737373' }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#f5f5f5'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                关闭
+              </button>
+              <button
+                onClick={() => {
+                  const path = getNotifPath(selectedNotif)
+                  navigate(path)
+                  setSelectedNotif(null)
+                }}
+                className="px-5 py-2 text-sm font-medium rounded-lg transition-colors"
+                style={{ background: '#2563eb', color: 'white' }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#1d4ed8'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#2563eb'}
+              >
+                查看详情
               </button>
             </div>
           </div>
