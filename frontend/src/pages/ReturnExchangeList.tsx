@@ -48,6 +48,12 @@ const RECORD_TYPES = [
   { value: 'exchange', label: '换货', color: 'bg-purple-100 text-purple-700' },
 ]
 
+const CLAIM_STATUSES = [
+  { value: 'none', label: '不需要追赔' },
+  { value: 'pending', label: '待追赔' },
+  { value: 'claimed', label: '已追赔' },
+]
+
 function ProgressBadge({ progress }: { progress: string }) {
   const s = PROGRESSES.find(x => x.value === progress) || PROGRESSES[0]
   return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${s.color}`}>{s.label}</span>
@@ -64,7 +70,7 @@ const emptyForm = {
   config: '', computer_price: 0, quantity: 1, accessories: '', accessories_price: 0,
   customer_info: '', return_tracking: '', send_tracking: '', handle_result: '',
   progress: 'pending', disassembly_feedback: '', shipping_fee: 0, remark: '',
-  record_type: '',
+  record_type: '', has_damage: false, damage_items: [] as { name: string; amount: number; desc: string }[], claim_status: 'none',
 }
 
 function todayStr() {
@@ -193,6 +199,9 @@ export default function ReturnExchangeList() {
       shipping_fee: record.shipping_fee || 0,
       remark: record.remark || '',
       record_type: record.record_type || '',
+      has_damage: record.has_damage || false,
+      damage_items: record.damage_items || [],
+      claim_status: record.claim_status || 'none',
     })
     setShowModal(true)
   }
@@ -206,9 +215,48 @@ export default function ReturnExchangeList() {
     setSaving(true)
     try {
       if (editRecord) {
-        await updateReturnExchange(editRecord.id, form)
+        const changes: string[] = []
+        const s = (v: unknown) => (v ?? '').toString().trim()
+        const old = editRecord
+        if (s(old.order_no) !== s(form.order_no)) changes.push(`订单编号: ${s(old.order_no) || '无'} → ${s(form.order_no) || '无'}`)
+        if (s(old.shop_name) !== s(form.shop_name)) changes.push(`店铺: ${s(old.shop_name) || '无'} → ${s(form.shop_name) || '无'}`)
+        if (s(old.model) !== s(form.model)) changes.push(`型号: ${s(old.model) || '无'} → ${s(form.model) || '无'}`)
+        if (s(old.config) !== s(form.config)) changes.push(`配置: ${s(old.config) || '无'} → ${s(form.config) || '无'}`)
+        if (s(old.size) !== s(form.size)) changes.push(`尺寸: ${s(old.size) || '无'} → ${s(form.size) || '无'}`)
+        if (Number(old.quantity) !== Number(form.quantity)) changes.push(`数量: ${old.quantity} → ${form.quantity}`)
+        if (Number(old.computer_price) !== Number(form.computer_price)) changes.push(`电脑价格: ¥${old.computer_price} → ¥${form.computer_price}`)
+        if (s(old.customer_info) !== s(form.customer_info)) changes.push(`客户信息已更新`)
+        if (s(old.return_reason) !== s(form.return_reason)) changes.push(`退换原因已更新`)
+        if (s(old.return_tracking) !== s(form.return_tracking)) changes.push(`寄回单号: ${s(old.return_tracking) || '无'} → ${s(form.return_tracking) || '无'}`)
+        if (s(old.send_tracking) !== s(form.send_tracking)) changes.push(`寄出单号: ${s(old.send_tracking) || '无'} → ${s(form.send_tracking) || '无'}`)
+        if (s(old.handle_result) !== s(form.handle_result)) changes.push(`处理结果已更新`)
+        if (s(old.disassembly_feedback) !== s(form.disassembly_feedback)) changes.push(`拆件反馈已更新`)
+        if (Number(old.shipping_fee) !== Number(form.shipping_fee)) changes.push(`运费: ¥${old.shipping_fee} → ¥${form.shipping_fee}`)
+        if (s(old.remark) !== s(form.remark)) changes.push(`备注已更新`)
+        if (old.progress !== form.progress) {
+          const ol = PROGRESSES.find(p => p.value === old.progress)?.label || old.progress
+          const nl = PROGRESSES.find(p => p.value === form.progress)?.label || form.progress
+          changes.push(`处理进度: ${ol} → ${nl}`)
+        }
+        if (s(old.record_type) !== s(form.record_type)) {
+          const ol = RECORD_TYPES.find(p => p.value === old.record_type)?.label || old.record_type || '未设置'
+          const nl = RECORD_TYPES.find(p => p.value === form.record_type)?.label || form.record_type || '未设置'
+          changes.push(`登记类型: ${ol} → ${nl}`)
+        }
+        if (s(old.claim_status) !== s(form.claim_status)) {
+          const ol = CLAIM_STATUSES.find(p => p.value === old.claim_status)?.label || old.claim_status
+          const nl = CLAIM_STATUSES.find(p => p.value === form.claim_status)?.label || form.claim_status
+          changes.push(`追赔状态: ${ol} → ${nl}`)
+        }
+        if (old.has_damage !== form.has_damage) {
+          changes.push(`货损: ${old.has_damage ? '有' : '无'} → ${form.has_damage ? '有' : '无'}`)
+        }
+        const res = await updateReturnExchange(editRecord.id, form)
+        const content = changes.length > 0 ? changes.join('；') : `编辑退换登记 #${editRecord.id}（无字段变更）`
+        addReturnExchangeFeedback(res.id, content).catch(console.error)
       } else {
-        await createReturnExchange(form)
+        const res = await createReturnExchange(form)
+        addReturnExchangeFeedback(res.id, `新建退换登记 #${res.id}`).catch(console.error)
       }
       setShowModal(false)
       load()
@@ -227,6 +275,25 @@ export default function ReturnExchangeList() {
       load()
     } catch (e) {
       alert('删除失败')
+      console.error(e)
+    }
+  }
+
+  const handleMarkClaimed = async () => {
+    if (!detailRecord) return
+    if (!confirm('确认标记为已追赔？')) return
+    try {
+      await updateReturnExchange(detailRecord.id, { claim_status: 'claimed' })
+      addReturnExchangeFeedback(detailRecord.id, '标记追赔状态: 待追赔 → 已追赔').catch(console.error)
+      const [fresh, fbList] = await Promise.all([
+        getReturnExchangeDetail(detailRecord.id),
+        getReturnExchangeFeedbacks(detailRecord.id),
+      ])
+      setDetailRecord(fresh)
+      setFeedbacks(fbList)
+      load()
+    } catch (e) {
+      alert('操作失败')
       console.error(e)
     }
   }
@@ -481,6 +548,66 @@ export default function ReturnExchangeList() {
                 <textarea value={form.disassembly_feedback} onChange={e => setForm({ ...form, disassembly_feedback: e.target.value })}
                   rows={2} className="w-full border rounded-lg px-3 py-2" />
               </div>
+              {/* 货损追赔 */}
+              <div className="border rounded-lg p-4 space-y-3" style={{ borderColor: form.has_damage ? '#fca5a5' : '#e5e7eb', background: form.has_damage ? '#fef2f2' : 'transparent' }}>
+                <div className="flex items-center gap-6">
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                    <input type="checkbox" checked={form.has_damage} onChange={e => setForm({ ...form, has_damage: e.target.checked, claim_status: e.target.checked ? form.claim_status : 'none' })}
+                      className="w-4 h-4 rounded border-gray-300" />
+                    有货损
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-500">追赔状态：</label>
+                    <select value={form.claim_status} onChange={e => setForm({ ...form, claim_status: e.target.value })}
+                      disabled={!form.has_damage}
+                      className="border rounded-lg px-3 py-1.5 text-sm disabled:opacity-50" style={{ borderColor: '#e5e5e5' }}>
+                      <option value="none">不需要追赔</option>
+                      <option value="pending">待追赔</option>
+                      <option value="claimed">已追赔</option>
+                    </select>
+                  </div>
+                </div>
+                {form.has_damage && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-medium text-gray-700">货损明细</label>
+                      <button type="button"
+                        onClick={() => setForm({ ...form, damage_items: [...form.damage_items, { name: '', amount: 0, desc: '' }] })}
+                        className="text-xs text-red-600 hover:text-red-700 flex items-center gap-1">
+                        <Plus size={12} /> 添加货损物品
+                      </button>
+                    </div>
+                    {form.damage_items.length > 0 && (
+                      <div className="space-y-2 mb-2">
+                        {form.damage_items.map((item, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <FieldSelect fieldName="damage_item_name" label="物品名称"
+                              value={item.name}
+                              onChange={v => { const updated = [...form.damage_items]; updated[idx] = { ...updated[idx], name: v }; setForm({ ...form, damage_items: updated }) }}
+                              placeholder="物品名称" showGear={hasPermission('field_options:manage')} />
+                            <input type="number" step="0.01" min="0" value={item.amount}
+                              onChange={e => { const updated = [...form.damage_items]; updated[idx] = { ...updated[idx], amount: parseFloat(e.target.value) || 0 }; setForm({ ...form, damage_items: updated }) }}
+                              placeholder="金额" className="w-24 border rounded-lg px-3 py-2 text-sm" style={{ borderColor: '#e5e5e5' }} />
+                            <input type="text" value={item.desc}
+                              onChange={e => { const updated = [...form.damage_items]; updated[idx] = { ...updated[idx], desc: e.target.value }; setForm({ ...form, damage_items: updated }) }}
+                              placeholder="损坏描述" className="flex-1 border rounded-lg px-3 py-2 text-sm" style={{ borderColor: '#e5e5e5' }} />
+                            <button type="button"
+                              onClick={() => setForm({ ...form, damage_items: form.damage_items.filter((_, i) => i !== idx) })}
+                              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded">
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {form.damage_items.length > 0 && (
+                      <div className="text-sm text-red-600 text-right font-medium">
+                        货损合计: ¥{form.damage_items.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">运费</label>
@@ -537,6 +664,39 @@ export default function ReturnExchangeList() {
                 <div className="col-span-2"><span className="text-gray-500">拆件反馈：</span>{detailRecord.disassembly_feedback || '-'}</div>
                 <div><span className="text-gray-500">运费：</span>¥{detailRecord.shipping_fee?.toFixed(2) || '0.00'}</div>
                 <div><span className="text-gray-500">备注：</span>{detailRecord.remark || '-'}</div>
+                {detailRecord.has_damage && (
+                  <>
+                    <div className="col-span-2 border-t pt-3 mt-1" style={{ borderColor: '#fecaca' }}>
+                      <span className="text-red-600 font-medium">货损信息</span>
+                    </div>
+                    <div className="flex items-center gap-2"><span className="text-gray-500">追赔状态：</span>
+                      <span className={detailRecord.claim_status === 'claimed' ? 'text-green-600' : detailRecord.claim_status === 'pending' ? 'text-orange-600' : 'text-gray-500'}>
+                        {detailRecord.claim_status === 'claimed' ? '已追赔' : detailRecord.claim_status === 'pending' ? '待追赔' : '不需要追赔'}
+                      </span>
+                      {detailRecord.claim_status === 'pending' && canEdit && (
+                        <button onClick={handleMarkClaimed}
+                          className="px-2.5 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700">
+                          已追赔
+                        </button>
+                      )}
+                    </div>
+                    <div><span className="text-gray-500">货损总额：</span><span className="text-red-600 font-medium">¥{detailRecord.total_damage_amount?.toFixed(2) || '0.00'}</span></div>
+                    {detailRecord.damage_items && detailRecord.damage_items.length > 0 && (
+                      <div className="col-span-2">
+                        <span className="text-gray-500">货损明细：</span>
+                        <div className="mt-1 space-y-1">
+                          {detailRecord.damage_items.map((item, idx) => (
+                            <div key={idx} className="flex items-center gap-3 text-sm">
+                              <span className="text-gray-700">{item.name || '未命名'}</span>
+                              <span className="text-red-500">¥{item.amount?.toFixed(2) || '0.00'}</span>
+                              {item.desc && <span className="text-gray-400">{item.desc}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
                 <div><span className="text-gray-500">登记人：</span>{detailRecord.creator_name || '-'}</div>
                 <div><span className="text-gray-500">登记时间：</span>{formatDateTime(detailRecord.created_at)}</div>
               </div>

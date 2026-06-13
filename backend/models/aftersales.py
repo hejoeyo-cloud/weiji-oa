@@ -86,6 +86,9 @@ class ReturnExchangeRecord(Base):
     shipping_fee = Column(Float, default=0)              # 运费
     remark = Column(Text, default="")                    # 备注
     record_type = Column(String(20), default="")          # 登记类型：return(退货)/exchange(换货)
+    has_damage = Column(Boolean, default=False)            # 是否有货损
+    damage_items = Column(JSONType, default=list)          # 货损明细 [{name, amount, desc}]
+    claim_status = Column(String(20), default="none")      # 追赔状态: none/pending/claimed
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)

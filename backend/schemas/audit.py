@@ -6,6 +6,7 @@ class AuditLogOut(BaseModel):
     id: int
     user_id: Optional[int]
     username: str
+    user_name: str = ""
     action: str
     resource_type: str
     resource_id: Optional[int]

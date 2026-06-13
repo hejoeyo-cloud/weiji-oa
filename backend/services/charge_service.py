@@ -2,7 +2,7 @@
 from typing import Union
 from datetime import datetime
 from sqlalchemy.orm import Session
-from database import User, RepairRecord, ReturnExchangeRecord, AfterSalesRecord, RepairChargeRequest, AfterSalesChargeRequest
+from database import User, RepairRecord, ReturnExchangeRecord, AfterSalesRecord, RepairChargeRequest, AfterSalesChargeRequest, RepairFeedback, AfterSalesFeedback, ReturnExchangeFeedback
 from routers.approval_rules_router import evaluate_rules
 
 
@@ -32,16 +32,26 @@ def create_repair_charge_request(
     )
     if approver_ids:
         charge.charge_note = _append_approvers(charge_note, approver_names, approver_ids)
-    
+
     db.add(charge)
     db.commit()
     db.refresh(charge)
-    
+
     record.charge_required = True
     record.charge_status = "pending_charge"
     record.last_charge_request_id = charge.id
     db.commit()
-    
+
+    # 自动添加处理记录
+    feedback = RepairFeedback(
+        company_id=current_user.company_id,
+        record_id=record.id,
+        user_id=current_user.id,
+        content=f"发起收费维修，预计金额: ¥{expected_amount:.2f}" + (f"，备注: {charge_note}" if charge_note else ""),
+    )
+    db.add(feedback)
+    db.commit()
+
     return charge
 
 
@@ -80,16 +90,34 @@ def create_charge_request(
     )
     if approver_ids:
         charge.charge_note = _append_approvers(charge_note, approver_names, approver_ids)
-    
+
     db.add(charge)
     db.commit()
     db.refresh(charge)
-    
+
     record.charge_required = True
     record.charge_status = "pending_charge"
     record.last_charge_request_id = charge.id
     db.commit()
-    
+
+    # 自动添加处理记录
+    if isinstance(record, AfterSalesRecord):
+        feedback = AfterSalesFeedback(
+            company_id=current_user.company_id,
+            record_id=record.id,
+            user_id=current_user.id,
+            content=f"发起收费，预计金额: ¥{expected_amount:.2f}" + (f"，备注: {charge_note}" if charge_note else ""),
+        )
+    else:
+        feedback = ReturnExchangeFeedback(
+            company_id=current_user.company_id,
+            record_id=record.id,
+            user_id=current_user.id,
+            content=f"发起收费，预计金额: ¥{expected_amount:.2f}" + (f"，备注: {charge_note}" if charge_note else ""),
+        )
+    db.add(feedback)
+    db.commit()
+
     return charge
 
 
@@ -119,6 +147,18 @@ def mark_charge_paid(
 
     db.commit()
     db.refresh(charge_request)
+
+    # 自动添加处理记录
+    if record:
+        feedback = RepairFeedback(
+            company_id=current_user.company_id,
+            record_id=record.id,
+            user_id=current_user.id,
+            content=f"确认收费，实收金额: ¥{paid_amount:.2f}" + (f"，改价说明: {amount_change_note}" if amount_change_note else ""),
+        )
+        db.add(feedback)
+        db.commit()
+
     return charge_request
 
 
@@ -149,6 +189,18 @@ def cancel_charge_request(
 
     db.commit()
     db.refresh(charge_request)
+
+    # 自动添加处理记录
+    if record:
+        feedback = RepairFeedback(
+            company_id=current_user.company_id,
+            record_id=record.id,
+            user_id=current_user.id,
+            content=f"取消收费，原因: {reason}" if reason else "取消收费",
+        )
+        db.add(feedback)
+        db.commit()
+
     return charge_request
 
 

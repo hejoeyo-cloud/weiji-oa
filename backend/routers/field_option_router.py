@@ -27,7 +27,7 @@ def get_options(
 def create_option(
     data: FieldOptionCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_permission("gifts:edit"))
+    current_user=Depends(require_permission("field_options:manage"))
 ):
     """新增预设选项"""
     # 检查重复
@@ -56,7 +56,7 @@ def create_option(
 def delete_option(
     option_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_permission("gifts:edit"))
+    current_user=Depends(require_permission("field_options:manage"))
 ):
     """删除预设选项"""
     option = db.query(FieldOption).filter(FieldOption.id == option_id).first()

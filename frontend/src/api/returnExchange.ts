@@ -32,6 +32,9 @@ export interface ReturnExchangeCreateData {
   shipping_fee?: number
   remark?: string
   record_type?: string
+  has_damage?: boolean
+  damage_items?: { name: string; amount: number; desc: string }[]
+  claim_status?: string
 }
 
 export const getReturnExchangeList = (params: ReturnExchangeListParams = {}) =>

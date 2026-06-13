@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from database import get_db, TaskBoard, User
 from schemas import TaskCreate, TaskUpdate, TaskOut
 from auth import get_current_user, require_permission
+from services.notification_service import create_and_push
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -34,7 +35,7 @@ def _task_to_out(t: TaskBoard) -> TaskOut:
 def list_tasks(
     status: str = Query("", description="filter by status: todo, in_progress, done"),
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=500),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -44,7 +45,7 @@ def list_tasks(
     if status:
         query = query.filter(TaskBoard.status == status)
     total = query.count()
-    tasks = query.order_by(TaskBoard.sort_order.asc(), TaskBoard.created_at.desc()) \
+    tasks = query.order_by(TaskBoard.sort_order.desc(), TaskBoard.created_at.desc()) \
         .offset((page - 1) * page_size).limit(page_size).all()
     return {
         "total": total,
@@ -78,6 +79,17 @@ def create_task(
     db.add(task)
     db.commit()
     db.refresh(task)
+
+    # 通知被分配人
+    if req.assignee_id and req.assignee_id != current_user.id:
+        create_and_push(
+            db, req.assignee_id,
+            title="新任务分配",
+            content=f"你被分配了新任务：{req.title}",
+            resource_type="task",
+            resource_id=task.id,
+        )
+
     return _task_to_out(task)
 
 
@@ -96,12 +108,28 @@ def update_task(
         raise HTTPException(status_code=404, detail="任务不存在")
 
     update_data = req.model_dump(exclude_unset=True)
+
+    # 检查是否更换了分配人
+    new_assignee_id = update_data.get("assignee_id")
+    old_assignee_id = task.assignee_id
+
     for key, value in update_data.items():
         setattr(task, key, value)
 
     task.updated_at = datetime.now()
     db.commit()
     db.refresh(task)
+
+    # 通知新分配人
+    if new_assignee_id and new_assignee_id != old_assignee_id and new_assignee_id != current_user.id:
+        create_and_push(
+            db, new_assignee_id,
+            title="任务重新分配",
+            content=f"你被分配了任务：{task.title}",
+            resource_type="task",
+            resource_id=task.id,
+        )
+
     return _task_to_out(task)
 
 

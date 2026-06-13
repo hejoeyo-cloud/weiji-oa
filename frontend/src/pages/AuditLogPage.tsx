@@ -119,7 +119,7 @@ export default function AuditLogPage() {
             ) : logs.map(log => (
               <tr key={log.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-4 py-3 text-gray-500 font-mono text-xs whitespace-nowrap">{formatTime(log.created_at)}</td>
-                <td className="px-4 py-3 font-medium text-gray-800">{log.username}</td>
+                <td className="px-4 py-3 font-medium text-gray-800">{log.user_name || log.username}</td>
                 <td className="px-4 py-3">
                   <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${ACTION_COLORS[log.action] || 'bg-gray-100 text-gray-600'}`}>
                     {ACTION_LABELS[log.action] || log.action}

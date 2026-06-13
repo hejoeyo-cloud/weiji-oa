@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from database import get_db, AuditLog, User
+from sqlalchemy.orm import joinedload
 from schemas import AuditLogOut
 from auth import require_admin
 
@@ -24,7 +25,7 @@ def list_logs(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    query = db.query(AuditLog)
+    query = db.query(AuditLog).options(joinedload(AuditLog.user))
     if not current_user.is_platform_admin:
         query = query.filter(AuditLog.company_id == current_user.company_id)
 
@@ -57,6 +58,7 @@ def list_logs(
         "items": [
             AuditLogOut(
                 id=log.id, user_id=log.user_id, username=log.username,
+                user_name=log.user.name if log.user else log.username,
                 action=log.action, resource_type=log.resource_type,
                 resource_id=log.resource_id, detail=log.detail,
                 ip_address=log.ip_address, created_at=log.created_at,

@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
-import { Plus, Trash2, GripVertical, AlertCircle, Clock, CheckCircle2, RefreshCw, User as UserIcon, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useEffect, useState, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { Plus, Trash2, GripVertical, AlertCircle, Clock, CheckCircle2, RefreshCw, User as UserIcon } from 'lucide-react'
 import { getTasks, createTask, updateTask, deleteTask } from '../api/tasks'
 import { getUsers } from '../api/users'
 import type { TaskItem, User } from '../types'
@@ -21,9 +22,10 @@ const PRIORITY_LABELS: Record<string, string> = {
   low: '低', normal: '中', high: '高', urgent: '紧急',
 }
 
-const PAGE_SIZE = 15
-
 export default function TaskBoard() {
+  const [searchParams] = useSearchParams()
+  const highlightId = searchParams.get('highlight')
+  const taskRefs = useRef<Map<number, HTMLDivElement>>(new Map())
   const [tasks, setTasks] = useState<TaskItem[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
@@ -34,15 +36,12 @@ export default function TaskBoard() {
   const [formAssignee, setFormAssignee] = useState<number | undefined>(undefined)
   const [formDueDate, setFormDueDate] = useState('')
   const [msg, setMsg] = useState('')
-  const [page, setPage] = useState(1)
-  const [total, setTotal] = useState(0)
 
-  const loadTasks = async (p?: number) => {
+  const loadTasks = async () => {
     setLoading(true)
     try {
-      const data = await getTasks({ page: p || page, page_size: PAGE_SIZE })
+      const data = await getTasks({ page: 1, page_size: 200 })
       setTasks(data.items)
-      setTotal(data.total)
     } finally {
       setLoading(false)
     }
@@ -58,10 +57,17 @@ export default function TaskBoard() {
 
   useEffect(() => { loadTasks(); loadUsers() }, [])
 
-  // page 变化时重新加载
-  useEffect(() => { loadTasks(page) }, [page])
-
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  // 高亮指定任务
+  useEffect(() => {
+    if (!highlightId || tasks.length === 0) return
+    const id = Number(highlightId)
+    const el = taskRefs.current.get(id)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el.classList.add('highlight-flash-task')
+      setTimeout(() => el.classList.remove('highlight-flash-task'), 3000)
+    }
+  }, [highlightId, tasks])
 
   const handleCreate = async () => {
     if (!formTitle.trim()) return
@@ -76,8 +82,7 @@ export default function TaskBoard() {
       })
       setFormTitle(''); setFormDesc(''); setFormPriority('normal')
       setFormAssignee(undefined); setFormDueDate(''); setShowForm(false)
-      setPage(1)
-      loadTasks(1)
+      loadTasks()
     } catch (err: any) {
       setMsg(err.response?.data?.detail || '创建失败')
     }
@@ -102,6 +107,12 @@ export default function TaskBoard() {
 
   return (
     <div className="p-6 space-y-5">
+      <style>{`
+        @keyframes highlight-flash-task {
+          0%, 30% { background: #fef9c3; box-shadow: 0 0 0 2px #fde047; }
+          100% { background: transparent; box-shadow: none; }
+        }
+      `}</style>
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-gray-800">任务看板</h2>
         <div className="flex items-center gap-3">
@@ -166,7 +177,8 @@ export default function TaskBoard() {
                 {columnTasks.map(task => (
                   <div
                     key={task.id}
-                    className="bg-white rounded-lg border p-3 cursor-pointer text-sm group hover:shadow-md transition-shadow"
+                    ref={el => { if (el) taskRefs.current.set(task.id, el); else taskRefs.current.delete(task.id) }}
+                    className={`bg-white rounded-lg border p-3 cursor-pointer text-sm group hover:shadow-md transition-shadow ${String(task.id) === highlightId ? 'highlight-flash-task' : ''}`}
                     style={{ borderColor: '#f0f0f0' }}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -225,31 +237,6 @@ export default function TaskBoard() {
           )
         })}
       </div>
-
-      {/* 翻页控件 */}
-      {total > PAGE_SIZE && (
-        <div className="flex items-center justify-center gap-4 pt-2">
-          <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page <= 1}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
-            style={{ borderColor: '#e5e5e5' }}
-          >
-            <ChevronLeft size={14} /> 上一页
-          </button>
-          <span className="text-sm text-gray-500">
-            第 {page} / {totalPages} 页 · 共 {total} 条
-          </span>
-          <button
-            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
-            style={{ borderColor: '#e5e5e5' }}
-          >
-            下一页 <ChevronRight size={14} />
-          </button>
-        </div>
-      )}
     </div>
   )
 }

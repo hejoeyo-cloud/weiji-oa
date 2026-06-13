@@ -601,6 +601,18 @@ def _migrate_db():
                 conn.execute(text("ALTER TABLE return_exchange_records ADD COLUMN shop_name VARCHAR(200) DEFAULT ''"))
                 conn.commit()
 
+    # ── 迁移：return_exchange_records 新增货损追赔列 ──────────────────
+    if 'return_exchange_records' in existing_tables:
+        columns = [c['name'] for c in inspector.get_columns('return_exchange_records')]
+        with engine.connect() as conn:
+            if 'has_damage' not in columns:
+                conn.execute(text("ALTER TABLE return_exchange_records ADD COLUMN has_damage BOOLEAN DEFAULT 0"))
+            if 'damage_items' not in columns:
+                conn.execute(text("ALTER TABLE return_exchange_records ADD COLUMN damage_items TEXT DEFAULT '[]'"))
+            if 'claim_status' not in columns:
+                conn.execute(text("ALTER TABLE return_exchange_records ADD COLUMN claim_status VARCHAR(20) DEFAULT 'none'"))
+            conn.commit()
+
     # ── 迁移：gift_records 新增 shop_name 列 ─────────────────────────
     if 'gift_records' in existing_tables:
         columns = [c['name'] for c in inspector.get_columns('gift_records')]

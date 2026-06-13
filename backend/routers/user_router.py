@@ -110,6 +110,11 @@ def update_user(
         if existing:
             raise HTTPException(status_code=400, detail="账号已被使用")
         user.username = req.username
+    if req.email is not None:
+        existing = db.query(User).filter(User.email == req.email, User.id != user_id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="邮箱已被使用")
+        user.email = req.email
     if req.name is not None:
         user.name = req.name
     if req.note is not None:
@@ -127,7 +132,7 @@ def update_user(
         else:
             user.role_id = None
     if req.department_id is not None:
-        user.department_id = req.department_id
+        user.department_id = req.department_id if req.department_id > 0 else None
     if req.is_manager is not None:
         user.is_manager = req.is_manager
     if req.password:

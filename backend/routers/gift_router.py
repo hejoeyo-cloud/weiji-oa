@@ -129,7 +129,7 @@ def get_record(
 def create_record(
     req: GiftRecordCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("gifts:edit")),
+    current_user: User = Depends(require_permission("gifts:create")),
 ):
     has_cost_permission = "gifts:cost_view" in (current_user.role_obj.permissions if current_user.role_obj else [])
     
@@ -176,7 +176,7 @@ def update_record(
     record_id: int,
     req: GiftRecordUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("gifts:delete")),
+    current_user: User = Depends(require_permission("gifts:edit")),
 ):
     has_cost_permission = "gifts:cost_view" in (current_user.role_obj.permissions if current_user.role_obj else [])
     
@@ -195,7 +195,7 @@ def update_record(
     if incoming_gift_costs is not None:
         r.gift_costs = incoming_gift_costs
     # 如果前端明确设置了 "intercepted" 或 "torn" 状态，保留它；否则由发出单号自动决定
-    if incoming_status in ("intercepted", "torn"):
+    if incoming_status in ("intercepted", "torn", "cancelled"):
         r.status = incoming_status
     else:
         r.status = "sent" if (r.send_tracking and r.send_tracking.strip()) else "pending"
@@ -212,7 +212,7 @@ def update_record(
 def delete_record(
     record_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("gifts:cost_view")),
+    current_user: User = Depends(require_permission("gifts:delete")),
 ):
     r = db.query(GiftRecord).filter(GiftRecord.id == record_id, GiftRecord.company_id == current_user.company_id).first()
     if not r:

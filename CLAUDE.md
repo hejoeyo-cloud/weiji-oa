@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Fries OA — a full-stack Chinese-language office automation system for a hardware sales/repair business. Two-directory layout: `backend/` (Python FastAPI) and `frontend/` (React + TypeScript Vite SPA). In production, FastAPI serves the built frontend from `frontend/dist/`.
+微迹OA (WeiJiOA) — a full-stack Chinese-language office automation system for a hardware sales/repair business. Two-directory layout: `backend/` (Python FastAPI) and `frontend/` (React + TypeScript Vite SPA). In production, FastAPI serves the built frontend from `frontend/dist/`.
 
 ## Development Commands
 
@@ -34,7 +34,7 @@ No test framework is configured. Alembic config exists but is unused — databas
 - **Database migrations**: Alembic config exists but is stale/unused. Schema changes are managed via raw SQL in `backend/models/init_db.py`'s `_migrate_db()` function — add ALTER TABLE / CREATE TABLE statements there. This handles SQLite limitations (no DROP COLUMN, etc.) by rebuilding tables when needed.
 - **Auth**: `backend/auth.py` — JWT (python-jose) + bcrypt, 8-hour token expiry. Role-based with fine-grained permissions (`tickets:view`, `tickets:edit`, etc.). Three built-in roles: `admin`, `technician`, `customer`. Admin role bypasses all permission checks. Row-level access via `owner_filter()` / `apply_owner_filter()` (non-admins see only their own records).
 - **Multi-tenancy**: `backend/middleware/company_guard.py` — most models have `company_id` foreign keys; actual tenant isolation is enforced per-router via query scoping (the middleware is a pattern enforcer, not an active filter).
-- **Routers**: ~28 FastAPI routers in `backend/routers/`, one per business domain
+- **Routers**: ~31 FastAPI routers in `backend/routers/`, one per business domain
 - **Schemas**: Pydantic v2 models in `backend/schemas/`
 - **Services**: Business logic in `backend/services/` (audit, notifications, DingTalk sync, subscriptions, charges)
 - **File storage**: `backend/storage.py` — abstract `StorageBackend` with Local and S3 (Tencent COS / AWS S3 / MinIO) implementations. Switch via `STORAGE_BACKEND=s3`. Local uploads stored in `uploads/` at project root.
@@ -86,3 +86,7 @@ When working on this project, check which branch you're on before making changes
 - File uploads go through `backend/storage.py` — don't write direct file I/O for uploads
 - Schema changes: add raw SQL migration steps to `backend/models/init_db.py` `_migrate_db()`, not alembic
 - Navigation sidebar groups and their permission requirements are defined in `AppLayout.tsx`; dynamic module items are merged in at runtime from `/api/module-configs`
+- After editing frontend code, run `npm run build` (from `frontend/`) before restarting the backend — FastAPI serves from `frontend/dist/`, not the dev server
+- To restart the backend: kill the process on port 8000, then `cd backend && python main.py`
+- WebSocket endpoint is `/ws/{user_id}` — used for real-time notifications (new tickets, status changes, etc.)
+- The `ReturnExchangeRecord` model uses JSON columns for `damage_items` (array of `{name, amount, desc}`) — follow this same pattern for any new array-type fields

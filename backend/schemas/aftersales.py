@@ -133,7 +133,12 @@ class AfterSalesChargeRequestOut(BaseModel):
         from_attributes = True
 
 
-# ── 发货登记（原赠品登记） ──────────────────────────────────────────
+# ── 退换登记 ──────────────────────────────────────────────────────────
+
+class DamageItem(BaseModel):
+    name: str = ""
+    amount: float = 0
+    desc: str = ""
 
 class ReturnExchangeCreate(BaseModel):
     apply_date: str = ""
@@ -156,6 +161,9 @@ class ReturnExchangeCreate(BaseModel):
     shipping_fee: float = 0
     remark: str = ""
     record_type: str = ""
+    has_damage: bool = False
+    damage_items: List[DamageItem] = []
+    claim_status: str = "none"
 
 class ReturnExchangeUpdate(BaseModel):
     apply_date: Optional[str] = None
@@ -178,6 +186,9 @@ class ReturnExchangeUpdate(BaseModel):
     shipping_fee: Optional[float] = None
     remark: Optional[str] = None
     record_type: Optional[str] = None
+    has_damage: Optional[bool] = None
+    damage_items: Optional[List[DamageItem]] = None
+    claim_status: Optional[str] = None
 
 class ReturnExchangeOut(BaseModel):
     id: int
@@ -201,6 +212,10 @@ class ReturnExchangeOut(BaseModel):
     shipping_fee: float = 0
     remark: str = ""
     record_type: str = ""
+    has_damage: bool = False
+    damage_items: List[DamageItem] = []
+    total_damage_amount: float = 0
+    claim_status: str = "none"
     created_by: Optional[int] = None
     creator_name: str = ""
     created_at: Optional[datetime] = None

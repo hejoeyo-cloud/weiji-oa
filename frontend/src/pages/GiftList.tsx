@@ -37,6 +37,7 @@ const STATUSES = [
   { value: 'sent', label: '已发出', color: 'bg-blue-100 text-blue-700' },
   { value: 'intercepted', label: '已拦截', color: 'bg-red-100 text-red-700' },
   { value: 'torn', label: '已撕单', color: 'bg-gray-100 text-gray-700' },
+  { value: 'cancelled', label: '已取消', color: 'bg-stone-100 text-stone-600' },
 ]
 
 function StatusBadge({ status }: { status: string }) {
@@ -256,6 +257,22 @@ export default function GiftList() {
     updateGift(detailRecord.id, { status: 'torn' })
       .then(() => {
         addGiftFeedback(detailRecord.id, `撕单，状态: ${oldLabel} → 已撕单`).catch(console.error)
+        return getGiftDetail(detailRecord.id)
+      })
+      .then(fresh => {
+        setDetailRecord(fresh)
+        load()
+      })
+      .catch(console.error)
+  }
+
+  const handleCancel = () => {
+    if (!detailRecord) return
+    if (!confirm('确认取消此订单？取消后状态将变为"已取消"')) return
+    const oldLabel = STATUSES.find(s => s.value === detailRecord.status)?.label || detailRecord.status
+    updateGift(detailRecord.id, { status: 'cancelled' })
+      .then(() => {
+        addGiftFeedback(detailRecord.id, `取消订单，状态: ${oldLabel} → 已取消`).catch(console.error)
         return getGiftDetail(detailRecord.id)
       })
       .then(fresh => {
@@ -746,6 +763,10 @@ export default function GiftList() {
                     <button onClick={handleTorn}
                       className="px-2.5 py-1 bg-gray-600 text-white rounded text-xs hover:bg-gray-700">
                       撕单
+                    </button>
+                    <button onClick={handleCancel}
+                      className="px-2.5 py-1 bg-stone-500 text-white rounded text-xs hover:bg-stone-600">
+                      取消订单
                     </button>
                   </>
                 )}

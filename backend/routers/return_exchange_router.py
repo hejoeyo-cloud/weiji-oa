@@ -22,6 +22,8 @@ router = APIRouter(prefix="/api/return-exchange", tags=["return_exchange"])
 
 
 def record_to_out(r: ReturnExchangeRecord) -> ReturnExchangeOut:
+    damage_items = r.damage_items or []
+    total_damage = sum(item.get("amount", 0) for item in damage_items if isinstance(item, dict))
     return ReturnExchangeOut(
         id=r.id,
         apply_date=r.apply_date or "",
@@ -44,6 +46,10 @@ def record_to_out(r: ReturnExchangeRecord) -> ReturnExchangeOut:
         shipping_fee=r.shipping_fee or 0,
         remark=r.remark or "",
         record_type=r.record_type or "",
+        has_damage=r.has_damage or False,
+        damage_items=[{"name": item.get("name", ""), "amount": item.get("amount", 0), "desc": item.get("desc", "")} for item in damage_items if isinstance(item, dict)],
+        total_damage_amount=total_damage,
+        claim_status=r.claim_status or "none",
         created_by=r.created_by,
         creator_name=r.creator.name if r.creator else "",
         created_at=r.created_at,
@@ -133,6 +139,9 @@ def create_record(
         shipping_fee=req.shipping_fee,
         remark=req.remark,
         record_type=req.record_type,
+        has_damage=req.has_damage,
+        damage_items=[item.model_dump() for item in req.damage_items] if req.damage_items else [],
+        claim_status=req.claim_status,
         created_by=current_user.id,
     )
     db.add(r)
@@ -313,6 +322,19 @@ def mark_record_charge_paid(
     charge_request.paid_at = datetime.now()
     db.commit()
     db.refresh(charge_request)
+
+    # 自动添加处理记录
+    record = charge_request.record
+    if record:
+        feedback = ReturnExchangeFeedback(
+            company_id=current_user.company_id,
+            record_id=record.id,
+            user_id=current_user.id,
+            content=f"确认收费，实收金额: ¥{req.paid_amount:.2f}" + (f"，改价说明: {req.amount_change_note}" if req.amount_change_note else ""),
+        )
+        db.add(feedback)
+        db.commit()
+
     return charge_to_out(charge_request)
 
 
@@ -332,6 +354,19 @@ def cancel_record_charge_request(
     charge_request.status = "cancelled"
     db.commit()
     db.refresh(charge_request)
+
+    # 自动添加处理记录
+    record = charge_request.record
+    if record:
+        feedback = ReturnExchangeFeedback(
+            company_id=current_user.company_id,
+            record_id=record.id,
+            user_id=current_user.id,
+            content=f"取消收费，原因: {req.reason}" if req.reason else "取消收费",
+        )
+        db.add(feedback)
+        db.commit()
+
     return charge_to_out(charge_request)
 
 

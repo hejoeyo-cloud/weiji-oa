@@ -190,6 +190,10 @@ export interface ReturnExchangeRecord {
   disassembly_feedback: string
   shipping_fee: number
   remark: string
+  has_damage: boolean
+  damage_items: { name: string; amount: number; desc: string }[]
+  total_damage_amount: number
+  claim_status: string  // none | pending | claimed
   created_by?: number
   creator_name: string
   created_at?: string
@@ -379,6 +383,7 @@ export interface AuditLog {
   id: number
   user_id?: number
   username: string
+  user_name: string
   action: string
   resource_type: string
   resource_id?: number

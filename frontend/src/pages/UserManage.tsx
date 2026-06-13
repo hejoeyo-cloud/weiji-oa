@@ -103,7 +103,7 @@ export default function UserManage() {
     const payload = { ...userForm, department_id: userForm.department_id || undefined, is_manager: userForm.is_manager }
     try {
       if (editUser) {
-        const updatePayload: any = { name: userForm.name, note: userForm.note, role: userForm.role, department_id: userForm.department_id || undefined, is_manager: userForm.is_manager }
+        const updatePayload: any = { email: userForm.email, name: userForm.name, note: userForm.note, role: userForm.role, department_id: userForm.department_id || null, is_manager: userForm.is_manager }
         if (userForm.password) updatePayload.password = userForm.password
         await updateUser(editUser.id, updatePayload)
       } else {
