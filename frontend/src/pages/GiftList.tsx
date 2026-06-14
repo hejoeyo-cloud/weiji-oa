@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Eye, Download, Settings } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, ChevronDown, Eye, Download, Settings } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
-import { getGiftList, getGiftDetail, createGift, updateGift, deleteGift, addGiftFeedback, getGiftFeedbacks } from '../api/gifts'
+import { getGiftList, getGiftDetail, createGift, updateGift, deleteGift, addGiftFeedback, getGiftFeedbacks, getGiftPresets, createGiftPreset, deleteGiftPreset, GiftPreset } from '../api/gifts'
 import { getShops, createShop as apiCreateShop, deleteShop as apiDeleteShop, Shop } from '../api/shops'
 import { useAuth } from '../hooks/useAuth'
 import ShopSelect from '../components/ShopSelect'
@@ -90,6 +90,10 @@ export default function GiftList() {
   const [shops, setShops] = useState<Shop[]>([])
   const [showShopModal, setShowShopModal] = useState(false)
   const [newShopName, setNewShopName] = useState('')
+  const [presets, setPresets] = useState<GiftPreset[]>([])
+  const [showPresetDropdown, setShowPresetDropdown] = useState(false)
+  const [showSavePreset, setShowSavePreset] = useState(false)
+  const [presetName, setPresetName] = useState('')
   const pageSize = 15
 
   // 高亮动画样式
@@ -116,6 +120,7 @@ export default function GiftList() {
   useEffect(() => { load() }, [load])
 
   useEffect(() => { getShops().then(setShops).catch(console.error) }, [])
+  useEffect(() => { getGiftPresets().then(setPresets).catch(console.error) }, [])
 
   // 高亮滚动效果
   useEffect(() => {
@@ -622,11 +627,56 @@ export default function GiftList() {
                   <div className="mt-4">
                     <div className="flex items-center justify-between mb-2">
                       <label className="block text-sm font-medium text-gray-700">礼品成本</label>
-                      <button type="button"
-                        onClick={() => setForm({ ...form, gift_costs: [...form.gift_costs, { name: '', amount: 0 }] })}
-                        className="text-xs text-violet-600 hover:text-violet-700 flex items-center gap-1">
-                        <Plus size={12} /> 添加礼品
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {presets.length > 0 && (
+                          <div className="relative">
+                            <button type="button"
+                              onClick={() => setShowPresetDropdown(!showPresetDropdown)}
+                              className="text-xs text-gray-500 hover:text-violet-600 flex items-center gap-1 border border-gray-200 rounded px-2 py-1 hover:border-violet-300">
+                              预设组合 <ChevronDown size={12} />
+                            </button>
+                            {showPresetDropdown && (
+                              <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-48 max-h-48 overflow-y-auto">
+                                {presets.map(p => (
+                                  <div key={p.id} className="flex items-center justify-between px-3 py-2 hover:bg-violet-50 group">
+                                    <button type="button"
+                                      onClick={() => {
+                                        setForm({ ...form, gift_costs: p.items.map(i => ({ ...i })) })
+                                        setShowPresetDropdown(false)
+                                      }}
+                                      className="flex-1 text-left text-sm text-gray-700 hover:text-violet-700">
+                                      {p.name}
+                                      <span className="text-xs text-gray-400 ml-1">({p.items.length}项)</span>
+                                    </button>
+                                    <button type="button"
+                                      onClick={async (e) => {
+                                        e.stopPropagation()
+                                        if (!confirm(`删除预设「${p.name}」？`)) return
+                                        await deleteGiftPreset(p.id)
+                                        setPresets(prev => prev.filter(x => x.id !== p.id))
+                                      }}
+                                      className="p-0.5 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <X size={12} />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {form.gift_costs.length > 0 && (
+                          <button type="button"
+                            onClick={() => { setShowSavePreset(true); setPresetName('') }}
+                            className="text-xs text-gray-500 hover:text-violet-600 flex items-center gap-1">
+                            保存预设
+                          </button>
+                        )}
+                        <button type="button"
+                          onClick={() => setForm({ ...form, gift_costs: [...form.gift_costs, { name: '', amount: 0 }] })}
+                          className="text-xs text-violet-600 hover:text-violet-700 flex items-center gap-1">
+                          <Plus size={12} /> 添加礼品
+                        </button>
+                      </div>
                     </div>
                     {form.gift_costs.length > 0 && (
                       <div className="space-y-2 mb-2">
@@ -856,6 +906,50 @@ export default function GiftList() {
                   </button>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 保存预设弹窗 */}
+      {showSavePreset && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
+            <h3 className="text-lg font-semibold mb-4">保存为预设组合</h3>
+            <input value={presetName}
+              onChange={e => setPresetName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && presetName.trim()) {
+                  createGiftPreset({ name: presetName.trim(), items: form.gift_costs }).then(p => {
+                    setPresets(prev => [...prev, p].sort((a, b) => a.name.localeCompare(b.name)))
+                    setShowSavePreset(false)
+                  })
+                }
+              }}
+              placeholder="输入组合名称，如：标准三件套"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 mb-4" />
+            <div className="text-xs text-gray-500 mb-4">
+              将保存 {form.gift_costs.length} 项礼品：
+              {form.gift_costs.map((g, i) => (
+                <span key={i} className="ml-1 text-gray-700">{g.name}{g.amount ? `¥${g.amount}` : ''}{i < form.gift_costs.length - 1 ? '、' : ''}</span>
+              ))}
+            </div>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowSavePreset(false)}
+                className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 text-sm">
+                取消
+              </button>
+              <button onClick={() => {
+                if (!presetName.trim()) return
+                createGiftPreset({ name: presetName.trim(), items: form.gift_costs }).then(p => {
+                  setPresets(prev => [...prev, p].sort((a, b) => a.name.localeCompare(b.name)))
+                  setShowSavePreset(false)
+                })
+              }}
+                disabled={!presetName.trim()}
+                className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 text-sm disabled:opacity-40">
+                保存
+              </button>
             </div>
           </div>
         </div>

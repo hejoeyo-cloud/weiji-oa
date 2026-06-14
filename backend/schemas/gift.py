@@ -189,3 +189,20 @@ class GiftRecordOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class GiftPresetCreate(BaseModel):
+    name: str
+    items: List[GiftCostItem] = []
+
+
+class GiftPresetOut(BaseModel):
+    id: int
+    name: str
+    items: List[GiftCostItem] = []
+    created_by: Optional[int] = None
+    creator_name: str = ""
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True

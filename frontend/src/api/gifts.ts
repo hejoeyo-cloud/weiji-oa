@@ -45,3 +45,23 @@ export const addGiftFeedback = (recordId: number, content: string) =>
 
 export const getGiftFeedbacks = (recordId: number) =>
   client.get<GiftFeedback[]>(`/gifts/${recordId}/feedbacks`).then(r => r.data)
+
+// ── 礼品预设组合 ──────────────────────────────────────────────────
+
+export interface GiftPreset {
+  id: number
+  name: string
+  items: { name: string; amount: number }[]
+  created_by?: number
+  creator_name?: string
+  created_at?: string
+}
+
+export const getGiftPresets = () =>
+  client.get<GiftPreset[]>('/gift-presets').then(r => r.data)
+
+export const createGiftPreset = (data: { name: string; items: { name: string; amount: number }[] }) =>
+  client.post<GiftPreset>('/gift-presets', data).then(r => r.data)
+
+export const deleteGiftPreset = (id: number) =>
+  client.delete(`/gift-presets/${id}`).then(r => r.data)

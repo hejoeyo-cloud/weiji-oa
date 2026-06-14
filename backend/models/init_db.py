@@ -660,6 +660,21 @@ def _migrate_db():
                 conn.execute(text("ALTER TABLE field_options ADD COLUMN price REAL DEFAULT 0"))
                 conn.commit()
 
+    # ── 创建礼品预设组合表 ────────────────────────────────────────
+    if "gift_presets" not in inspector.get_table_names():
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE gift_presets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER REFERENCES companies(id),
+                    name VARCHAR(100) NOT NULL,
+                    items TEXT DEFAULT '[]',
+                    created_by INTEGER REFERENCES users(id),
+                    created_at DATETIME
+                )
+            """))
+            conn.commit()
+
 
 def _sync_user_role_ids():
     """将现有用户的 role 字符串与 roles 表的 id 关联"""

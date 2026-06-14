@@ -42,6 +42,7 @@ from routers import dashboard_router
 from routers import warehouse_router
 from routers import return_exchange_router, repair_router
 from routers import gift_cashback_router
+from routers import gift_preset_router
 from routers import attendance_router
 from routers import task_router
 from routers import report_router
@@ -87,6 +88,7 @@ app.include_router(warehouse_router.router)
 app.include_router(return_exchange_router.router)
 app.include_router(repair_router.router)
 app.include_router(gift_cashback_router.router)
+app.include_router(gift_preset_router.router)
 app.include_router(attendance_router.router)
 app.include_router(task_router.router)
 app.include_router(report_router.router)

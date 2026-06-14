@@ -112,3 +112,17 @@ class GiftResendRecord(Base):
 
     creator = relationship("User", foreign_keys=[created_by])
     feedbacks = relationship("GiftResendFeedback", back_populates="record", cascade="all, delete-orphan")
+
+
+class GiftPreset(Base):
+    """礼品预设组合"""
+    __tablename__ = "gift_presets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    name = Column(String(100), nullable=False)                    # 组合名称，如"标准三件套"
+    items = Column(JSONType, default=list)                        # [{name, amount}]
+    created_by = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.now)
+
+    creator = relationship("User", foreign_keys=[created_by])
