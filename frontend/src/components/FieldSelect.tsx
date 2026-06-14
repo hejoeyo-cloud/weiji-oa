@@ -6,6 +6,7 @@ interface FieldOption {
   id: number
   field_name: string
   value: string
+  price?: number
 }
 
 interface FieldSelectProps {
@@ -13,9 +14,11 @@ interface FieldSelectProps {
   label: string
   value: string
   onChange: (value: string) => void
+  onOptionSelect?: (option: FieldOption) => void
   placeholder?: string
   className?: string
   showGear?: boolean
+  showPrice?: boolean
 }
 
 export default function FieldSelect({
@@ -23,16 +26,20 @@ export default function FieldSelect({
   label,
   value,
   onChange,
+  onOptionSelect,
   placeholder = '',
   className = '',
-  showGear = true
+  showGear = true,
+  showPrice = false
 }: FieldSelectProps) {
   const [options, setOptions] = useState<FieldOption[]>([])
   const [showDropdown, setShowDropdown] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [newName, setNewName] = useState('')
+  const [newPrice, setNewPrice] = useState('')
   const [editId, setEditId] = useState<number | null>(null)
   const [editName, setEditName] = useState('')
+  const [editPrice, setEditPrice] = useState('')
   const [loading, setLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -68,9 +75,12 @@ export default function FieldSelect({
     if (!name) return
     setLoading(true)
     try {
-      const res = await api.post('/field-options/', { field_name: fieldName, value: name })
+      const payload: any = { field_name: fieldName, value: name }
+      if (showPrice) payload.price = parseFloat(newPrice) || 0
+      const res = await api.post('/field-options/', payload)
       setOptions(prev => [...prev, res.data].sort((a, b) => a.value.localeCompare(b.value)))
       setNewName('')
+      setNewPrice('')
     } catch {
       // duplicate or error
     } finally {
@@ -83,14 +93,18 @@ export default function FieldSelect({
     if (!name) return
     setLoading(true)
     try {
+      const oldOpt = options.find(o => o.id === id)
       await api.delete(`/field-options/${id}`)
-      const res = await api.post('/field-options/', { field_name: fieldName, value: name })
+      const payload: any = { field_name: fieldName, value: name }
+      if (showPrice) payload.price = parseFloat(editPrice) || 0
+      const res = await api.post('/field-options/', payload)
       setOptions(prev => prev.filter(o => o.id !== id).concat(res.data).sort((a, b) => a.value.localeCompare(b.value)))
-      if (value === options.find(o => o.id === id)?.value) {
+      if (value === oldOpt?.value) {
         onChange(name)
       }
       setEditId(null)
       setEditName('')
+      setEditPrice('')
     } catch {
       // error
     } finally {
@@ -112,8 +126,9 @@ export default function FieldSelect({
     }
   }
 
-  const handleSelect = (optionValue: string) => {
-    onChange(optionValue)
+  const handleSelect = (option: FieldOption) => {
+    onChange(option.value)
+    if (onOptionSelect) onOptionSelect(option)
     setShowDropdown(false)
   }
 
@@ -144,10 +159,11 @@ export default function FieldSelect({
               {options.map(o => (
                 <div
                   key={o.id}
-                  onClick={() => handleSelect(o.value)}
-                  className="px-3 py-2 text-sm text-gray-700 hover:bg-violet-50 hover:text-violet-700 cursor-pointer"
+                  onClick={() => handleSelect(o)}
+                  className="px-3 py-2 text-sm text-gray-700 hover:bg-violet-50 hover:text-violet-700 cursor-pointer flex items-center justify-between"
                 >
-                  {o.value}
+                  <span>{o.value}</span>
+                  {showPrice && o.price ? <span className="text-gray-400 text-xs">¥{o.price.toFixed(2)}</span> : null}
                 </div>
               ))}
             </div>
@@ -187,6 +203,18 @@ export default function FieldSelect({
                   placeholder={`输入新${label}`}
                   className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
                 />
+                {showPrice && (
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={newPrice}
+                    onChange={e => setNewPrice(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAdd() } }}
+                    placeholder="成本价"
+                    className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  />
+                )}
                 <button
                   onClick={handleAdd}
                   disabled={loading || !newName.trim()}
@@ -214,6 +242,17 @@ export default function FieldSelect({
                             className="flex-1 border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
                             autoFocus
                           />
+                          {showPrice && (
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={editPrice}
+                              onChange={e => setEditPrice(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleUpdate(o.id) } }}
+                              className="w-24 border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                            />
+                          )}
                           <button onClick={() => handleUpdate(o.id)} disabled={loading} className="p-1 hover:bg-green-50 rounded text-green-600">
                             <Check size={14} />
                           </button>
@@ -224,8 +263,9 @@ export default function FieldSelect({
                       ) : (
                         <>
                           <span className="flex-1 text-sm text-gray-700">{o.value}</span>
+                          {showPrice && o.price ? <span className="text-xs text-gray-400">¥{o.price.toFixed(2)}</span> : null}
                           <button
-                            onClick={() => { setEditId(o.id); setEditName(o.value) }}
+                            onClick={() => { setEditId(o.id); setEditName(o.value); setEditPrice(String(o.price || '')) }}
                             className="p-1 hover:bg-gray-100 rounded text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
                             <Pencil size={14} />

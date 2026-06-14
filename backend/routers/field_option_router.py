@@ -42,7 +42,8 @@ def create_option(
     option = FieldOption(
         company_id=current_user.company_id,
         field_name=data.field_name,
-        value=data.value
+        value=data.value,
+        price=data.price
     )
     db.add(option)
     db.commit()

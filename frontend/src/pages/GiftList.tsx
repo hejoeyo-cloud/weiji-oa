@@ -642,8 +642,16 @@ export default function GiftList() {
                                   updated[idx] = { ...updated[idx], name: v }
                                   setForm({ ...form, gift_costs: updated })
                                 }}
+                                onOptionSelect={opt => {
+                                  if (opt.price) {
+                                    const updated = [...form.gift_costs]
+                                    updated[idx] = { ...updated[idx], name: opt.value, amount: opt.price }
+                                    setForm({ ...form, gift_costs: updated })
+                                  }
+                                }}
                                 placeholder="请选择或输入礼品名称"
                                 showGear={hasPermission('field_options:manage')}
+                                showPrice
                               />
                             </div>
                             <input type="number" step="0.01" min="0"
@@ -708,6 +716,7 @@ export default function GiftList() {
               <div><span className="text-gray-500">日期：</span><span className="font-medium">{detailRecord.date || '-'}</span></div>
               <div><span className="text-gray-500">店铺：</span><span className="font-medium">{detailRecord.shop_name || '-'}</span></div>
               <div><span className="text-gray-500">订单编号：</span><span className="font-medium">{detailRecord.order_no || '-'}</span></div>
+              <div><span className="text-gray-500">产品：</span>{detailRecord.product || '-'}</div>
               <div><span className="text-gray-500">型号：</span>{detailRecord.model || '-'}</div>
               <div><span className="text-gray-500">配置：</span>{detailRecord.config || '-'}</div>
               <div><span className="text-gray-500">尺寸：</span>{detailRecord.size || '-'}</div>

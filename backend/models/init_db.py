@@ -652,6 +652,14 @@ def _migrate_db():
             """))
             conn.commit()
 
+    # ── 迁移：field_options 新增 price 列 ────────────────────────
+    if 'field_options' in existing_tables:
+        columns = [c['name'] for c in inspector.get_columns('field_options')]
+        if 'price' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE field_options ADD COLUMN price REAL DEFAULT 0"))
+                conn.commit()
+
 
 def _sync_user_role_ids():
     """将现有用户的 role 字符串与 roles 表的 id 关联"""
