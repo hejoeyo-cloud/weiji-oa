@@ -584,7 +584,14 @@ export default function ReturnExchangeList() {
                             <FieldSelect fieldName="damage_item_name" label="物品名称"
                               value={item.name}
                               onChange={v => { const updated = [...form.damage_items]; updated[idx] = { ...updated[idx], name: v }; setForm({ ...form, damage_items: updated }) }}
-                              placeholder="物品名称" showGear={hasPermission('field_options:manage')} />
+                              onOptionSelect={opt => {
+                                if (opt.price) {
+                                  const updated = [...form.damage_items]
+                                  updated[idx] = { ...updated[idx], name: opt.value, amount: opt.price }
+                                  setForm({ ...form, damage_items: updated })
+                                }
+                              }}
+                              placeholder="物品名称" showGear={hasPermission('field_options:manage')} showPrice />
                             <input type="number" step="0.01" min="0" value={item.amount}
                               onChange={e => { const updated = [...form.damage_items]; updated[idx] = { ...updated[idx], amount: parseFloat(e.target.value) || 0 }; setForm({ ...form, damage_items: updated }) }}
                               placeholder="金额" className="w-24 border rounded-lg px-3 py-2 text-sm" style={{ borderColor: '#e5e5e5' }} />
