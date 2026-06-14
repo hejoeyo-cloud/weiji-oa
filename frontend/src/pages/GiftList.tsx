@@ -403,7 +403,7 @@ export default function GiftList() {
                 {canCostView && (
                   <>
                     <td className="px-4 py-3 text-gray-600">{r.order_amount > 0 ? `¥${r.order_amount.toFixed(2)}` : '-'}</td>
-                    <td className="px-4 py-3 text-orange-500">{r.cost > 0 ? `¥${r.cost.toFixed(2)}` : '-'}</td>
+                    <td className="px-4 py-3 text-orange-500">{(r.cost + r.total_gift_cost) > 0 ? `¥${(r.cost + r.total_gift_cost).toFixed(2)}` : '-'}</td>
                   </>
                 )}
                 <td className="px-4 py-3 text-red-500">{r.total_cashback > 0 ? `¥${r.total_cashback.toFixed(2)}` : '-'}</td>
