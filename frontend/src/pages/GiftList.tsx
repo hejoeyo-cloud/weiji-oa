@@ -403,7 +403,7 @@ export default function GiftList() {
                 <td className="px-4 py-3 font-medium">{r.order_no || '-'}</td>
                 <td className="px-4 py-3 text-gray-600">{r.model || '-'}{r.config ? ` / ${r.config}` : ''}</td>
                 <td className="px-4 py-3">{r.color || '-'}</td>
-                <td className={`px-4 py-3 font-medium ${r.quantity > 1 ? 'text-amber-600 bg-amber-50 rounded' : ''}`}>{r.quantity || 1}</td>
+                <td className={`px-4 py-3 font-bold ${r.quantity > 1 ? 'text-red-600' : ''}`}>{r.quantity || 1}</td>
                 <td className="px-4 py-3 text-gray-600 max-w-[150px] truncate">{r.customer_info || '-'}</td>
                 {canCostView && (
                   <>
@@ -771,7 +771,7 @@ export default function GiftList() {
               <div><span className="text-gray-500">配置：</span>{detailRecord.config || '-'}</div>
               <div><span className="text-gray-500">尺寸：</span>{detailRecord.size || '-'}</div>
               <div><span className="text-gray-500">颜色：</span>{detailRecord.color || '-'}</div>
-              <div><span className="text-gray-500">数量：</span><span className={detailRecord.quantity > 1 ? 'text-amber-600 font-semibold' : ''}>{detailRecord.quantity || 1}{detailRecord.quantity > 1 ? ' (多件)' : ''}</span></div>
+              <div><span className="text-gray-500">数量：</span><span className={detailRecord.quantity > 1 ? 'text-red-600 font-bold' : ''}>{detailRecord.quantity || 1}{detailRecord.quantity > 1 ? ' (多件)' : ''}</span></div>
               <div><span className="text-gray-500">配件：</span>{detailRecord.accessories || '-'}</div>
               <div className="col-span-2"><span className="text-gray-500">客户信息：</span>{detailRecord.customer_info || '-'}</div>
               <div><span className="text-gray-500">发出单号：</span>{detailRecord.send_tracking || '-'}</div>
