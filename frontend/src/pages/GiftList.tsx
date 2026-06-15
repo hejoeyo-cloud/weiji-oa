@@ -403,7 +403,7 @@ export default function GiftList() {
                 <td className="px-4 py-3 font-medium">{r.order_no || '-'}</td>
                 <td className="px-4 py-3 text-gray-600">{r.model || '-'}{r.config ? ` / ${r.config}` : ''}</td>
                 <td className="px-4 py-3">{r.color || '-'}</td>
-                <td className={`px-4 py-3 font-bold ${r.quantity > 1 ? 'text-red-600' : ''}`}>{r.quantity || 1}</td>
+                <td className={`px-4 py-3 font-bold ${r.quantity > 1 ? 'text-red-600 bg-red-50 rounded' : ''}`}>{r.quantity || 1}</td>
                 <td className="px-4 py-3 text-gray-600 max-w-[150px] truncate">{r.customer_info || '-'}</td>
                 {canCostView && (
                   <>
