@@ -28,7 +28,7 @@ storage = get_storage()
 from database import SessionLocal, User
 from models.init_db import init_db
 from seed_data import seed_knowledge
-from auth import get_current_user
+from auth import get_current_user, get_current_user_flexible
 from routers import (
     auth_router, ticket_router, user_router,
     upload_router, knowledge_router,
@@ -116,14 +116,15 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int):
 
 
 @app.get("/api/files/{filepath:path}")
-def serve_file(filepath: str, current_user: User = Depends(get_current_user)):
+def serve_file(filepath: str, current_user: User = Depends(get_current_user_flexible)):
     """通过存储抽象层提供文件下载 / 展示"""
     try:
         content = storage.read(filepath)
         import mimetypes
         mime_type, _ = mimetypes.guess_type(filepath)
         from fastapi.responses import Response
-        return Response(content=content, media_type=mime_type or "application/octet-stream")
+        headers = {"Content-Disposition": f'inline; filename="{os.path.basename(filepath)}"'}
+        return Response(content=content, media_type=mime_type or "application/octet-stream", headers=headers)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="File not found")
 

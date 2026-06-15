@@ -20,6 +20,14 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+function fileUrlWithToken(url: string): string {
+  if (!url) return url
+  const token = localStorage.getItem('token')
+  if (!token) return url
+  const sep = url.includes('?') ? '&' : '?'
+  return `${url}${sep}token=${token}`
+}
+
 function fmtMoney(v: number | undefined) {
   if (v === undefined || v === null) return '0.00'
   return v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
@@ -237,7 +245,7 @@ function InvoiceRequestTab() {
                 <td className="px-3 py-2">
                   <div className="flex gap-1">
                     {r.invoice_file && (
-                      <button onClick={() => setPreviewInvoice({ url: r.invoice_file, filename: r.invoice_filename })} className="p-1 text-green-500 hover:bg-green-50 rounded" title="查看发票"><Eye size={14} /></button>
+                      <button onClick={() => setPreviewInvoice({ url: fileUrlWithToken(r.invoice_file), filename: r.invoice_filename })} className="p-1 text-green-500 hover:bg-green-50 rounded" title="查看发票"><Eye size={14} /></button>
                     )}
                     {canEdit && <button onClick={() => openEdit(r)} className="p-1 text-blue-500 hover:bg-blue-50 rounded"><Edit2 size={14} /></button>}
                     {canDelete && <button onClick={() => handleDelete(r.id)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={14} /></button>}
@@ -319,7 +327,7 @@ function InvoiceRequestTab() {
                     <div className="flex items-center gap-2 p-2 border rounded bg-gray-50">
                       <File size={16} className="text-gray-400" />
                       <span className="flex-1 text-sm truncate">{form.invoice_filename || '发票文件'}</span>
-                      <button onClick={() => setPreviewInvoice({ url: form.invoice_file!, filename: form.invoice_filename })} className="text-blue-500 hover:text-blue-700 text-xs">查看</button>
+                      <button onClick={() => setPreviewInvoice({ url: fileUrlWithToken(form.invoice_file!), filename: form.invoice_filename })} className="text-blue-500 hover:text-blue-700 text-xs">查看</button>
                       <label className="cursor-pointer text-green-500 hover:text-green-700 text-xs">
                         重新上传
                         <input type="file" accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.webp" className="hidden" onChange={handleUploadInvoice} disabled={uploading} />
@@ -342,7 +350,7 @@ function InvoiceRequestTab() {
                   <div className="flex items-center gap-2 p-2 border rounded bg-gray-50">
                     <File size={16} className="text-gray-400" />
                     <span className="flex-1 text-sm truncate">{form.invoice_filename || '发票文件'}</span>
-                    <button onClick={() => setPreviewInvoice({ url: form.invoice_file!, filename: form.invoice_filename })} className="text-blue-500 hover:text-blue-700 text-xs">查看</button>
+                    <button onClick={() => setPreviewInvoice({ url: fileUrlWithToken(form.invoice_file!), filename: form.invoice_filename })} className="text-blue-500 hover:text-blue-700 text-xs">查看</button>
                   </div>
                 </div>
               )}
