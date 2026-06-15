@@ -420,7 +420,7 @@ export default function GiftList() {
                 <td className="px-4 py-3"><StatusBadge status={r.status || (r.send_tracking ? 'sent' : 'pending')} /></td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <button onClick={() => openDetail(r)} className="text-gray-400 hover:text-violet-600"><Eye size={14} /></button>
+                    <button onClick={() => openDetail(r)} className={`p-1 rounded ${r.remark ? 'text-amber-600 bg-amber-50 hover:bg-amber-100' : 'text-gray-400 hover:text-violet-600'}`} title={r.remark ? `备注: ${r.remark}` : '查看详情'}><Eye size={14} /></button>
                     {canEdit && <button onClick={() => openEdit(r)} className="text-gray-400 hover:text-violet-600"><Edit2 size={14} /></button>}
                     {canDelete && <button onClick={() => handleDelete(r.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>}
                   </div>
