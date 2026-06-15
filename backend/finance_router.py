@@ -20,6 +20,8 @@ from schemas import (
     ExpenseInvoiceCreate, ExpenseInvoiceUpdate, ExpenseInvoiceOut,
 )
 from config import UPLOAD_DIR
+from storage import get_storage
+storage = get_storage()
 from services import notification_service
 
 router = APIRouter(prefix="/finance", tags=["finance"])
@@ -190,12 +192,10 @@ async def upload_invoice_file(
         raise HTTPException(400, "文件过大，最大 20MB")
 
     filename = f"{uuid.uuid4().hex}{ext}"
-    filepath = os.path.join(UPLOAD_DIR, filename)
-    with open(filepath, "wb") as f:
-        f.write(content)
+    stored_path = storage.save(content, filename)
 
     # 更新记录
-    obj.invoice_file = f"/api/upload/{filename}"
+    obj.invoice_file = storage.get_url(stored_path)
     obj.invoice_filename = file.filename or filename
     obj.updated_at = datetime.now()
     db.commit()
