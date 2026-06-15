@@ -10,14 +10,14 @@ from database import (
     AttendanceRecord, TaskBoard,
 )
 from schemas import DashboardStatsOut, TicketTrendItem, ModuleDistributionItem
-from auth import get_current_user
+from auth import get_current_user, require_permission
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
 
 @router.get("/dashboard-stats", response_model=DashboardStatsOut)
 def get_dashboard_stats(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("reports:view")),
     db: Session = Depends(get_db),
 ):
     company_id = current_user.company_id

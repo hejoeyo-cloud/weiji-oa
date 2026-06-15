@@ -1,6 +1,12 @@
 # ── 权限常量（细粒度，模块:操作） ─────────────────────────────────────
 # 所有可分配的权限 key，前端和后端共用
 ALL_PERMISSIONS = [
+    # 工作台
+    "dashboard:view",
+    # 数据报表
+    "reports:view",
+    # 模块配置
+    "module_settings:view",
     # 工单
     "tickets:view", "tickets:create", "tickets:edit", "tickets:delete",
     # 知识库
@@ -57,6 +63,9 @@ ALL_PERMISSIONS = [
 
 # 模块分组（用于 UI 展示）
 PERMISSION_GROUPS = [
+    {"key": "dashboard", "label": "工作台", "perms": ["view"]},
+    {"key": "reports", "label": "数据报表", "perms": ["view"]},
+    {"key": "module_settings", "label": "模块配置", "perms": ["view"]},
     {"key": "tickets", "label": "工单管理", "perms": ["view", "create", "edit", "delete"]},
     {"key": "knowledge", "label": "知识库", "perms": ["view", "create", "edit", "delete"]},
     {"key": "return_exchange", "label": "退换登记", "perms": ["view", "create", "edit", "delete", "process"]},
@@ -94,6 +103,7 @@ DEFAULT_ROLES = [
     {
         "name": "technician", "label": "技术员", "color": "#1677FF", "is_builtin": False,
         "permissions": [
+            "dashboard:view", "reports:view",
             "tickets:view", "tickets:create", "tickets:edit",
             "knowledge:view", "knowledge:create", "knowledge:edit", "knowledge:delete",
             "return_exchange:view", "return_exchange:create", "return_exchange:edit", "return_exchange:process",
@@ -116,6 +126,7 @@ DEFAULT_ROLES = [
     {
         "name": "customer", "label": "客服", "color": "#52C41A", "is_builtin": False,
         "permissions": [
+            "dashboard:view",
             "tickets:view", "tickets:create",
             "knowledge:view",
             "return_exchange:view", "return_exchange:create",

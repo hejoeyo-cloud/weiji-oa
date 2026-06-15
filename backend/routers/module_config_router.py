@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional, List
 from database import get_db, User, ModuleConfig, FieldLabel
-from auth import get_current_user, require_admin
+from auth import get_current_user, require_admin, require_permission
 import json
 
 router = APIRouter(prefix="/api/module-config", tags=["module_config"])
@@ -79,7 +79,7 @@ def get_module_registry():
 
 # ── 模块配置 ──
 @router.get("", response_model=list[ModuleConfigOut])
-def list_modules(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def list_modules(current_user: User = Depends(require_permission("module_settings:view")), db: Session = Depends(get_db)):
     # 自动补全缺失的模块配置
     from models.seed_modules import seed_module_configs
     seed_module_configs(db, current_user.company_id)
@@ -119,7 +119,7 @@ def update_modules(reqs: list[ModuleConfigUpdate], current_user: User = Depends(
 
 # ── 字段配置 ──
 @router.get("/fields", response_model=list[FieldLabelOut])
-def list_fields(module_key: str = "", current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def list_fields(module_key: str = "", current_user: User = Depends(require_permission("module_settings:view")), db: Session = Depends(get_db)):
     q = db.query(FieldLabel).filter(FieldLabel.company_id == current_user.company_id)
     if module_key:
         q = q.filter(FieldLabel.module_key == module_key)

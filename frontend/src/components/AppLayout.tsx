@@ -31,9 +31,9 @@ const navGroups: NavGroup[] = [
   {
     label: '主要功能',
     items: [
-      { path: '/', label: '工作台', icon: LayoutDashboard },
-      { path: '/reports', label: '数据报表', icon: BarChart3 },
-      { path: '/knowledge', label: '知识库', icon: BookOpen },
+      { path: '/', label: '工作台', icon: LayoutDashboard, permission: ['dashboard:view'] },
+      { path: '/reports', label: '数据报表', icon: BarChart3, permission: ['reports:view'] },
+      { path: '/knowledge', label: '知识库', icon: BookOpen, permission: ['knowledge:view'] },
     ],
   },
   {
@@ -68,10 +68,10 @@ const navGroups: NavGroup[] = [
   },
   {
     label: '系统管理',
-    permission: ['users:view', 'departments:view', 'audit_logs:view'],
+    permission: ['users:view', 'departments:view', 'audit_logs:view', 'module_settings:view'],
     items: [
       { path: '/users', label: '人员管理', icon: Users, permission: ['users:view'] },
-      { path: '/module-settings', label: '模块配置', icon: Settings },
+      { path: '/module-settings', label: '模块配置', icon: Settings, permission: ['module_settings:view'] },
       { path: '/approval-rules', label: '审批规则', icon: GanttChartSquare, permission: ['approval_rules:view'] },
       { path: '/audit-logs', label: '操作日志', icon: Shield, permission: ['audit_logs:view'] },
     ],

@@ -700,6 +700,24 @@ def _sync_user_role_ids():
         db.close()
 
 
+def _sync_role_permissions():
+    """给现有角色补充新增的权限"""
+    from .permissions import DEFAULT_ROLES
+    db = SessionLocal()
+    try:
+        for role_def in DEFAULT_ROLES:
+            role = db.query(Role).filter(Role.name == role_def["name"]).first()
+            if role:
+                existing = set(role.permissions or [])
+                target = set(role_def["permissions"])
+                missing = target - existing
+                if missing:
+                    role.permissions = sorted(existing | target)
+                    db.commit()
+    finally:
+        db.close()
+
+
 def init_db():
     Base.metadata.create_all(bind=engine)
     _migrate_db()
@@ -729,6 +747,9 @@ def init_db():
         if role_obj and role_obj.is_builtin:
             role_obj.is_builtin = False
             db.commit()
+
+    # 同步角色权限（补充新增的权限）
+    _sync_role_permissions()
 
     existing = db.query(User).filter(User.username == "admin").first()
     if not existing:

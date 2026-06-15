@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from auth import get_current_user
+from auth import get_current_user, require_permission
 from database import (
     ALL_PERMISSIONS,
     Announcement,
@@ -484,7 +484,7 @@ def build_recent_activity(db: Session, current_user: User) -> list[dict]:
 def get_dashboard(
     year_month: str = Query("", description="Optional YYYY-MM"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission("dashboard:view")),
 ):
     current_year_month = year_month or datetime.now().strftime("%Y-%m")
     user_perms = get_user_permissions(current_user)
