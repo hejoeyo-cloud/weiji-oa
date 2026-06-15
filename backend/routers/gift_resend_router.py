@@ -10,6 +10,7 @@ router = APIRouter(prefix="/api/gift-resend", tags=["gift_resend"])
 
 
 def record_to_out(r: GiftResendRecord) -> GiftResendOut:
+    gift_items_raw = r.gift_items or []
     return GiftResendOut(
         id=r.id,
         apply_date=r.apply_date or "",
@@ -17,6 +18,7 @@ def record_to_out(r: GiftResendRecord) -> GiftResendOut:
         shop_name=r.shop_name or "",
         type=r.type or "",
         gift_detail=r.gift_detail or "",
+        gift_items=[{"name": i.get("name", ""), "quantity": i.get("quantity", 1)} for i in gift_items_raw if isinstance(i, dict)],
         customer_info=r.customer_info or "",
         express_company=r.express_company or "",
         tracking_no=r.tracking_no or "",
@@ -89,6 +91,7 @@ def create_record(
         shop_name=req.shop_name,
         type=req.type,
         gift_detail=req.gift_detail,
+        gift_items=[item.model_dump() for item in req.gift_items] if req.gift_items else [],
         customer_info=req.customer_info,
         express_company=req.express_company,
         tracking_no=req.tracking_no,

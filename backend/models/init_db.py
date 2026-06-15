@@ -675,6 +675,14 @@ def _migrate_db():
             """))
             conn.commit()
 
+    # ── 迁移：gift_resend_records 新增 gift_items 列 ─────────────
+    if 'gift_resend_records' in existing_tables:
+        columns = [c['name'] for c in inspector.get_columns('gift_resend_records')]
+        if 'gift_items' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE gift_resend_records ADD COLUMN gift_items TEXT DEFAULT '[]'"))
+                conn.commit()
+
 
 def _sync_user_role_ids():
     """将现有用户的 role 字符串与 roles 表的 id 关联"""

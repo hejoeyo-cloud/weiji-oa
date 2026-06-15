@@ -48,12 +48,17 @@ class GiftFeedbackOut(BaseModel):
 
 # ── 礼品补发登记 ─────────────────────────────────────────────────────
 
+class GiftResendItem(BaseModel):
+    name: str = ""
+    quantity: int = 1
+
 class GiftResendCreate(BaseModel):
     apply_date: str = ""
     order_no: str = ""
     shop_name: str = ""
     type: str = ""
     gift_detail: str = ""
+    gift_items: List[GiftResendItem] = []
     customer_info: str = ""
     express_company: str = ""
     tracking_no: str = ""
@@ -65,6 +70,7 @@ class GiftResendUpdate(BaseModel):
     shop_name: Optional[str] = None
     type: Optional[str] = None
     gift_detail: Optional[str] = None
+    gift_items: Optional[List[GiftResendItem]] = None
     customer_info: Optional[str] = None
     express_company: Optional[str] = None
     tracking_no: Optional[str] = None
@@ -77,6 +83,7 @@ class GiftResendOut(BaseModel):
     shop_name: str = ""
     type: str = ""
     gift_detail: str = ""
+    gift_items: List[GiftResendItem] = []
     customer_info: str = ""
     express_company: str = ""
     tracking_no: str = ""

@@ -316,6 +316,11 @@ export interface GiftCashback {
 }
 
 // ── 礼品补发登记 ─────────────────────────────────────────────────────
+export interface GiftResendItem {
+  name: string
+  quantity: number
+}
+
 export interface GiftResendRecord {
   id: number
   apply_date: string
@@ -323,6 +328,7 @@ export interface GiftResendRecord {
   shop_name: string
   type: string
   gift_detail: string
+  gift_items: GiftResendItem[]
   customer_info: string
   express_company: string
   tracking_no: string

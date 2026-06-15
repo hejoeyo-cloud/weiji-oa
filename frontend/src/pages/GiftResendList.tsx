@@ -33,7 +33,8 @@ function exportToExcel(filename: string, rows: Record<string, any>[]) {
 
 const emptyForm = {
   apply_date: '', order_no: '', shop_name: '', type: '',
-  gift_detail: '', customer_info: '', express_company: '',
+  gift_detail: '', gift_items: [] as { name: string; quantity: number }[],
+  customer_info: '', express_company: '',
   tracking_no: '', remark: '',
 }
 
@@ -111,7 +112,9 @@ export default function GiftResendList() {
           '订单编号': r.order_no || '',
           '店铺名称': r.shop_name || '',
           '类型': r.type || '',
-          '礼品明细': r.gift_detail || '',
+          '礼品明细': r.gift_items && r.gift_items.length > 0
+            ? r.gift_items.map(g => `${g.name}x${g.quantity}`).join('、')
+            : r.gift_detail || '',
           '客户信息': r.customer_info || '',
           '快递公司': r.express_company || '',
           '寄出单号': r.tracking_no || '',
@@ -129,7 +132,8 @@ export default function GiftResendList() {
     setEditRecord(r)
     setForm({
       apply_date: r.apply_date, order_no: r.order_no, shop_name: r.shop_name,
-      type: r.type, gift_detail: r.gift_detail, customer_info: r.customer_info,
+      type: r.type, gift_detail: r.gift_detail, gift_items: r.gift_items || [],
+      customer_info: r.customer_info,
       express_company: r.express_company, tracking_no: r.tracking_no, remark: r.remark,
     })
     setShowDetail(false)
@@ -255,7 +259,11 @@ export default function GiftResendList() {
                   <td className="px-4 py-3 text-gray-700 font-mono text-xs max-w-28 truncate">{r.order_no || '-'}</td>
                   <td className="px-4 py-3 text-gray-700 max-w-28 truncate">{r.shop_name || '-'}</td>
                   <td className="px-4 py-3 text-gray-700">{r.type || '-'}</td>
-                  <td className="px-4 py-3 text-gray-600 max-w-36 truncate">{r.gift_detail || '-'}</td>
+                  <td className="px-4 py-3 text-gray-600 max-w-36 truncate">{
+                    r.gift_items && r.gift_items.length > 0
+                      ? r.gift_items.map(g => `${g.name}x${g.quantity}`).join('、')
+                      : r.gift_detail || '-'
+                  }</td>
                   <td className="px-4 py-3 text-gray-600 max-w-36 truncate">{r.customer_info || '-'}</td>
                   <td className="px-4 py-3 text-gray-700">{r.express_company || '-'}</td>
                   <td className="px-4 py-3 text-gray-600 font-mono text-xs">{r.tracking_no || '-'}</td>
@@ -302,7 +310,24 @@ export default function GiftResendList() {
                 <DetailItem label="快递公司" value={detailRecord.express_company} />
                 <DetailItem label="寄出单号" value={detailRecord.tracking_no} mono />
               </div>
-              <DetailItem label="礼品明细" value={detailRecord.gift_detail} full />
+              {detailRecord.gift_items && detailRecord.gift_items.length > 0 ? (
+                <div>
+                  <span className="text-xs text-gray-500">礼品明细</span>
+                  <div className="mt-1 border border-gray-100 rounded-lg divide-y divide-gray-50">
+                    {detailRecord.gift_items.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between px-3 py-2 text-sm">
+                        <span className="text-gray-700">{item.name || '未命名'}</span>
+                        <span className="text-gray-500">x{item.quantity}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-xs text-gray-400 text-right mt-1">
+                    共 {detailRecord.gift_items.reduce((sum, item) => sum + item.quantity, 0)} 件
+                  </div>
+                </div>
+              ) : (
+                <DetailItem label="礼品明细" value={detailRecord.gift_detail} full />
+              )}
               <DetailItem label="客户信息" value={detailRecord.customer_info} full />
               <DetailItem label="备注" value={detailRecord.remark} full />
               <div className="flex items-center justify-between text-xs text-gray-400 pt-1">
@@ -382,9 +407,60 @@ export default function GiftResendList() {
                 </div>
                 <F label="类型" value={form.type} s={v => setForm(f => ({ ...f, type: v }))} />
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">礼品明细</label>
-                <FieldSelect fieldName="gift_detail" label="礼品明细" value={form.gift_detail} onChange={v => setForm(f => ({ ...f, gift_detail: v }))} placeholder="请选择或输入礼品明细" showGear={hasPermission('field_options:manage')} />
+              {/* 礼品明细 */}
+              <div className="col-span-2">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-medium text-gray-600">礼品明细</label>
+                  <button type="button"
+                    onClick={() => setForm(f => ({ ...f, gift_items: [...f.gift_items, { name: '', quantity: 1 }] }))}
+                    className="text-xs text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+                    <Plus size={12} /> 添加礼品
+                  </button>
+                </div>
+                {form.gift_items.length > 0 && (
+                  <div className="space-y-2 mb-2">
+                    {form.gift_items.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <FieldSelect fieldName="gift_name" label="礼品名称"
+                            value={item.name}
+                            onChange={v => {
+                              const updated = [...form.gift_items]
+                              updated[idx] = { ...updated[idx], name: v }
+                              setForm(f => ({ ...f, gift_items: updated }))
+                            }}
+                            onOptionSelect={opt => {
+                              if (opt.price) {
+                                const updated = [...form.gift_items]
+                                updated[idx] = { ...updated[idx], name: opt.value }
+                                setForm(f => ({ ...f, gift_items: updated }))
+                              }
+                            }}
+                            placeholder="请选择或输入礼品名称"
+                            showGear={hasPermission('field_options:manage')} />
+                        </div>
+                        <input type="number" min="1" value={item.quantity}
+                          onChange={e => {
+                            const updated = [...form.gift_items]
+                            updated[idx] = { ...updated[idx], quantity: parseInt(e.target.value) || 1 }
+                            setForm(f => ({ ...f, gift_items: updated }))
+                          }}
+                          placeholder="数量"
+                          className="w-20 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                        <button type="button"
+                          onClick={() => setForm(f => ({ ...f, gift_items: f.gift_items.filter((_, i) => i !== idx) }))}
+                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {form.gift_items.length > 0 && (
+                  <div className="text-xs text-gray-500 text-right">
+                    共 {form.gift_items.reduce((sum, item) => sum + item.quantity, 0)} 件
+                  </div>
+                )}
               </div>
               <F label="客户信息" value={form.customer_info} s={v => setForm(f => ({ ...f, customer_info: v }))} placeholder="姓名 / 手机号 / 地址" />
               <div className="grid grid-cols-2 gap-4">

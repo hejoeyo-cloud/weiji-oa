@@ -101,7 +101,8 @@ class GiftResendRecord(Base):
     order_no = Column(String(100), default="")           # 订单编号
     shop_name = Column(String(200), default="")          # 店铺名称
     type = Column(String(100), default="")               # 类型
-    gift_detail = Column(Text, default="")               # 礼品明细
+    gift_detail = Column(Text, default="")               # 礼品明细（旧字段，兼容）
+    gift_items = Column(JSONType, default=list)           # 礼品明细 [{name, quantity}]
     customer_info = Column(Text, default="")             # 客户信息
     express_company = Column(String(100), default="")    # 快递公司
     tracking_no = Column(String(100), default="")        # 礼品寄出单号
