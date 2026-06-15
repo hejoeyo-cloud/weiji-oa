@@ -12,6 +12,7 @@ import {
   getFinanceStats, uploadInvoiceFile,
 } from '../api/finance'
 import { useAuth } from '../hooks/useAuth'
+import ShopSelect from '../components/ShopSelect'
 import * as XLSX from 'xlsx'
 
 function todayStr() {
@@ -271,7 +272,7 @@ function InvoiceRequestTab() {
             <div className="p-4 grid grid-cols-2 gap-3">
               <div><label className="block text-xs text-gray-500 mb-1">申请日期</label><input type="date" className="w-full border rounded px-3 py-1.5 text-sm" value={form.apply_date} onChange={e => F('apply_date', e.target.value)} /></div>
               <div><label className="block text-xs text-gray-500 mb-1">订单编号</label><input className="w-full border rounded px-3 py-1.5 text-sm" placeholder="订单编号" value={form.order_no} onChange={e => F('order_no', e.target.value)} /></div>
-              <div><label className="block text-xs text-gray-500 mb-1">店铺名称</label><input className="w-full border rounded px-3 py-1.5 text-sm" placeholder="店铺名称" value={form.shop_name} onChange={e => F('shop_name', e.target.value)} /></div>
+              <div><label className="block text-xs text-gray-500 mb-1">店铺名称</label><ShopSelect value={form.shop_name} onChange={v => F('shop_name', v)} showGear /></div>
               <div><label className="block text-xs text-gray-500 mb-1">发票类型</label>
                 <select className="w-full border rounded px-3 py-1.5 text-sm" value={form.invoice_type} onChange={e => F('invoice_type', e.target.value)}>
                   {INVOICE_TYPES.map(t => <option key={t}>{t}</option>)}
@@ -553,7 +554,7 @@ function SalesInvoiceTab() {
               <div><label className="block text-xs text-gray-500 mb-1">税额</label><input readOnly className="w-full border rounded px-3 py-1.5 text-sm bg-gray-50" value={form.tax_amount} /></div>
               <div><label className="block text-xs text-gray-500 mb-1">价税合计</label><input readOnly className="w-full border rounded px-3 py-1.5 text-sm bg-gray-50 font-medium" value={form.total_amount} /></div>
               <div><label className="block text-xs text-gray-500 mb-1">关联订单号</label><input className="w-full border rounded px-3 py-1.5 text-sm" value={form.order_no} onChange={e => F('order_no', e.target.value)} /></div>
-              <div><label className="block text-xs text-gray-500 mb-1">店铺名称</label><input className="w-full border rounded px-3 py-1.5 text-sm" value={form.shop_name} onChange={e => F('shop_name', e.target.value)} /></div>
+              <div><label className="block text-xs text-gray-500 mb-1">店铺名称</label><ShopSelect value={form.shop_name} onChange={v => F('shop_name', v)} showGear /></div>
               <div><label className="block text-xs text-gray-500 mb-1">经手人</label><input className="w-full border rounded px-3 py-1.5 text-sm" value={form.handler} onChange={e => F('handler', e.target.value)} /></div>
               <div className="col-span-2"><label className="block text-xs text-gray-500 mb-1">备注</label><textarea rows={2} className="w-full border rounded px-3 py-1.5 text-sm" value={form.remark} onChange={e => F('remark', e.target.value)} /></div>
             </div>
