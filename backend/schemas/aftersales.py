@@ -245,6 +245,7 @@ class ReturnExchangeFeedbackOut(BaseModel):
 
 class RepairCreate(BaseModel):
     apply_date: str = ""
+    shop_name: str = ""
     order_no: str = ""
     return_reason: str = ""          # 故障描述
     model: str = ""
@@ -267,6 +268,7 @@ class RepairCreate(BaseModel):
 
 class RepairUpdate(BaseModel):
     apply_date: Optional[str] = None
+    shop_name: Optional[str] = None
     order_no: Optional[str] = None
     return_reason: Optional[str] = None
     model: Optional[str] = None
@@ -290,6 +292,7 @@ class RepairUpdate(BaseModel):
 class RepairOut(BaseModel):
     id: int
     apply_date: str = ""
+    shop_name: str = ""
     order_no: str = ""
     return_reason: str = ""
     model: str = ""

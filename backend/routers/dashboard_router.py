@@ -12,6 +12,7 @@ from database import (
     AnnouncementRead,
     ApprovalRequest,
     ApprovalStep,
+    CustomerInvoiceRequest,
     GiftRecord,
     GiftResendRecord,
     ReturnExchangeRecord,
@@ -202,6 +203,12 @@ def build_overview_cards(
         ReturnExchangeRecord.company_id == current_user.company_id,
     ).count()
 
+    # 待开票数量（客户开票申请中 status=pending）
+    pending_invoices_count = db.query(CustomerInvoiceRequest).filter(
+        CustomerInvoiceRequest.status == "pending",
+        CustomerInvoiceRequest.company_id == current_user.company_id,
+    ).count()
+
     if current_user.role == "admin":
         return [
             {
@@ -221,12 +228,12 @@ def build_overview_cards(
                 "path": "/gifts",
             },
             {
-                "key": "schedule_coverage",
-                "title": "本月我的班次",
-                "value": month_schedule_coverage,
-                "subtext": "当前月份已排班天数",
-                "status": "success",
-                "path": "/schedule",
+                "key": "pending_invoices",
+                "title": "待开票数量",
+                "value": pending_invoices_count,
+                "subtext": "客户开票申请中待处理的数量",
+                "status": "warning",
+                "path": "/finance",
             },
             {
                 "key": "pending_return_exchange",
@@ -300,12 +307,12 @@ def build_overview_cards(
             "path": "/return-exchange",
         },
         {
-            "key": "schedule_coverage",
-            "title": "本月排班天数",
-            "value": month_schedule_coverage,
-            "subtext": "已写入排班表的当月班次数量",
-            "status": "success",
-            "path": "/schedule",
+            "key": "pending_invoices",
+            "title": "待开票数量",
+            "value": pending_invoices_count,
+            "subtext": "客户开票申请中待处理的数量",
+            "status": "warning",
+            "path": "/finance",
         },
     ]
 

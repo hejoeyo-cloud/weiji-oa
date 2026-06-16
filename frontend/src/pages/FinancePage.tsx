@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight,
-  Download, FileText, TrendingUp, TrendingDown, Receipt, AlertTriangle, Eye, Upload, File
+  Download, FileText, TrendingUp, TrendingDown, Receipt, AlertTriangle, Eye, Upload, File, Info, Copy, Ban
 } from 'lucide-react'
 import {
   getInvoiceRequests, createInvoiceRequest, updateInvoiceRequest, deleteInvoiceRequest,
@@ -48,7 +48,7 @@ function exportToExcel(filename: string, rows: Record<string, any>[]) {
   setTimeout(() => URL.revokeObjectURL(url), 5000)
 }
 
-const INVOICE_TYPES = ['普通发票', '专用发票', '电子发票']
+const INVOICE_TYPES = ['电子发票', '普通发票', '专用发票']
 const TAX_RATES = [0.01, 0.03, 0.06, 0.09, 0.13]
 
 const REQUEST_STATUS_MAP: Record<string, { label: string; color: string }> = {
@@ -57,6 +57,7 @@ const REQUEST_STATUS_MAP: Record<string, { label: string; color: string }> = {
   issued: { label: '已开具', color: 'bg-green-100 text-green-800' },
   mailed: { label: '已邮寄', color: 'bg-purple-100 text-purple-800' },
   signed: { label: '已签收', color: 'bg-gray-100 text-gray-800' },
+  voided: { label: '已作废', color: 'bg-red-100 text-red-800' },
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -66,7 +67,7 @@ const REQUEST_STATUS_MAP: Record<string, { label: string; color: string }> = {
 const emptyInvReq = {
   apply_date: '', order_no: '', shop_name: '',
   customer_name: '', tax_id: '', register_address: '', bank_account: '',
-  invoice_type: '普通发票', invoice_content: '', amount: 0,
+  invoice_type: '电子发票', invoice_content: '', amount: 0,
   tax_rate: 0.03, tax_amount: 0, email: '', mail_address: '',
   status: 'pending', remark: '', handler: '', invoice_file: '', invoice_filename: '',
 }
@@ -92,6 +93,8 @@ function InvoiceRequestTab() {
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [previewInvoice, setPreviewInvoice] = useState<{ url: string; filename: string } | null>(null)
+  const [detailRecord, setDetailRecord] = useState<any>(null)
+  const [confirmStatus, setConfirmStatus] = useState<string | null>(null)
   const [searchParams] = useSearchParams()
   const highlightId = searchParams.get('highlight')
   const highlightRef = useRef<HTMLTableRowElement | null>(null)
@@ -116,6 +119,7 @@ function InvoiceRequestTab() {
   }, [records, highlightId])
 
   useEffect(() => { load() }, [load])
+  useEffect(() => { if (!detailRecord) setConfirmStatus(null) }, [detailRecord])
 
   const openCreate = () => {
     setEditRecord(null)
@@ -138,16 +142,20 @@ function InvoiceRequestTab() {
     await deleteInvoiceRequest(id); load()
   }
 
-  const handleUploadInvoice = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadInvoice = async (e: React.ChangeEvent<HTMLInputElement>, fromDetail = false) => {
     const file = e.target.files?.[0]
-    if (!file || !editRecord) return
+    const record = fromDetail ? detailRecord : editRecord
+    if (!file || !record) return
     setUploading(true)
     try {
-      const res = await uploadInvoiceFile(editRecord.id, file)
-      setForm(f => ({ ...f, invoice_file: res.data.url, invoice_filename: res.data.filename }))
-      setEditRecord((r: any) => ({ ...r, invoice_file: res.data.url, invoice_filename: res.data.filename }))
+      const res = await uploadInvoiceFile(record.id, file)
+      const newStatus = record.status === 'pending' || record.status === 'processing' ? 'issued' : record.status
+      await updateInvoiceRequest(record.id, { status: newStatus })
+      setForm(f => ({ ...f, invoice_file: res.data.url, invoice_filename: res.data.filename, status: newStatus }))
+      setEditRecord((r: any) => r ? ({ ...r, invoice_file: res.data.url, invoice_filename: res.data.filename, status: newStatus }) : r)
+      setDetailRecord((r: any) => r ? ({ ...r, invoice_file: res.data.url, invoice_filename: res.data.filename, status: newStatus }) : r)
       load()
-      alert('发票上传成功！')
+      alert('发票上传成功！' + (newStatus === 'issued' ? '状态已自动更新为「已开具」' : ''))
     } catch {
       alert('上传失败，请重试')
     } finally {
@@ -165,6 +173,37 @@ function InvoiceRequestTab() {
         税额: x.tax_amount, 邮箱: x.email, 邮寄地址: x.mail_address,
         状态: REQUEST_STATUS_MAP[x.status]?.label || x.status, 经手人: x.handler, 备注: x.remark,
       }))))
+  }
+
+  const handleDetailStatusChange = async (newStatus: string) => {
+    if (!detailRecord) return
+    try {
+      await updateInvoiceRequest(detailRecord.id, { status: newStatus })
+      const updated = { ...detailRecord, status: newStatus }
+      setDetailRecord(updated)
+      setEditRecord((r: any) => r && r.id === detailRecord.id ? { ...r, status: newStatus } : r)
+      load()
+    } catch {
+      alert('状态更新失败')
+    }
+  }
+
+  const handleCopyInfo = (r: any) => {
+    const lines = [
+      `客户名称（抬头）：${r.customer_name}`,
+      `纳税人识别号：${r.tax_id}`,
+      r.register_address ? `注册地址：${r.register_address}` : null,
+      r.bank_account ? `开户行及账号：${r.bank_account}` : null,
+      `发票类型：${r.invoice_type}`,
+      `开票内容：${r.invoice_content}`,
+      `开票金额（含税）：¥${fmtMoney(r.amount)}`,
+      `税率：${(r.tax_rate * 100).toFixed(0)}%`,
+      `税额：¥${fmtMoney(r.tax_amount)}`,
+      r.email ? `邮箱：${r.email}` : null,
+      r.mail_address ? `邮寄地址：${r.mail_address}` : null,
+      r.remark ? `备注：${r.remark}` : null,
+    ].filter(Boolean).join('\n')
+    navigator.clipboard.writeText(lines).then(() => alert('已复制到剪贴板'))
   }
 
   const F = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
@@ -244,8 +283,9 @@ function InvoiceRequestTab() {
                 <td className="px-3 py-2 text-gray-500">{r.handler}</td>
                 <td className="px-3 py-2">
                   <div className="flex gap-1">
+                    <button onClick={() => setDetailRecord(r)} className="p-1 text-gray-500 hover:bg-gray-50 rounded" title="查看详情"><Eye size={14} /></button>
                     {r.invoice_file && (
-                      <button onClick={() => setPreviewInvoice({ url: fileUrlWithToken(r.invoice_file), filename: r.invoice_filename })} className="p-1 text-green-500 hover:bg-green-50 rounded" title="查看发票"><Eye size={14} /></button>
+                      <button onClick={() => setPreviewInvoice({ url: fileUrlWithToken(r.invoice_file), filename: r.invoice_filename })} className="p-1 text-green-500 hover:bg-green-50 rounded" title="查看发票"><Info size={14} /></button>
                     )}
                     {canEdit && <button onClick={() => openEdit(r)} className="p-1 text-blue-500 hover:bg-blue-50 rounded"><Edit2 size={14} /></button>}
                     {canDelete && <button onClick={() => handleDelete(r.id)} className="p-1 text-red-500 hover:bg-red-50 rounded"><Trash2 size={14} /></button>}
@@ -302,16 +342,6 @@ function InvoiceRequestTab() {
                 </select>
               </div>
               <div><label className="block text-xs text-gray-500 mb-1">税额（自动计算）</label><input readOnly className="w-full border rounded px-3 py-1.5 text-sm bg-gray-50" value={form.tax_amount} /></div>
-              <div className="col-span-2"><label className="block text-xs text-gray-500 mb-1">状态</label>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(REQUEST_STATUS_MAP).map(([k, v]) => (
-                    <button key={k} type="button"
-                      onClick={() => F('status', k)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${form.status === k ? v.color + ' ring-2 ring-offset-1 ring-current shadow-sm' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
-                    >{v.label}</button>
-                  ))}
-                </div>
-              </div>
               {form.invoice_type === '电子发票' ? (
                 <div className="col-span-2"><label className="block text-xs text-gray-500 mb-1">收票邮箱</label><input type="email" className="w-full border rounded px-3 py-1.5 text-sm" value={form.email} onChange={e => F('email', e.target.value)} /></div>
               ) : (
@@ -386,6 +416,153 @@ function InvoiceRequestTab() {
           </div>
         </div>
       )}
+
+      {/* 详情弹窗 */}
+      {detailRecord && (() => {
+        const r = detailRecord
+        const DV = ({ label, value }: { label: string; value: any }) => {
+          if (value === undefined || value === null || value === '') return null
+          return (
+            <div>
+              <p className="text-xs text-gray-500 mb-0.5">{label}</p>
+              <p className="text-sm text-gray-900 select-text">{value}</p>
+            </div>
+          )
+        }
+        return (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
+                <h3 className="font-medium text-base">开票申请详情</h3>
+                <button onClick={() => setDetailRecord(null)} className="p-1 hover:bg-gray-100 rounded"><X size={18} /></button>
+              </div>
+              <div className="p-4 grid grid-cols-2 gap-3">
+                <DV label="申请日期" value={r.apply_date} />
+                <DV label="订单编号" value={r.order_no} />
+                <DV label="店铺名称" value={r.shop_name} />
+                <DV label="发票类型" value={r.invoice_type} />
+                <div className="col-span-2"><DV label="客户名称（开票抬头）" value={r.customer_name} /></div>
+                <div className="col-span-2"><DV label="纳税人识别号" value={r.tax_id} /></div>
+                {r.invoice_type === '专用发票' && (
+                  <>
+                    <div className="col-span-2"><DV label="注册地址" value={r.register_address} /></div>
+                    <div className="col-span-2"><DV label="开户行及账号" value={r.bank_account} /></div>
+                  </>
+                )}
+                <div className="col-span-2"><DV label="开票内容（品名）" value={r.invoice_content} /></div>
+                <DV label="开票金额（含税）" value={`¥${fmtMoney(r.amount)}`} />
+                <DV label="税率" value={`${(r.tax_rate * 100).toFixed(0)}%`} />
+                <DV label="税额" value={`¥${fmtMoney(r.tax_amount)}`} />
+                <div className="col-span-2">
+                  <p className="text-xs text-gray-500 mb-2">状态</p>
+                  {(() => {
+                    const allStatuses = Object.entries(REQUEST_STATUS_MAP).filter(([k]) => k !== 'voided')
+                    const statuses = r.invoice_type === '电子发票'
+                      ? allStatuses.filter(([k]) => ['pending', 'processing', 'issued'].includes(k))
+                      : allStatuses
+                    const keys = statuses.map(([k]) => k)
+                    const currentIdx = keys.indexOf(r.status)
+                    return (
+                      <>
+                        <div className="flex items-center gap-0">
+                          {statuses.map(([k, v], i) => {
+                            const isActive = r.status === k
+                            const isPast = i < currentIdx
+                            return (
+                              <div key={k} className="flex items-center">
+                                <button type="button"
+                                  onClick={() => { if (!isActive) setConfirmStatus(k) }}
+                                  className={`flex flex-col items-center gap-1 px-2 py-1.5 rounded-lg transition-all ${
+                                    isActive
+                                      ? v.color + ' ring-2 ring-offset-1 ring-current shadow-sm cursor-default'
+                                      : isPast
+                                        ? 'bg-green-50 text-green-600 hover:bg-green-100 cursor-pointer'
+                                        : 'bg-gray-50 text-gray-400 hover:bg-gray-100 cursor-pointer'
+                                  }`}
+                                >
+                                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                                    isActive ? 'bg-current/20' : isPast ? 'bg-green-200 text-green-700' : 'bg-gray-200 text-gray-400'
+                                  }`}>
+                                    {isPast ? '✓' : i + 1}
+                                  </span>
+                                  <span className="text-[11px] font-medium whitespace-nowrap">{v.label}</span>
+                                </button>
+                                {i < statuses.length - 1 && (
+                                  <div className={`w-6 h-0.5 mx-0.5 ${isPast ? 'bg-green-300' : 'bg-gray-200'}`} />
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                        {confirmStatus && (
+                          <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-sm animate-pulse">
+                            <span className="text-amber-700">
+                              确认将状态变更为「<b>{REQUEST_STATUS_MAP[confirmStatus]?.label}</b>」？
+                            </span>
+                            <div className="flex gap-1.5 ml-auto">
+                              <button onClick={() => setConfirmStatus(null)} className="px-2.5 py-1 text-xs border rounded-md hover:bg-gray-50">取消</button>
+                              <button onClick={async () => { await handleDetailStatusChange(confirmStatus); setConfirmStatus(null) }} className="px-2.5 py-1 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700">确认</button>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )
+                  })()}
+                  {r.status !== 'voided' && (
+                    <button onClick={() => { if (confirm('确认作废此开票申请？')) handleDetailStatusChange('voided') }}
+                      className="mt-2 flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-colors">
+                      <Ban size={12} /> 作废此申请
+                    </button>
+                  )}
+                  {r.status === 'voided' && (
+                    <span className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 bg-red-50 rounded-lg border border-red-200">
+                      <Ban size={12} /> 已作废
+                    </span>
+                  )}
+                </div>
+                {r.invoice_type === '电子发票' ? (
+                  <DV label="收票邮箱" value={r.email} />
+                ) : (
+                  <DV label="邮寄地址" value={r.mail_address} />
+                )}
+                <DV label="经手人" value={r.handler} />
+                {r.remark && <div className="col-span-2"><DV label="备注" value={r.remark} /></div>}
+                <div className="col-span-2 text-xs text-gray-400 pt-2 border-t">
+                  创建时间：{r.created_at ? new Date(r.created_at).toLocaleString('zh-CN') : '-'}
+                  {r.updated_at && ` · 更新时间：${new Date(r.updated_at).toLocaleString('zh-CN')}`}
+                </div>
+                <div className="col-span-2 border-t pt-3">
+                  <p className="text-xs text-gray-500 mb-1">发票附件</p>
+                  {r.invoice_file ? (
+                    <div className="flex items-center gap-2 p-2 border rounded bg-gray-50">
+                      <File size={16} className="text-gray-400" />
+                      <span className="flex-1 text-sm truncate">{r.invoice_filename || '发票文件'}</span>
+                      <button onClick={() => { setDetailRecord(null); setPreviewInvoice({ url: fileUrlWithToken(r.invoice_file), filename: r.invoice_filename }) }} className="text-blue-500 hover:text-blue-700 text-xs">查看</button>
+                      <label className="cursor-pointer text-green-500 hover:text-green-700 text-xs">
+                        重新上传
+                        <input type="file" accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.webp" className="hidden" onChange={e => handleUploadInvoice(e, true)} disabled={uploading} />
+                      </label>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center gap-1 p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                      <Upload size={20} className="text-gray-400" />
+                      <span className="text-xs text-gray-500">{uploading ? '上传中...' : '点击上传发票（PDF 或图片）'}</span>
+                      <span className="text-[10px] text-gray-400">最大 20MB · 上传后状态自动更新为「已开具」</span>
+                      <input type="file" accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.webp" className="hidden" onChange={e => handleUploadInvoice(e, true)} disabled={uploading} />
+                    </label>
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 p-4 border-t">
+                <button onClick={() => handleCopyInfo(r)} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+                  <Copy size={14} />复制开票信息
+                </button>
+                <button onClick={() => setDetailRecord(null)} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">关闭</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

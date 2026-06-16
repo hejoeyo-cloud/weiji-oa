@@ -77,6 +77,7 @@ class GiftCashback(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    shop_name = Column(String(200), default="")          # 店铺名称
     order_no = Column(String(100), default="", index=True)   # 关联订单号
     cashback_amount = Column(Float, default=0)              # 返现金额
     reason = Column(Text, default="")                        # 返现原因
@@ -113,6 +114,20 @@ class GiftResendRecord(Base):
 
     creator = relationship("User", foreign_keys=[created_by])
     feedbacks = relationship("GiftResendFeedback", back_populates="record", cascade="all, delete-orphan")
+
+
+class GiftResendPreset(Base):
+    """礼品补发预设组合"""
+    __tablename__ = "gift_resend_presets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    name = Column(String(100), nullable=False)                    # 组合名称
+    items = Column(JSONType, default=list)                        # [{name, quantity}]
+    created_by = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.now)
+
+    creator = relationship("User", foreign_keys=[created_by])
 
 
 class GiftPreset(Base):

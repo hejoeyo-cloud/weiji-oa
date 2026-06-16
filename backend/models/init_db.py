@@ -675,6 +675,37 @@ def _migrate_db():
             """))
             conn.commit()
 
+    # ── 创建礼品补发预设组合表 ──────────────────────────────────────
+    if "gift_resend_presets" not in inspector.get_table_names():
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE gift_resend_presets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER REFERENCES companies(id),
+                    name VARCHAR(100) NOT NULL,
+                    items TEXT DEFAULT '[]',
+                    created_by INTEGER REFERENCES users(id),
+                    created_at DATETIME
+                )
+            """))
+            conn.commit()
+
+    # ── 迁移：repair_records 新增 shop_name 列 ──────────────────
+    if 'repair_records' in existing_tables:
+        columns = [c['name'] for c in inspector.get_columns('repair_records')]
+        if 'shop_name' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE repair_records ADD COLUMN shop_name VARCHAR(200) DEFAULT ''"))
+                conn.commit()
+
+    # ── 迁移：gift_cashbacks 新增 shop_name 列 ─────────────────
+    if 'gift_cashbacks' in existing_tables:
+        columns = [c['name'] for c in inspector.get_columns('gift_cashbacks')]
+        if 'shop_name' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE gift_cashbacks ADD COLUMN shop_name VARCHAR(200) DEFAULT ''"))
+                conn.commit()
+
     # ── 迁移：gift_resend_records 新增 gift_items 列 ─────────────
     if 'gift_resend_records' in existing_tables:
         columns = [c['name'] for c in inspector.get_columns('gift_resend_records')]

@@ -25,6 +25,7 @@ def record_to_out(r: RepairRecord) -> RepairOut:
     return RepairOut(
         id=r.id,
         apply_date=r.apply_date or "",
+        shop_name=r.shop_name or "",
         order_no=r.order_no or "",
         return_reason=r.return_reason or "",
         model=r.model or "",
@@ -76,6 +77,7 @@ def list_records(
     page_size: int = Query(20, ge=1),
     repair_status: str = Query("", description="Filter by repair status"),
     charge_status: str = Query("", description="Filter by charge status"),
+    shop_name: str = Query("", description="Filter by shop_name"),
     search: str = Query("", description="Search in order_no/model/customer_info"),
     start_date: str = Query("", description="Filter by apply_date >= start_date (YYYY-MM-DD)"),
     end_date: str = Query("", description="Filter by apply_date <= end_date (YYYY-MM-DD)"),
@@ -89,6 +91,8 @@ def list_records(
         query = query.filter(RepairRecord.repair_status == repair_status)
     if charge_status:
         query = query.filter(RepairRecord.charge_status == charge_status)
+    if shop_name:
+        query = query.filter(RepairRecord.shop_name == shop_name)
     if search:
         pattern = f"%{search}%"
         query = query.filter(
@@ -133,6 +137,7 @@ def create_record(
     r = RepairRecord(
         company_id=current_user.company_id,
         apply_date=req.apply_date,
+        shop_name=req.shop_name,
         order_no=req.order_no,
         return_reason=req.return_reason,
         model=req.model,

@@ -4,6 +4,7 @@ import type { GiftResendRecord, GiftResendFeedback } from '../types'
 export interface GiftResendListParams {
   page?: number
   page_size?: number
+  shop_name?: string
   search?: string
   start_date?: string
   end_date?: string
@@ -27,3 +28,23 @@ export const addGiftResendFeedback = (recordId: number, content: string) =>
 
 export const getGiftResendFeedbacks = (recordId: number) =>
   client.get<GiftResendFeedback[]>(`/gift-resend/${recordId}/feedbacks`).then(r => r.data)
+
+// ── 礼品补发预设组合 ──────────────────────────────────────────────
+
+export interface GiftResendPreset {
+  id: number
+  name: string
+  items: { name: string; quantity: number }[]
+  created_by?: number
+  creator_name?: string
+  created_at?: string
+}
+
+export const getGiftResendPresets = () =>
+  client.get<GiftResendPreset[]>('/gift-resend-presets').then(r => r.data)
+
+export const createGiftResendPreset = (data: { name: string; items: { name: string; quantity: number }[] }) =>
+  client.post<GiftResendPreset>('/gift-resend-presets', data).then(r => r.data)
+
+export const deleteGiftResendPreset = (id: number) =>
+  client.delete(`/gift-resend-presets/${id}`).then(r => r.data)

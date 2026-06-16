@@ -6,6 +6,7 @@ export interface RepairListParams {
   page_size?: number
   repair_status?: string
   charge_status?: string
+  shop_name?: string
   search?: string
   start_date?: string
   end_date?: string

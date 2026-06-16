@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Eye, Gift, Download } from 'lucide-react'
 import { getGiftCashbackList, createGiftCashback, updateGiftCashback, deleteGiftCashback } from '../api/giftCashback'
 import { useAuth } from '../hooks/useAuth'
+import ShopSelect from '../components/ShopSelect'
 import { GiftCashback } from '../types'
 import * as XLSX from 'xlsx'
 
@@ -42,6 +43,7 @@ export default function GiftCashbackList() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
+  const [shopFilter, setShopFilter] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [loading, setLoading] = useState(false)
@@ -53,16 +55,16 @@ export default function GiftCashbackList() {
 
   const load = useCallback(() => {
     setLoading(true)
-    getGiftCashbackList({ page, page_size: pageSize, search, start_date: startDate, end_date: endDate })
+    getGiftCashbackList({ page, page_size: pageSize, search, shop_name: shopFilter, start_date: startDate, end_date: endDate })
       .then(data => { setRecords(data.items); setTotal(data.total) })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [page, search, startDate, endDate])
+  }, [page, search, shopFilter, startDate, endDate])
 
   useEffect(() => { load() }, [load])
 
   const handleExport = () => {
-    getGiftCashbackList({ page: 1, page_size: 100000, search, start_date: startDate, end_date: endDate })
+    getGiftCashbackList({ page: 1, page_size: 100000, search, shop_name: shopFilter, start_date: startDate, end_date: endDate })
       .then(data => {
         const rows = data.items.map((r: GiftCashback, idx: number) => ({
           '序号': idx + 1,
@@ -138,6 +140,9 @@ export default function GiftCashbackList() {
             placeholder="搜索订单号/申请人..."
             className="flex-1 outline-none text-sm"
           />
+        </div>
+        <div className="min-w-[140px]">
+          <ShopSelect value={shopFilter} onChange={v => { setShopFilter(v); setPage(1) }} showGear={false} placeholder="全部店铺" />
         </div>
         <input type="date" value={startDate}
           onChange={e => { setStartDate(e.target.value); setPage(1) }}

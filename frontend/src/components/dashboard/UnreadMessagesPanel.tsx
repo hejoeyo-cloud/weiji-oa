@@ -22,7 +22,7 @@ export default function UnreadMessagesPanel({ messages }: { messages: UnreadMess
         <div className="text-center py-4 text-xs text-gray-400">暂无未读邮件</div>
       ) : (
         <div className="space-y-2">
-          {messages.slice(0, 5).map(msg => (
+          {messages.slice(0, 3).map(msg => (
             <div key={msg.id} onClick={() => navigate('/messages')}
               className="flex items-start gap-3 p-2 rounded-lg hover:bg-blue-50 cursor-pointer transition-colors">
               <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-medium flex-shrink-0">

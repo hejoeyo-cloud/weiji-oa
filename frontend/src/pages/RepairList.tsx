@@ -16,6 +16,7 @@ import {
 } from '../api/repair'
 import { RepairRecord, RepairFeedback, RepairChargeRequest } from '../types'
 import { useAuth } from '../hooks/useAuth'
+import ShopSelect from '../components/ShopSelect'
 import FieldSelect from '../components/FieldSelect'
 import * as XLSX from 'xlsx'
 
@@ -108,6 +109,7 @@ export default function RepairList() {
   const [search, setSearch] = useState('')
   const [repairStatusFilter, setRepairStatusFilter] = useState('')
   const [chargeStatusFilter, setChargeStatusFilter] = useState('')
+  const [shopFilter, setShopFilter] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [loading, setLoading] = useState(false)
@@ -159,13 +161,14 @@ export default function RepairList() {
       search,
       repair_status: repairStatusFilter,
       charge_status: chargeStatusFilter,
+      shop_name: shopFilter,
       start_date: startDate,
       end_date: endDate,
     })
       .then(data => { setRecords(data.items); setTotal(data.total) })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [page, search, repairStatusFilter, chargeStatusFilter, startDate, endDate])
+  }, [page, search, repairStatusFilter, chargeStatusFilter, shopFilter, startDate, endDate])
 
   useEffect(() => { load() }, [load])
 
@@ -210,6 +213,7 @@ export default function RepairList() {
       search,
       repair_status: repairStatusFilter,
       charge_status: chargeStatusFilter,
+      shop_name: shopFilter,
       start_date: startDate,
       end_date: endDate,
     })
@@ -414,6 +418,9 @@ export default function RepairList() {
               <option value="">全部</option>
               {CHARGE_STATUSES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
+          </div>
+          <div className="min-w-[140px]">
+            <ShopSelect value={shopFilter} onChange={v => { setShopFilter(v); setPage(1) }} showGear={false} placeholder="全部店铺" />
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-500">日期:</span>

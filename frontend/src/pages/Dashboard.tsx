@@ -80,24 +80,26 @@ export default function Dashboard() {
       />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <AnnouncementPanel
-          unreadCount={dashboard.announcement_summary.unread_count}
-          items={dashboard.announcement_summary.items}
-          onOpenAll={() => navigate('/announcements')}
-          onMarkRead={handleMarkRead}
-        />
+        <div className="space-y-6">
+          <AnnouncementPanel
+            unreadCount={dashboard.announcement_summary.unread_count}
+            items={dashboard.announcement_summary.items}
+            onOpenAll={() => navigate('/announcements')}
+            onMarkRead={handleMarkRead}
+          />
+          <UnreadMessagesPanel messages={dashboard.unread_messages || []} />
+        </div>
 
-        <SchedulePanel
-          slots={dashboard.schedule_summary.slots}
-          todaySlot={dashboard.schedule_summary.today_slot}
-          tomorrowSlot={dashboard.schedule_summary.tomorrow_slot}
-          onOpenSchedule={() => navigate('/schedule')}
-        />
+        <div className="space-y-6">
+          <OverviewCards cards={dashboard.overview_cards} onOpen={(path) => path && navigate(path)} />
+          <SchedulePanel
+            slots={dashboard.schedule_summary.slots}
+            todaySlot={dashboard.schedule_summary.today_slot}
+            tomorrowSlot={dashboard.schedule_summary.tomorrow_slot}
+            onOpenSchedule={() => navigate('/schedule')}
+          />
+        </div>
       </div>
-
-      <UnreadMessagesPanel messages={dashboard.unread_messages || []} />
-
-      <OverviewCards cards={dashboard.overview_cards} onOpen={(path) => path && navigate(path)} />
 
       <RecentActivity items={dashboard.recent_activity} onOpen={(path) => navigate(path)} />
     </div>

@@ -213,6 +213,7 @@ export interface ReturnExchangeFeedback {
 export interface RepairRecord {
   id: number
   apply_date: string
+  shop_name: string
   order_no: string
   return_reason: string  // 故障描述
   model: string
@@ -304,6 +305,7 @@ export interface GiftRecord {
 // ── 返现登记 ─────────────────────────────────────────────────────────
 export interface GiftCashback {
   id: number
+  shop_name: string
   order_no: string
   cashback_amount: number
   reason: string

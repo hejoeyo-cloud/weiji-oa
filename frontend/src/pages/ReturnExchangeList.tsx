@@ -90,6 +90,7 @@ export default function ReturnExchangeList() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [recordTypeFilter, setRecordTypeFilter] = useState('')
+  const [shopFilter, setShopFilter] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [loading, setLoading] = useState(false)
@@ -116,13 +117,14 @@ export default function ReturnExchangeList() {
       search,
       status: statusFilter,
       record_type: recordTypeFilter,
+      shop_name: shopFilter,
       start_date: startDate,
       end_date: endDate,
     })
       .then(data => { setRecords(data.items); setTotal(data.total) })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [page, search, statusFilter, recordTypeFilter, startDate, endDate])
+  }, [page, search, statusFilter, recordTypeFilter, shopFilter, startDate, endDate])
 
   useEffect(() => { load() }, [load])
 
@@ -144,6 +146,7 @@ export default function ReturnExchangeList() {
       search,
       status: statusFilter,
       record_type: recordTypeFilter,
+      shop_name: shopFilter,
       start_date: startDate,
       end_date: endDate,
     })
@@ -345,6 +348,9 @@ export default function ReturnExchangeList() {
               <option value="">全部</option>
               {RECORD_TYPES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
+          </div>
+          <div className="min-w-[140px]">
+            <ShopSelect value={shopFilter} onChange={v => { setShopFilter(v); setPage(1) }} showGear={false} placeholder="全部店铺" />
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-500">日期:</span>

@@ -43,6 +43,7 @@ from routers import warehouse_router
 from routers import return_exchange_router, repair_router
 from routers import gift_cashback_router
 from routers import gift_preset_router
+from routers import gift_resend_preset_router
 from routers import attendance_router
 from routers import task_router
 from routers import report_router
@@ -89,6 +90,7 @@ app.include_router(return_exchange_router.router)
 app.include_router(repair_router.router)
 app.include_router(gift_cashback_router.router)
 app.include_router(gift_preset_router.router)
+app.include_router(gift_resend_preset_router.router)
 app.include_router(attendance_router.router)
 app.include_router(task_router.router)
 app.include_router(report_router.router)
@@ -135,6 +137,8 @@ if os.path.exists(frontend_dist):
 
     @app.get("/{full_path:path}")
     def serve_spa(full_path: str):
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404)
         index_file = os.path.join(frontend_dist, "index.html")
         if os.path.exists(index_file):
             return FileResponse(index_file)

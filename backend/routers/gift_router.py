@@ -74,6 +74,7 @@ def list_records(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1),
     status: str = Query("", description="Filter by status"),
+    shop_name: str = Query("", description="Filter by shop name"),
     search: str = Query("", description="Search in order_no/model/customer_info"),
     start_date: str = Query("", description="Filter by date >= start_date (YYYY-MM-DD)"),
     end_date: str = Query("", description="Filter by date <= end_date (YYYY-MM-DD)"),
@@ -88,6 +89,8 @@ def list_records(
     query = apply_owner_filter(query, GiftRecord, current_user)
     if status:
         query = query.filter(GiftRecord.status == status)
+    if shop_name:
+        query = query.filter(GiftRecord.shop_name == shop_name)
     if search:
         pattern = f"%{search}%"
         query = query.filter(

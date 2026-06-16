@@ -8,9 +8,10 @@ interface ShopSelectProps {
   onChange: (name: string) => void
   className?: string
   showGear?: boolean
+  placeholder?: string
 }
 
-export default function ShopSelect({ value, onChange, className = '', showGear = true }: ShopSelectProps) {
+export default function ShopSelect({ value, onChange, className = '', showGear = true, placeholder = '请选择店铺' }: ShopSelectProps) {
   const [shops, setShops] = useState<Shop[]>([])
   const [showModal, setShowModal] = useState(false)
   const [newName, setNewName] = useState('')
@@ -84,7 +85,7 @@ export default function ShopSelect({ value, onChange, className = '', showGear =
           onChange={e => onChange(e.target.value)}
           className={selectCls + ' flex-1'}
         >
-          <option value="">请选择店铺</option>
+          <option value="">{placeholder}</option>
           {shops.map(s => (
             <option key={s.id} value={s.name}>{s.name}</option>
           ))}

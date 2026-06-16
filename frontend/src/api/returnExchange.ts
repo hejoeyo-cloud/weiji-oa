@@ -6,6 +6,7 @@ export interface ReturnExchangeListParams {
   page_size?: number
   status?: string
   record_type?: string
+  shop_name?: string
   search?: string
   start_date?: string
   end_date?: string

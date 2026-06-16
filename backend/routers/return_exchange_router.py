@@ -63,6 +63,7 @@ def list_records(
     page_size: int = Query(20, ge=1),
     status: str = Query("", description="Filter by progress"),
     record_type: str = Query("", description="Filter by record type: return/exchange"),
+    shop_name: str = Query("", description="Filter by shop_name"),
     search: str = Query("", description="Search in order_no/model/customer_info"),
     start_date: str = Query("", description="Filter by apply_date >= start_date (YYYY-MM-DD)"),
     end_date: str = Query("", description="Filter by apply_date <= end_date (YYYY-MM-DD)"),
@@ -76,6 +77,8 @@ def list_records(
         query = query.filter(ReturnExchangeRecord.progress == status)
     if record_type:
         query = query.filter(ReturnExchangeRecord.record_type == record_type)
+    if shop_name:
+        query = query.filter(ReturnExchangeRecord.shop_name == shop_name)
     if search:
         pattern = f"%{search}%"
         query = query.filter(

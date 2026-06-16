@@ -3,6 +3,7 @@ from typing import Optional, List
 from datetime import datetime
 
 class GiftCashbackCreate(BaseModel):
+    shop_name: str = ""
     order_no: str = ""
     cashback_amount: float = 0
     reason: str = ""
@@ -10,6 +11,7 @@ class GiftCashbackCreate(BaseModel):
     applicant: str = ""
 
 class GiftCashbackUpdate(BaseModel):
+    shop_name: Optional[str] = None
     order_no: Optional[str] = None
     cashback_amount: Optional[float] = None
     reason: Optional[str] = None
@@ -18,6 +20,7 @@ class GiftCashbackUpdate(BaseModel):
 
 class GiftCashbackOut(BaseModel):
     id: int
+    shop_name: str = ""
     order_no: str = ""
     cashback_amount: float = 0
     reason: str = ""
@@ -207,6 +210,25 @@ class GiftPresetOut(BaseModel):
     id: int
     name: str
     items: List[GiftCostItem] = []
+    created_by: Optional[int] = None
+    creator_name: str = ""
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ── 礼品补发预设组合 ─────────────────────────────────────────────
+
+class GiftResendPresetCreate(BaseModel):
+    name: str
+    items: List[GiftResendItem] = []
+
+
+class GiftResendPresetOut(BaseModel):
+    id: int
+    name: str
+    items: List[GiftResendItem] = []
     created_by: Optional[int] = None
     creator_name: str = ""
     created_at: Optional[datetime] = None

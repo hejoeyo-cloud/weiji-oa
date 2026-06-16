@@ -4,6 +4,7 @@ import { GiftCashback } from '../types'
 export interface GiftCashbackListParams {
   page?: number
   page_size?: number
+  shop_name?: string
   search?: string
   start_date?: string
   end_date?: string

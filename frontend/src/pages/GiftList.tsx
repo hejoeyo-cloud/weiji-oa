@@ -73,6 +73,7 @@ export default function GiftList() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [shopFilter, setShopFilter] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [loading, setLoading] = useState(false)
@@ -111,11 +112,11 @@ export default function GiftList() {
 
   const load = useCallback(() => {
     setLoading(true)
-    getGiftList({ page, page_size: pageSize, search, status: statusFilter, start_date: startDate, end_date: endDate })
+    getGiftList({ page, page_size: pageSize, search, status: statusFilter, shop_name: shopFilter, start_date: startDate, end_date: endDate })
       .then(data => { setRecords(data.items); setTotal(data.total) })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [page, search, statusFilter, startDate, endDate])
+  }, [page, search, statusFilter, shopFilter, startDate, endDate])
 
   useEffect(() => { load() }, [load])
 
@@ -135,7 +136,7 @@ export default function GiftList() {
   }, [records, highlightId])
 
   const handleExport = () => {
-    getGiftList({ page: 1, page_size: 100000, search, status: statusFilter, start_date: startDate, end_date: endDate })
+    getGiftList({ page: 1, page_size: 100000, search, status: statusFilter, shop_name: shopFilter, start_date: startDate, end_date: endDate })
       .then(data => {
         const exportData: Record<string, any>[] = data.items.map((r: GiftRecord, idx: number) => {
           const row: Record<string, any> = {
@@ -346,6 +347,9 @@ export default function GiftList() {
           <option value="">全部状态</option>
           {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
+        <div className="min-w-[140px]">
+          <ShopSelect value={shopFilter} onChange={v => { setShopFilter(v); setPage(1) }} showGear={false} placeholder="全部店铺" />
+        </div>
         <input type="date" value={startDate}
           onChange={e => { setStartDate(e.target.value); setPage(1) }}
           className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />

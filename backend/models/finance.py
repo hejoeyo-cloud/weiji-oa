@@ -27,7 +27,7 @@ class CustomerInvoiceRequest(Base):
     email = Column(String(100), default="")               # 邮箱（电子发票）
     mail_address = Column(String(200), default="")        # 邮寄地址（实体）
     # 状态
-    status = Column(String(20), default="pending")        # pending/processing/issued/mailed/signed
+    status = Column(String(20), default="pending")        # pending/processing/issued/mailed/signed/voided
     remark = Column(Text, default="")                     # 备注
     handler = Column(String(50), default="")              # 经手人
     # 关联销项发票

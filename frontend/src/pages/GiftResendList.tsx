@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Eye, Gift, Download } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, ChevronDown, Eye, Gift, Download } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
-import { getGiftResendList, createGiftResend, updateGiftResend, deleteGiftResend, addGiftResendFeedback, getGiftResendFeedbacks } from '../api/giftResend'
+import { getGiftResendList, createGiftResend, updateGiftResend, deleteGiftResend, addGiftResendFeedback, getGiftResendFeedbacks, getGiftResendPresets, createGiftResendPreset, deleteGiftResendPreset, GiftResendPreset } from '../api/giftResend'
 import { GiftResendRecord, GiftResendFeedback } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import ShopSelect from '../components/ShopSelect'
@@ -53,6 +53,7 @@ export default function GiftResendList() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
+  const [shopFilter, setShopFilter] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [loading, setLoading] = useState(false)
@@ -66,6 +67,11 @@ export default function GiftResendList() {
   const [feedbacks, setFeedbacks] = useState<GiftResendFeedback[]>([])
   const [feedbackText, setFeedbackText] = useState('')
   const [addingFeedback, setAddingFeedback] = useState(false)
+  // 预设组合
+  const [presets, setPresets] = useState<GiftResendPreset[]>([])
+  const [showPresetDropdown, setShowPresetDropdown] = useState(false)
+  const [showSavePreset, setShowSavePreset] = useState(false)
+  const [presetName, setPresetName] = useState('')
   const pageSize = 15
 
   // 高亮动画样式
@@ -83,13 +89,14 @@ export default function GiftResendList() {
 
   const load = useCallback(() => {
     setLoading(true)
-    getGiftResendList({ page, page_size: pageSize, search, start_date: startDate, end_date: endDate })
+    getGiftResendList({ page, page_size: pageSize, search, shop_name: shopFilter, start_date: startDate, end_date: endDate })
       .then(data => { setRecords(data.items); setTotal(data.total) })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [page, search, startDate, endDate])
+  }, [page, search, shopFilter, startDate, endDate])
 
   useEffect(() => { load() }, [load])
+  useEffect(() => { getGiftResendPresets().then(setPresets).catch(console.error) }, [])
 
   // 高亮滚动效果
   useEffect(() => {
@@ -104,7 +111,7 @@ export default function GiftResendList() {
   }, [records, highlightId])
 
   const handleExport = () => {
-    getGiftResendList({ page: 1, page_size: 100000, search, start_date: startDate, end_date: endDate })
+    getGiftResendList({ page: 1, page_size: 100000, search, shop_name: shopFilter, start_date: startDate, end_date: endDate })
       .then(data => {
         const rows = data.items.map((r: GiftResendRecord, idx: number) => ({
           '序号': idx + 1,
@@ -215,6 +222,9 @@ export default function GiftResendList() {
           <input className="flex-1 text-sm outline-none bg-transparent"
             placeholder="搜索订单号、店铺、客户信息..."
             value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} />
+        </div>
+        <div className="min-w-[140px]">
+          <ShopSelect value={shopFilter} onChange={v => { setShopFilter(v); setPage(1) }} showGear={false} placeholder="全部店铺" />
         </div>
         <input type="date" className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none"
           value={startDate} onChange={e => { setStartDate(e.target.value); setPage(1) }} />
@@ -411,11 +421,56 @@ export default function GiftResendList() {
               <div className="col-span-2">
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-medium text-gray-600">礼品明细</label>
-                  <button type="button"
-                    onClick={() => setForm(f => ({ ...f, gift_items: [...f.gift_items, { name: '', quantity: 1 }] }))}
-                    className="text-xs text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
-                    <Plus size={12} /> 添加礼品
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {presets.length > 0 && (
+                      <div className="relative">
+                        <button type="button"
+                          onClick={() => setShowPresetDropdown(!showPresetDropdown)}
+                          className="text-xs text-gray-500 hover:text-emerald-600 flex items-center gap-1 border border-gray-200 rounded px-2 py-1 hover:border-emerald-300">
+                          预设组合 <ChevronDown size={12} />
+                        </button>
+                        {showPresetDropdown && (
+                          <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-48 max-h-48 overflow-y-auto">
+                            {presets.map(p => (
+                              <div key={p.id} className="flex items-center justify-between px-3 py-2 hover:bg-emerald-50 group">
+                                <button type="button"
+                                  onClick={() => {
+                                    setForm(f => ({ ...f, gift_items: p.items.map(i => ({ ...i })) }))
+                                    setShowPresetDropdown(false)
+                                  }}
+                                  className="flex-1 text-left text-sm text-gray-700 hover:text-emerald-700">
+                                  {p.name}
+                                  <span className="text-xs text-gray-400 ml-1">({p.items.length}项)</span>
+                                </button>
+                                <button type="button"
+                                  onClick={async (e) => {
+                                    e.stopPropagation()
+                                    if (!confirm(`删除预设「${p.name}」？`)) return
+                                    await deleteGiftResendPreset(p.id)
+                                    setPresets(prev => prev.filter(x => x.id !== p.id))
+                                  }}
+                                  className="p-0.5 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {form.gift_items.length > 0 && (
+                      <button type="button"
+                        onClick={() => { setShowSavePreset(true); setPresetName('') }}
+                        className="text-xs text-gray-500 hover:text-emerald-600 flex items-center gap-1">
+                        保存预设
+                      </button>
+                    )}
+                    <button type="button"
+                      onClick={() => setForm(f => ({ ...f, gift_items: [...f.gift_items, { name: '', quantity: 1 }] }))}
+                      className="text-xs text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+                      <Plus size={12} /> 添加礼品
+                    </button>
+                  </div>
                 </div>
                 {form.gift_items.length > 0 && (
                   <div className="space-y-2 mb-2">
@@ -477,6 +532,50 @@ export default function GiftResendList() {
               <button onClick={handleSave} disabled={saving}
                 className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg disabled:opacity-60">
                 {saving ? '保存中...' : '保存'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 保存预设弹窗 */}
+      {showSavePreset && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
+            <h3 className="text-lg font-semibold mb-4">保存为预设组合</h3>
+            <input value={presetName}
+              onChange={e => setPresetName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && presetName.trim()) {
+                  createGiftResendPreset({ name: presetName.trim(), items: form.gift_items }).then(p => {
+                    setPresets(prev => [...prev, p].sort((a, b) => a.name.localeCompare(b.name)))
+                    setShowSavePreset(false)
+                  })
+                }
+              }}
+              placeholder="输入组合名称，如：标准三件套"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-4" />
+            <div className="text-xs text-gray-500 mb-4">
+              将保存 {form.gift_items.length} 项礼品：
+              {form.gift_items.map((g, i) => (
+                <span key={i} className="ml-1 text-gray-700">{g.name}{g.quantity > 1 ? `x${g.quantity}` : ''}{i < form.gift_items.length - 1 ? '、' : ''}</span>
+              ))}
+            </div>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowSavePreset(false)}
+                className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 text-sm">
+                取消
+              </button>
+              <button onClick={() => {
+                if (!presetName.trim()) return
+                createGiftResendPreset({ name: presetName.trim(), items: form.gift_items }).then(p => {
+                  setPresets(prev => [...prev, p].sort((a, b) => a.name.localeCompare(b.name)))
+                  setShowSavePreset(false)
+                })
+              }}
+                disabled={!presetName.trim()}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm disabled:opacity-40">
+                保存
               </button>
             </div>
           </div>

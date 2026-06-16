@@ -5,6 +5,7 @@ export interface GiftListParams {
   page?: number
   page_size?: number
   status?: string
+  shop_name?: string
   search?: string
   start_date?: string
   end_date?: string

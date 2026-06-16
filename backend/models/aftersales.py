@@ -120,6 +120,7 @@ class RepairRecord(Base):
     id = Column(Integer, primary_key=True, index=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
     apply_date = Column(String(20), default="")          # 申请日期
+    shop_name = Column(String(200), default="")          # 店铺名称
     order_no = Column(String(100), default="")           # 订单编号
     return_reason = Column(Text, default="")             # 故障描述
     model = Column(String(200), default="")              # 型号

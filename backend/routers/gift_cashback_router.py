@@ -13,6 +13,7 @@ router = APIRouter(prefix="/api/gift-cashback", tags=["gift-cashback"])
 def cashback_to_out(c: GiftCashback) -> GiftCashbackOut:
     return GiftCashbackOut(
         id=c.id,
+        shop_name=c.shop_name or "",
         order_no=c.order_no or "",
         cashback_amount=c.cashback_amount or 0,
         reason=c.reason or "",
@@ -29,6 +30,7 @@ def cashback_to_out(c: GiftCashback) -> GiftCashbackOut:
 def list_cashbacks(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1),
+    shop_name: str = Query("", description="Filter by shop_name"),
     search: str = Query("", description="Search in order_no/applicant"),
     start_date: str = Query("", description="Filter by created_at >= start_date (YYYY-MM-DD)"),
     end_date: str = Query("", description="Filter by created_at <= end_date (YYYY-MM-DD)"),
@@ -38,6 +40,8 @@ def list_cashbacks(
 ):
     query = db.query(GiftCashback).filter(GiftCashback.company_id == current_user.company_id)
     query = apply_owner_filter(query, GiftCashback, current_user)
+    if shop_name:
+        query = query.filter(GiftCashback.shop_name == shop_name)
     if search:
         pattern = f"%{search}%"
         query = query.filter(
@@ -82,6 +86,7 @@ def create_cashback(
 ):
     c = GiftCashback(
         company_id=current_user.company_id,
+        shop_name=req.shop_name,
         order_no=req.order_no,
         cashback_amount=req.cashback_amount,
         reason=req.reason,

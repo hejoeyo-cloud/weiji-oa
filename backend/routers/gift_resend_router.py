@@ -34,6 +34,7 @@ def record_to_out(r: GiftResendRecord) -> GiftResendOut:
 def list_records(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1),
+    shop_name: str = Query("", description="Filter by shop_name"),
     search: str = Query("", description="Search in order_no/shop_name/customer_info"),
     start_date: str = Query("", description="Filter by apply_date >= start_date (YYYY-MM-DD)"),
     end_date: str = Query("", description="Filter by apply_date <= end_date (YYYY-MM-DD)"),
@@ -43,6 +44,8 @@ def list_records(
 ):
     query = db.query(GiftResendRecord).filter(GiftResendRecord.company_id == current_user.company_id)
     query = apply_owner_filter(query, GiftResendRecord, current_user)
+    if shop_name:
+        query = query.filter(GiftResendRecord.shop_name == shop_name)
     if search:
         pattern = f"%{search}%"
         query = query.filter(
