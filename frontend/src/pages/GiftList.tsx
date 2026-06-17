@@ -382,6 +382,7 @@ export default function GiftList() {
                 </>
               )}
               <th className="text-left px-4 py-3 font-medium text-gray-600">返现</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-600">运费</th>
               {canCostView && (
                 <th className="text-left px-4 py-3 font-medium text-gray-600">毛利</th>
               )}
@@ -391,9 +392,9 @@ export default function GiftList() {
           </thead>
           <tbody className="divide-y divide-gray-50">
             {loading ? (
-              <tr><td colSpan={canCostView ? 14 : 11} className="text-center py-8 text-gray-400">加载中...</td></tr>
+              <tr><td colSpan={canCostView ? 15 : 12} className="text-center py-8 text-gray-400">加载中...</td></tr>
             ) : records.length === 0 ? (
-              <tr><td colSpan={canCostView ? 14 : 11} className="text-center py-8 text-gray-400">暂无数据</td></tr>
+              <tr><td colSpan={canCostView ? 15 : 12} className="text-center py-8 text-gray-400">暂无数据</td></tr>
             ) : records.map((r, idx) => (
               <tr
                 key={r.id}
@@ -416,6 +417,7 @@ export default function GiftList() {
                   </>
                 )}
                 <td className="px-4 py-3 text-red-500">{r.total_cashback > 0 ? `¥${r.total_cashback.toFixed(2)}` : '-'}</td>
+                <td className="px-4 py-3 text-gray-600">{r.shipping_fee > 0 ? `¥${r.shipping_fee.toFixed(2)}` : '-'}</td>
                 {canCostView && (
                   <td className={`px-4 py-3 font-medium ${r.profit > 0 ? 'text-green-600' : r.profit < 0 ? 'text-red-600' : 'text-gray-500'}`}>
                     {r.profit > 0 ? `¥${r.profit.toFixed(2)}` : r.profit < 0 ? `-¥${Math.abs(r.profit).toFixed(2)}` : '-'}

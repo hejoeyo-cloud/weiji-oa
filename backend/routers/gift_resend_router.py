@@ -18,7 +18,7 @@ def record_to_out(r: GiftResendRecord) -> GiftResendOut:
         shop_name=r.shop_name or "",
         type=r.type or "",
         gift_detail=r.gift_detail or "",
-        gift_items=[{"name": i.get("name", ""), "quantity": i.get("quantity", 1)} for i in gift_items_raw if isinstance(i, dict)],
+        gift_items=[{"name": i.get("name", ""), "quantity": i.get("quantity", 1), "amount": i.get("amount", 0)} for i in gift_items_raw if isinstance(i, dict)],
         customer_info=r.customer_info or "",
         express_company=r.express_company or "",
         tracking_no=r.tracking_no or "",

@@ -8,10 +8,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db, User, ALL_PERMISSIONS
 from schemas import LoginRequest, LoginResponse, UserInfo
-from auth import (
-    verify_password, create_access_token, get_current_user,
-    get_subscription_state
-)
+from auth import verify_password, create_access_token, get_current_user
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -46,7 +43,6 @@ def _build_user_info(u: User, db: Optional[Session] = None) -> UserInfo:
         department_id=u.department_id,
         is_manager=u.is_manager or False,
         created_at=u.created_at,
-        subscription=get_subscription_state(db, u) if db else None,
     )
 
 

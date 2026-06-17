@@ -40,48 +40,6 @@ def _migrate_db():
             """))
             conn.commit()
 
-    if "subscriptions" not in existing_tables:
-        with engine.connect() as conn:
-            conn.execute(text("""
-                CREATE TABLE subscriptions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    company_id INTEGER NOT NULL UNIQUE REFERENCES companies(id),
-                    status VARCHAR(30) DEFAULT 'trial',
-                    trial_start_at DATETIME,
-                    trial_end_at DATETIME,
-                    current_period_start DATETIME,
-                    current_period_end DATETIME,
-                    grace_end_at DATETIME,
-                    first_paid_at DATETIME,
-                    last_paid_at DATETIME,
-                    created_at DATETIME,
-                    updated_at DATETIME
-                )
-            """))
-            conn.commit()
-
-    if "payment_orders" not in existing_tables:
-        with engine.connect() as conn:
-            conn.execute(text("""
-                CREATE TABLE payment_orders (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    order_no VARCHAR(64) NOT NULL UNIQUE,
-                    company_id INTEGER NOT NULL REFERENCES companies(id),
-                    subscription_id INTEGER NOT NULL REFERENCES subscriptions(id),
-                    plan_type VARCHAR(30) DEFAULT 'first_year',
-                    amount REAL DEFAULT 0,
-                    years INTEGER DEFAULT 1,
-                    status VARCHAR(30) DEFAULT 'pending',
-                    alipay_trade_no VARCHAR(100) DEFAULT '',
-                    alipay_payload TEXT DEFAULT '',
-                    paid_at DATETIME,
-                    created_by INTEGER REFERENCES users(id),
-                    created_at DATETIME,
-                    updated_at DATETIME
-                )
-            """))
-            conn.commit()
-
     if "attendance_records" not in existing_tables:
         with engine.connect() as conn:
             conn.execute(text("""
@@ -298,25 +256,6 @@ def _migrate_db():
         finally:
             db_migrate.close()
     # ─────────────────────────────────────────────────────────────
-
-    with engine.connect() as conn:
-        sub = conn.execute(text("SELECT id FROM subscriptions WHERE company_id = :company_id"), {"company_id": default_company_id}).fetchone()
-        if not sub:
-            now = datetime.now()
-            period_end = now + timedelta(days=3650)
-            grace_end = period_end + timedelta(days=7)
-            conn.execute(text("""
-                INSERT INTO subscriptions (
-                    company_id, status, trial_start_at, trial_end_at,
-                    current_period_start, current_period_end, grace_end_at,
-                    first_paid_at, last_paid_at, created_at, updated_at
-                ) VALUES (
-                    :company_id, 'active', :now, :period_end,
-                    :now, :period_end, :grace_end,
-                    :now, :now, :now, :now
-                )
-            """), {"company_id": default_company_id, "now": now, "period_end": period_end, "grace_end": grace_end})
-            conn.commit()
 
     # 旧迁移：knowledge_articles.images 列
     if 'knowledge_articles' in existing_tables:

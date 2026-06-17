@@ -22,7 +22,7 @@ def list_presets(
         GiftResendPresetOut(
             id=p.id,
             name=p.name,
-            items=[{"name": i.get("name", ""), "quantity": i.get("quantity", 1)} for i in (p.items or []) if isinstance(i, dict)],
+            items=[{"name": i.get("name", ""), "quantity": i.get("quantity", 1), "amount": i.get("amount", 0)} for i in (p.items or []) if isinstance(i, dict)],
             created_by=p.created_by,
             creator_name=p.creator.name if p.creator else "",
             created_at=p.created_at,
@@ -49,7 +49,7 @@ def create_preset(
     return GiftResendPresetOut(
         id=preset.id,
         name=preset.name,
-        items=[{"name": i.get("name", ""), "quantity": i.get("quantity", 1)} for i in (preset.items or []) if isinstance(i, dict)],
+        items=[{"name": i.get("name", ""), "quantity": i.get("quantity", 1), "amount": i.get("amount", 0)} for i in (preset.items or []) if isinstance(i, dict)],
         created_by=preset.created_by,
         creator_name=current_user.name,
         created_at=preset.created_at,

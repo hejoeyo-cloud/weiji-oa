@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
-from .company import SubscriptionInfo
 
 class LoginRequest(BaseModel):
     email: str
@@ -35,7 +34,6 @@ class UserInfo(BaseModel):
     department_id: Optional[int] = None
     is_manager: bool = False
     created_at: Optional[datetime] = None
-    subscription: Optional[SubscriptionInfo] = None
 
     class Config:
         from_attributes = True

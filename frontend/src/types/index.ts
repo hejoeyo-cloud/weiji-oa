@@ -16,16 +16,6 @@ export interface User {
   is_manager?: boolean
   dingtalk_user_id?: string
   created_at?: string
-  subscription?: SubscriptionInfo
-}
-
-export interface SubscriptionInfo {
-  status: string
-  trial_end_at?: string
-  current_period_end?: string
-  grace_end_at?: string
-  is_writable: boolean
-  days_remaining: number
 }
 
 export interface Company {
@@ -33,21 +23,6 @@ export interface Company {
   name: string
   status: string
   user_count: number
-  subscription?: SubscriptionInfo
-  created_at?: string
-}
-
-export interface PaymentOrder {
-  id: number
-  order_no: string
-  company_id: number
-  company_name?: string
-  plan_type: string
-  amount: number
-  years: number
-  status: string
-  alipay_trade_no?: string
-  paid_at?: string
   created_at?: string
 }
 
@@ -321,6 +296,7 @@ export interface GiftCashback {
 export interface GiftResendItem {
   name: string
   quantity: number
+  amount: number
 }
 
 export interface GiftResendRecord {

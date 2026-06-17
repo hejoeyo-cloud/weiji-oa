@@ -34,7 +34,7 @@ export const getGiftResendFeedbacks = (recordId: number) =>
 export interface GiftResendPreset {
   id: number
   name: string
-  items: { name: string; quantity: number }[]
+  items: { name: string; quantity: number; amount: number }[]
   created_by?: number
   creator_name?: string
   created_at?: string
@@ -43,7 +43,7 @@ export interface GiftResendPreset {
 export const getGiftResendPresets = () =>
   client.get<GiftResendPreset[]>('/gift-resend-presets').then(r => r.data)
 
-export const createGiftResendPreset = (data: { name: string; items: { name: string; quantity: number }[] }) =>
+export const createGiftResendPreset = (data: { name: string; items: { name: string; quantity: number; amount: number }[] }) =>
   client.post<GiftResendPreset>('/gift-resend-presets', data).then(r => r.data)
 
 export const deleteGiftResendPreset = (id: number) =>

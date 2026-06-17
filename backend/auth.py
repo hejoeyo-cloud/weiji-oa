@@ -8,7 +8,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
 from config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRE_MINUTES
-from database import get_db, User, Subscription
+from database import get_db, User
 
 security = HTTPBearer()
 
@@ -79,18 +79,6 @@ def get_current_user_flexible(
 
 def is_platform_admin(user: User) -> bool:
     return bool(getattr(user, "is_platform_admin", False))
-
-
-def get_subscription_state(db: Session, user: User) -> dict:
-    """本地版：永久有效，无订阅限制"""
-    return {
-        "status": "active",
-        "trial_end_at": None,
-        "current_period_end": None,
-        "grace_end_at": None,
-        "is_writable": True,
-        "days_remaining": 9999,
-    }
 
 
 def require_platform_admin(user: User = Depends(get_current_user)) -> User:

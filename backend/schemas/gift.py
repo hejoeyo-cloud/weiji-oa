@@ -54,6 +54,7 @@ class GiftFeedbackOut(BaseModel):
 class GiftResendItem(BaseModel):
     name: str = ""
     quantity: int = 1
+    amount: float = 0
 
 class GiftResendCreate(BaseModel):
     apply_date: str = ""

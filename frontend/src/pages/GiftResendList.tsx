@@ -33,7 +33,7 @@ function exportToExcel(filename: string, rows: Record<string, any>[]) {
 
 const emptyForm = {
   apply_date: '', order_no: '', shop_name: '', type: '',
-  gift_detail: '', gift_items: [] as { name: string; quantity: number }[],
+  gift_detail: '', gift_items: [] as { name: string; quantity: number; amount: number }[],
   customer_info: '', express_company: '',
   tracking_no: '', remark: '',
 }
@@ -120,8 +120,11 @@ export default function GiftResendList() {
           '店铺名称': r.shop_name || '',
           '类型': r.type || '',
           '礼品明细': r.gift_items && r.gift_items.length > 0
-            ? r.gift_items.map(g => `${g.name}x${g.quantity}`).join('、')
+            ? r.gift_items.map(g => `${g.name}x${g.quantity}${g.amount ? `(¥${g.amount})` : ''}`).join('、')
             : r.gift_detail || '',
+          '礼品金额': r.gift_items && r.gift_items.length > 0
+            ? r.gift_items.reduce((sum, g) => sum + (g.amount || 0) * g.quantity, 0).toFixed(2)
+            : '',
           '客户信息': r.customer_info || '',
           '快递公司': r.express_company || '',
           '寄出单号': r.tracking_no || '',
@@ -242,17 +245,17 @@ export default function GiftResendList() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-600">
               <tr>
-                {['#', '申请时间', '订单编号', '店铺名称', '类型', '礼品明细', '客户信息', '快递公司', '寄出单号', '操作'].map(h => (
+                {['#', '申请时间', '订单编号', '店铺名称', '类型', '礼品明细', '礼品总金额', '客户信息', '快递公司', '寄出单号', '操作'].map(h => (
                   <th key={h} className="text-left px-4 py-3 font-medium whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading ? (
-                <tr><td colSpan={10} className="text-center py-10 text-gray-400">加载中...</td></tr>
+                <tr><td colSpan={11} className="text-center py-10 text-gray-400">加载中...</td></tr>
               ) : records.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-16 text-gray-400">
+                  <td colSpan={11} className="text-center py-16 text-gray-400">
                     <Gift size={32} className="mx-auto mb-2 opacity-30" />
                     <p>暂无补发记录</p>
                   </td>
@@ -273,6 +276,11 @@ export default function GiftResendList() {
                     r.gift_items && r.gift_items.length > 0
                       ? r.gift_items.map(g => `${g.name}x${g.quantity}`).join('、')
                       : r.gift_detail || '-'
+                  }</td>
+                  <td className="px-4 py-3 text-gray-700 font-medium">{
+                    r.gift_items && r.gift_items.length > 0 && r.gift_items.some(g => g.amount > 0)
+                      ? `¥${r.gift_items.reduce((sum, g) => sum + (g.amount || 0) * g.quantity, 0).toFixed(2)}`
+                      : '-'
                   }</td>
                   <td className="px-4 py-3 text-gray-600 max-w-36 truncate">{r.customer_info || '-'}</td>
                   <td className="px-4 py-3 text-gray-700">{r.express_company || '-'}</td>
@@ -327,12 +335,18 @@ export default function GiftResendList() {
                     {detailRecord.gift_items.map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between px-3 py-2 text-sm">
                         <span className="text-gray-700">{item.name || '未命名'}</span>
-                        <span className="text-gray-500">x{item.quantity}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-gray-500">x{item.quantity}</span>
+                          {item.amount > 0 && <span className="text-gray-400">¥{(item.amount * item.quantity).toFixed(2)}</span>}
+                        </div>
                       </div>
                     ))}
                   </div>
-                  <div className="text-xs text-gray-400 text-right mt-1">
-                    共 {detailRecord.gift_items.reduce((sum, item) => sum + item.quantity, 0)} 件
+                  <div className="flex items-center justify-between text-xs text-gray-400 mt-1">
+                    <span>共 {detailRecord.gift_items.reduce((sum, item) => sum + item.quantity, 0)} 件</span>
+                    {detailRecord.gift_items.some(item => item.amount > 0) && (
+                      <span>合计 ¥{detailRecord.gift_items.reduce((sum, item) => sum + (item.amount || 0) * item.quantity, 0).toFixed(2)}</span>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -466,7 +480,7 @@ export default function GiftResendList() {
                       </button>
                     )}
                     <button type="button"
-                      onClick={() => setForm(f => ({ ...f, gift_items: [...f.gift_items, { name: '', quantity: 1 }] }))}
+                      onClick={() => setForm(f => ({ ...f, gift_items: [...f.gift_items, { name: '', quantity: 1, amount: 0 }] }))}
                       className="text-xs text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
                       <Plus size={12} /> 添加礼品
                     </button>
@@ -485,23 +499,37 @@ export default function GiftResendList() {
                               setForm(f => ({ ...f, gift_items: updated }))
                             }}
                             onOptionSelect={opt => {
-                              if (opt.price) {
-                                const updated = [...form.gift_items]
-                                updated[idx] = { ...updated[idx], name: opt.value }
-                                setForm(f => ({ ...f, gift_items: updated }))
-                              }
+                              const updated = [...form.gift_items]
+                              updated[idx] = { ...updated[idx], name: opt.value, amount: opt.price || 0 }
+                              setForm(f => ({ ...f, gift_items: updated }))
                             }}
                             placeholder="请选择或输入礼品名称"
+                            showPrice={true}
                             showGear={hasPermission('field_options:manage')} />
                         </div>
-                        <input type="number" min="1" value={item.quantity}
-                          onChange={e => {
-                            const updated = [...form.gift_items]
-                            updated[idx] = { ...updated[idx], quantity: parseInt(e.target.value) || 1 }
-                            setForm(f => ({ ...f, gift_items: updated }))
-                          }}
-                          placeholder="数量"
-                          className="w-20 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                        <div className="w-20">
+                          <input type="number" min="1" value={item.quantity}
+                            onChange={e => {
+                              const updated = [...form.gift_items]
+                              updated[idx] = { ...updated[idx], quantity: parseInt(e.target.value) || 1 }
+                              setForm(f => ({ ...f, gift_items: updated }))
+                            }}
+                            placeholder="数量"
+                            className="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                        </div>
+                        <div className="w-24">
+                          <input type="number" min="0" step="0.01" value={item.amount}
+                            onChange={e => {
+                              const updated = [...form.gift_items]
+                              updated[idx] = { ...updated[idx], amount: parseFloat(e.target.value) || 0 }
+                              setForm(f => ({ ...f, gift_items: updated }))
+                            }}
+                            placeholder="单价"
+                            className="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                        </div>
+                        <span className="text-xs text-gray-400 w-16 text-right">
+                          ¥{((item.amount || 0) * item.quantity).toFixed(2)}
+                        </span>
                         <button type="button"
                           onClick={() => setForm(f => ({ ...f, gift_items: f.gift_items.filter((_, i) => i !== idx) }))}
                           className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded">
@@ -512,8 +540,9 @@ export default function GiftResendList() {
                   </div>
                 )}
                 {form.gift_items.length > 0 && (
-                  <div className="text-xs text-gray-500 text-right">
-                    共 {form.gift_items.reduce((sum, item) => sum + item.quantity, 0)} 件
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>共 {form.gift_items.reduce((sum, item) => sum + item.quantity, 0)} 件</span>
+                    <span>合计 ¥{form.gift_items.reduce((sum, item) => sum + (item.amount || 0) * item.quantity, 0).toFixed(2)}</span>
                   </div>
                 )}
               </div>
