@@ -251,18 +251,21 @@ function ShippingTab({ data }: { data: ShippingData }) {
           </ResponsiveContainer>
         </div>
 
-        {/* 发货状态 */}
+        {/* 客户颜色偏好 */}
         <div className={cardStyle}>
-          <h3 className="text-sm font-semibold text-gray-600 mb-4">发货状态分布</h3>
+          <h3 className="text-sm font-semibold text-gray-600 mb-4">客户产品颜色偏好</h3>
           <ResponsiveContainer width="100%" height={chartH}>
-            <PieChart>
-              <Pie data={data.status_distribution} dataKey="value" nameKey="name"
-                cx="50%" cy="50%" outerRadius={100}
-                label={({ name, value }: any) => `${name}: ${value}`}>
-                {data.status_distribution.map((_, i) => <Cell key={i} fill={['#f59e0b', '#16a34a'][i % 2]} />)}
-              </Pie>
-              <Tooltip />
-            </PieChart>
+            <BarChart data={data.color_preference} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#9ca3af' }} width={80} />
+              <Tooltip content={<ChartTooltip />} />
+              <Bar dataKey="value" radius={[0, 4, 4, 0]} name="销量">
+                {data.color_preference.map((entry, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </div>

@@ -43,7 +43,7 @@ class ShippingData(BaseModel):
     amount_trend: List[dict] = []  # [{month, order_amount, cost, shipping_fee}]
     profit_trend: List[ProfitItem] = []
     top_products: List[NameValue] = []
-    status_distribution: List[NameValue] = []
+    color_preference: List[NameValue] = []
 
 
 # ── 售后分析 ─────────────────────────────────────────────────────

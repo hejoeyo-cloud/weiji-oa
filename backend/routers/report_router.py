@@ -258,17 +258,17 @@ def get_report_shipping(
     ).group_by(GiftRecord.product).order_by(func.sum(GiftRecord.quantity).desc()).limit(10).all()
     top_products = [NameValue(name=r[0], value=r[1]) for r in top_rows]
 
-    # 发货状态分布
-    status_rows = db.query(GiftRecord.status, func.count(GiftRecord.id)).filter(
+    # 客户颜色偏好
+    color_rows = db.query(GiftRecord.color, func.sum(GiftRecord.quantity)).filter(
         GiftRecord.company_id == cid, GiftRecord.date >= start, GiftRecord.date < end,
-    ).group_by(GiftRecord.status).all()
-    status_labels = {"pending": "待发货", "sent": "已发货"}
-    status_distribution = [NameValue(name=status_labels.get(r[0], r[0]), value=r[1]) for r in status_rows]
+        GiftRecord.color != "",
+    ).group_by(GiftRecord.color).order_by(func.sum(GiftRecord.quantity).desc()).all()
+    color_preference = [NameValue(name=r[0], value=r[1]) for r in color_rows]
 
     return ShippingData(
         qty_trend=qty_trend, amount_trend=amount_trend,
         profit_trend=profit_trend, top_products=top_products,
-        status_distribution=status_distribution,
+        color_preference=color_preference,
     )
 
 

@@ -787,7 +787,7 @@ export interface ShippingData {
   amount_trend: { month: string; order_amount: number; cost: number; shipping_fee: number }[]
   profit_trend: ProfitItem[]
   top_products: NameValue[]
-  status_distribution: NameValue[]
+  color_preference: NameValue[]
 }
 
 export interface AftersalesData {
