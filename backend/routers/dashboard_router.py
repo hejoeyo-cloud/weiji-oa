@@ -220,12 +220,12 @@ def build_overview_cards(
     if current_user.role == "admin":
         return [
             {
-                "key": "pending_approvals",
-                "title": "待审批事项",
-                "value": pending_approval_count,
-                "subtext": "全系统仍处于审批中的申请",
-                "status": "warning",
-                "path": "/approvals",
+                "key": "pending_invoices",
+                "title": "待开发票",
+                "value": pending_invoices_count,
+                "subtext": "客户开票申请中待处理的数量",
+                "status": "info",
+                "path": "/finance",
             },
             {
                 "key": "pending_delivery",
