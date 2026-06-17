@@ -763,7 +763,8 @@ export interface ShippingData {
   qty_trend: MonthValue[]
   amount_trend: { month: string; order_amount: number; cost: number; shipping_fee: number }[]
   profit_trend: ProfitItem[]
-  top_products: NameValue[]
+  top_configs: NameValue[]
+  top_models: NameValue[]
   color_preference: NameValue[]
 }
 

@@ -628,114 +628,116 @@ export default function GiftList() {
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
                     </div>
                   </div>
-
-                  {/* 礼品成本 */}
-                  <div className="mt-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-sm font-medium text-gray-700">礼品成本</label>
-                      <div className="flex items-center gap-2">
-                        {presets.length > 0 && (
-                          <div className="relative">
-                            <button type="button"
-                              onClick={() => setShowPresetDropdown(!showPresetDropdown)}
-                              className="text-xs text-gray-500 hover:text-violet-600 flex items-center gap-1 border border-gray-200 rounded px-2 py-1 hover:border-violet-300">
-                              预设组合 <ChevronDown size={12} />
-                            </button>
-                            {showPresetDropdown && (
-                              <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-48 max-h-48 overflow-y-auto">
-                                {presets.map(p => (
-                                  <div key={p.id} className="flex items-center justify-between px-3 py-2 hover:bg-violet-50 group">
-                                    <button type="button"
-                                      onClick={() => {
-                                        setForm({ ...form, gift_costs: p.items.map(i => ({ ...i })) })
-                                        setShowPresetDropdown(false)
-                                      }}
-                                      className="flex-1 text-left text-sm text-gray-700 hover:text-violet-700">
-                                      {p.name}
-                                      <span className="text-xs text-gray-400 ml-1">({p.items.length}项)</span>
-                                    </button>
-                                    <button type="button"
-                                      onClick={async (e) => {
-                                        e.stopPropagation()
-                                        if (!confirm(`删除预设「${p.name}」？`)) return
-                                        await deleteGiftPreset(p.id)
-                                        setPresets(prev => prev.filter(x => x.id !== p.id))
-                                      }}
-                                      className="p-0.5 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <X size={12} />
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        {form.gift_costs.length > 0 && (
-                          <button type="button"
-                            onClick={() => { setShowSavePreset(true); setPresetName('') }}
-                            className="text-xs text-gray-500 hover:text-violet-600 flex items-center gap-1">
-                            保存预设
-                          </button>
-                        )}
-                        <button type="button"
-                          onClick={() => setForm({ ...form, gift_costs: [...form.gift_costs, { name: '', amount: 0 }] })}
-                          className="text-xs text-violet-600 hover:text-violet-700 flex items-center gap-1">
-                          <Plus size={12} /> 添加礼品
-                        </button>
-                      </div>
-                    </div>
-                    {form.gift_costs.length > 0 && (
-                      <div className="space-y-2 mb-2">
-                        {form.gift_costs.map((item, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <div className="flex-1">
-                              <FieldSelect
-                                fieldName="gift_name"
-                                label="礼品名称"
-                                value={item.name}
-                                onChange={v => {
-                                  const updated = [...form.gift_costs]
-                                  updated[idx] = { ...updated[idx], name: v }
-                                  setForm({ ...form, gift_costs: updated })
-                                }}
-                                onOptionSelect={opt => {
-                                  if (opt.price) {
-                                    const updated = [...form.gift_costs]
-                                    updated[idx] = { ...updated[idx], name: opt.value, amount: opt.price }
-                                    setForm({ ...form, gift_costs: updated })
-                                  }
-                                }}
-                                placeholder="请选择或输入礼品名称"
-                                showGear={hasPermission('field_options:manage')}
-                                showPrice
-                              />
-                            </div>
-                            <input type="number" step="0.01" min="0"
-                              value={item.amount}
-                              onChange={e => {
-                                const updated = [...form.gift_costs]
-                                updated[idx] = { ...updated[idx], amount: parseFloat(e.target.value) || 0 }
-                                setForm({ ...form, gift_costs: updated })
-                              }}
-                              placeholder="金额"
-                              className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
-                            <button type="button"
-                              onClick={() => setForm({ ...form, gift_costs: form.gift_costs.filter((_, i) => i !== idx) })}
-                              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded">
-                              <X size={14} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {form.gift_costs.length > 0 && (
-                      <div className="text-sm text-gray-500 text-right">
-                        礼品合计: <span className="font-medium text-gray-700">¥{form.gift_costs.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</span>
-                      </div>
-                    )}
-                  </div>
                 </div>
               )}
+
+              {/* 礼品明细区域 - 所有有创建权限的用户可见 */}
+              <div className="border-t border-gray-100 pt-4 mt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">礼品明细</label>
+                  <div className="flex items-center gap-2">
+                    {presets.length > 0 && (
+                      <div className="relative">
+                        <button type="button"
+                          onClick={() => setShowPresetDropdown(!showPresetDropdown)}
+                          className="text-xs text-gray-500 hover:text-violet-600 flex items-center gap-1 border border-gray-200 rounded px-2 py-1 hover:border-violet-300">
+                          预设组合 <ChevronDown size={12} />
+                        </button>
+                        {showPresetDropdown && (
+                          <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-48 max-h-48 overflow-y-auto">
+                            {presets.map(p => (
+                              <div key={p.id} className="flex items-center justify-between px-3 py-2 hover:bg-violet-50 group">
+                                <button type="button"
+                                  onClick={() => {
+                                    setForm({ ...form, gift_costs: p.items.map(i => ({ ...i })) })
+                                    setShowPresetDropdown(false)
+                                  }}
+                                  className="flex-1 text-left text-sm text-gray-700 hover:text-violet-700">
+                                  {p.name}
+                                  <span className="text-xs text-gray-400 ml-1">({p.items.length}项)</span>
+                                </button>
+                                <button type="button"
+                                  onClick={async (e) => {
+                                    e.stopPropagation()
+                                    if (!confirm(`删除预设「${p.name}」？`)) return
+                                    await deleteGiftPreset(p.id)
+                                    setPresets(prev => prev.filter(x => x.id !== p.id))
+                                  }}
+                                  className="p-0.5 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {form.gift_costs.length > 0 && (
+                      <button type="button"
+                        onClick={() => { setShowSavePreset(true); setPresetName('') }}
+                        className="text-xs text-gray-500 hover:text-violet-600 flex items-center gap-1">
+                        保存预设
+                      </button>
+                    )}
+                    <button type="button"
+                      onClick={() => setForm({ ...form, gift_costs: [...form.gift_costs, { name: '', amount: 0 }] })}
+                      className="text-xs text-violet-600 hover:text-violet-700 flex items-center gap-1">
+                      <Plus size={12} /> 添加礼品
+                    </button>
+                  </div>
+                </div>
+                {form.gift_costs.length > 0 && (
+                  <div className="space-y-2 mb-2">
+                    {form.gift_costs.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <FieldSelect
+                            fieldName="gift_name"
+                            label="礼品名称"
+                            value={item.name}
+                            onChange={v => {
+                              const updated = [...form.gift_costs]
+                              updated[idx] = { ...updated[idx], name: v }
+                              setForm({ ...form, gift_costs: updated })
+                            }}
+                            onOptionSelect={opt => {
+                              if (opt.price) {
+                                const updated = [...form.gift_costs]
+                                updated[idx] = { ...updated[idx], name: opt.value, amount: opt.price }
+                                setForm({ ...form, gift_costs: updated })
+                              }
+                            }}
+                            placeholder="请选择或输入礼品名称"
+                            showGear={hasPermission('field_options:manage')}
+                            showPrice={canCostView}
+                          />
+                        </div>
+                        {canCostView && (
+                          <input type="number" step="0.01" min="0"
+                            value={item.amount}
+                            onChange={e => {
+                              const updated = [...form.gift_costs]
+                              updated[idx] = { ...updated[idx], amount: parseFloat(e.target.value) || 0 }
+                              setForm({ ...form, gift_costs: updated })
+                            }}
+                            placeholder="金额"
+                            className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                        )}
+                        <button type="button"
+                          onClick={() => setForm({ ...form, gift_costs: form.gift_costs.filter((_, i) => i !== idx) })}
+                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {form.gift_costs.length > 0 && canCostView && (
+                  <div className="text-sm text-gray-500 text-right">
+                    礼品合计: <span className="font-medium text-gray-700">¥{form.gift_costs.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">备注</label>
@@ -789,19 +791,21 @@ export default function GiftList() {
               {canCostView && detailRecord.cost > 0 && (
                 <div><span className="text-gray-500">产品成本：</span><span className="text-orange-500">¥{detailRecord.cost?.toFixed(2)}</span></div>
               )}
-              {canCostView && detailRecord.gift_costs && detailRecord.gift_costs.length > 0 && (
+              {detailRecord.gift_costs && detailRecord.gift_costs.length > 0 && (
                 <div className="col-span-2">
-                  <span className="text-gray-500">礼品成本：</span>
+                  <span className="text-gray-500">礼品明细：</span>
                   <div className="mt-1 space-y-1">
                     {detailRecord.gift_costs.map((item, idx) => (
                       <div key={idx} className="flex items-center gap-2 text-sm">
                         <span className="text-gray-600">{item.name || '未命名'}</span>
-                        <span className="text-orange-500">¥{item.amount?.toFixed(2) || '0.00'}</span>
+                        {canCostView && <span className="text-orange-500">¥{item.amount?.toFixed(2) || '0.00'}</span>}
                       </div>
                     ))}
-                    <div className="text-sm font-medium text-gray-700 pt-1 border-t border-gray-100">
-                      礼品合计: ¥{detailRecord.total_gift_cost?.toFixed(2) || '0.00'}
-                    </div>
+                    {canCostView && (
+                      <div className="text-sm font-medium text-gray-700 pt-1 border-t border-gray-100">
+                        礼品合计: ¥{detailRecord.total_gift_cost?.toFixed(2) || '0.00'}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

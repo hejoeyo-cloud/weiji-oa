@@ -248,15 +248,22 @@ def get_report_shipping(
             shipping_fee=round(sf, 2), profit=round(profit, 2),
         ))
 
-    # 热销产品 Top 10
+    # 热销配置 Top 10
     start, end = _year_range(year)
     if month:
         start, end = _month_range(year, month)
-    top_rows = db.query(GiftRecord.product, func.sum(GiftRecord.quantity)).filter(
+    top_config_rows = db.query(GiftRecord.config, func.sum(GiftRecord.quantity)).filter(
         GiftRecord.company_id == cid, GiftRecord.date >= start, GiftRecord.date < end,
-        GiftRecord.product != "",
-    ).group_by(GiftRecord.product).order_by(func.sum(GiftRecord.quantity).desc()).limit(10).all()
-    top_products = [NameValue(name=r[0], value=r[1]) for r in top_rows]
+        GiftRecord.config != "",
+    ).group_by(GiftRecord.config).order_by(func.sum(GiftRecord.quantity).desc()).limit(10).all()
+    top_configs = [NameValue(name=r[0], value=r[1]) for r in top_config_rows]
+
+    # 热销型号 Top 10
+    top_model_rows = db.query(GiftRecord.model, func.sum(GiftRecord.quantity)).filter(
+        GiftRecord.company_id == cid, GiftRecord.date >= start, GiftRecord.date < end,
+        GiftRecord.model != "",
+    ).group_by(GiftRecord.model).order_by(func.sum(GiftRecord.quantity).desc()).limit(10).all()
+    top_models = [NameValue(name=r[0], value=r[1]) for r in top_model_rows]
 
     # 客户颜色偏好
     color_rows = db.query(GiftRecord.color, func.sum(GiftRecord.quantity)).filter(
@@ -267,8 +274,8 @@ def get_report_shipping(
 
     return ShippingData(
         qty_trend=qty_trend, amount_trend=amount_trend,
-        profit_trend=profit_trend, top_products=top_products,
-        color_preference=color_preference,
+        profit_trend=profit_trend, top_configs=top_configs,
+        top_models=top_models, color_preference=color_preference,
     )
 
 

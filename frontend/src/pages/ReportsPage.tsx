@@ -236,17 +236,31 @@ function ShippingTab({ data }: { data: ShippingData }) {
         </ResponsiveContainer>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        {/* 热销产品 */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        {/* 热销配置 */}
         <div className={cardStyle}>
-          <h3 className="text-sm font-semibold text-gray-600 mb-4">热销产品 Top 10</h3>
+          <h3 className="text-sm font-semibold text-gray-600 mb-4">热销配置 Top 10</h3>
           <ResponsiveContainer width="100%" height={chartH}>
-            <BarChart data={data.top_products} layout="vertical">
+            <BarChart data={data.top_configs} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#9ca3af' }} width={100} />
               <Tooltip content={<ChartTooltip />} />
               <Bar dataKey="value" fill="#8b5cf6" radius={[0, 4, 4, 0]} name="销量" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* 热销型号 */}
+        <div className={cardStyle}>
+          <h3 className="text-sm font-semibold text-gray-600 mb-4">热销型号 Top 10</h3>
+          <ResponsiveContainer width="100%" height={chartH}>
+            <BarChart data={data.top_models} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#9ca3af' }} width={100} />
+              <Tooltip content={<ChartTooltip />} />
+              <Bar dataKey="value" fill="#06b6d4" radius={[0, 4, 4, 0]} name="销量" />
             </BarChart>
           </ResponsiveContainer>
         </div>

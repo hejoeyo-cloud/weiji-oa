@@ -46,6 +46,9 @@ function todayStr() {
 
 export default function GiftResendList() {
   const { hasPermission } = useAuth()
+  const canCreate = hasPermission('gift_resend:create')
+  const canEdit = hasPermission('gift_resend:edit')
+  const canDelete = hasPermission('gift_resend:delete')
   const [searchParams] = useSearchParams()
   const highlightId = searchParams.get('highlight')
   const highlightRef = useRef<HTMLTableRowElement | null>(null)
@@ -213,10 +216,12 @@ export default function GiftResendList() {
           <h2 className="text-xl font-semibold text-gray-800">礼品补发登记</h2>
           <p className="text-sm text-gray-500 mt-0.5">礼品补发记录管理，共 {total} 条</p>
         </div>
-        <button onClick={openCreate}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors">
-          <Plus size={16} /> 新建补发
-        </button>
+        {canCreate && (
+          <button onClick={openCreate}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors">
+            <Plus size={16} /> 新建补发
+          </button>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-3 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
@@ -288,8 +293,8 @@ export default function GiftResendList() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
                       <button onClick={() => openDetail(r)} className="p-1.5 hover:bg-gray-100 text-gray-500 rounded-lg transition-colors" title="查看详情"><Eye size={14} /></button>
-                      <button onClick={() => openEdit(r)} className="p-1.5 hover:bg-emerald-50 text-emerald-500 rounded-lg transition-colors" title="编辑"><Edit2 size={14} /></button>
-                      <button onClick={() => handleDelete(r.id)} className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors" title="删除"><Trash2 size={14} /></button>
+                      {canEdit && <button onClick={() => openEdit(r)} className="p-1.5 hover:bg-emerald-50 text-emerald-500 rounded-lg transition-colors" title="编辑"><Edit2 size={14} /></button>}
+                      {canDelete && <button onClick={() => handleDelete(r.id)} className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors" title="删除"><Trash2 size={14} /></button>}
                     </div>
                   </td>
                 </tr>

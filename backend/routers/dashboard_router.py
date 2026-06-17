@@ -291,12 +291,12 @@ def build_overview_cards(
 
     return [
         {
-            "key": "pending_delivery",
-            "title": "待发货订单",
-            "value": pending_delivery_count,
-            "subtext": "发货登记中待发货的订单数量",
+            "key": "pending_invoices",
+            "title": "待开发票",
+            "value": pending_invoices_count,
+            "subtext": "客户开票申请中待处理的数量",
             "status": "info",
-            "path": "/gifts",
+            "path": "/finance",
         },
         {
             "key": "pending_delivery",

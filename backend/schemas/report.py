@@ -42,7 +42,8 @@ class ShippingData(BaseModel):
     qty_trend: List[MonthValue] = []
     amount_trend: List[dict] = []  # [{month, order_amount, cost, shipping_fee}]
     profit_trend: List[ProfitItem] = []
-    top_products: List[NameValue] = []
+    top_configs: List[NameValue] = []
+    top_models: List[NameValue] = []
     color_preference: List[NameValue] = []
 
 
