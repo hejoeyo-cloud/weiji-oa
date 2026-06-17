@@ -767,6 +767,57 @@ export interface DashboardStats {
   pending_tasks: number
 }
 
+// ── 新报表 ─────────────────────────────────────────────────────────
+
+export interface MonthValue { month: string; value: number }
+export interface NameValue { name: string; value: number }
+
+export interface OverviewCard { label: string; value: number; change: number }
+export interface OverviewData {
+  cards: OverviewCard[]
+  shipping_vs_return: { month: string; shipping_qty: number; return_qty: number; return_rate: number }[]
+  module_distribution: NameValue[]
+}
+
+export interface ProfitItem {
+  month: string; revenue: number; cost: number; gift_cost: number; cashback: number; shipping_fee: number; profit: number
+}
+export interface ShippingData {
+  qty_trend: MonthValue[]
+  amount_trend: { month: string; order_amount: number; cost: number; shipping_fee: number }[]
+  profit_trend: ProfitItem[]
+  top_products: NameValue[]
+  status_distribution: NameValue[]
+}
+
+export interface AftersalesData {
+  return_exchange_trend: { month: string; return_count: number; exchange_count: number }[]
+  return_reasons: NameValue[]
+  repair_trend: MonthValue[]
+  repair_charge_rate: number
+  damage_count: number
+  damage_amount: number
+  status_distribution: NameValue[]
+}
+
+export interface FinanceData {
+  income_expense_trend: { month: string; income: number; expense: number }[]
+  cashback_trend: MonthValue[]
+  cashback_reasons: NameValue[]
+  invoice_status: NameValue[]
+  invoice_type_amount: NameValue[]
+}
+
+export interface ShopRankItem {
+  shop_name: string; shipping_qty: number; return_qty: number; return_rate: number; order_amount: number; repair_count: number
+}
+export interface ShopData {
+  shipping_rank: NameValue[]
+  return_rate_rank: NameValue[]
+  amount_rank: NameValue[]
+  detail_table: ShopRankItem[]
+}
+
 // ── 钉钉 ─────────────────────────────────────────────────────────
 export interface DingtalkConfig {
   id: number

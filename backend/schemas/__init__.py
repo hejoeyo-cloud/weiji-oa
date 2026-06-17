@@ -13,6 +13,7 @@ from .gift import *
 from .knowledge import *
 from .misc import *
 from .notification import *
+from .report import *
 from .role import *
 from .schedule import *
 from .shop import *
