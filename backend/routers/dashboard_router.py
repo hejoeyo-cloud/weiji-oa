@@ -15,9 +15,11 @@ from database import (
     CustomerInvoiceRequest,
     GiftRecord,
     GiftResendRecord,
+    RepairRecord,
     ReturnExchangeRecord,
     ScheduleShift,
     ScheduleSlot,
+    TaskBoard,
     Ticket,
     User,
     get_db,
@@ -209,6 +211,12 @@ def build_overview_cards(
         CustomerInvoiceRequest.company_id == current_user.company_id,
     ).count()
 
+    # 待处理维修
+    pending_repair_count = db.query(RepairRecord).filter(
+        RepairRecord.repair_status.in_(["pending_repair", "processing_repair"]),
+        RepairRecord.company_id == current_user.company_id,
+    ).count()
+
     if current_user.role == "admin":
         return [
             {
@@ -228,20 +236,20 @@ def build_overview_cards(
                 "path": "/gifts",
             },
             {
-                "key": "pending_invoices",
-                "title": "待开票数量",
-                "value": pending_invoices_count,
-                "subtext": "客户开票申请中待处理的数量",
-                "status": "warning",
-                "path": "/finance",
-            },
-            {
                 "key": "pending_return_exchange",
                 "title": "退换待处理",
                 "value": pending_return_exchange_count,
                 "subtext": "退换登记中待处理与处理中的记录",
                 "status": "warning",
                 "path": "/return-exchange",
+            },
+            {
+                "key": "pending_repair",
+                "title": "待处理维修",
+                "value": pending_repair_count,
+                "subtext": "维修登记中待维修与维修中的记录",
+                "status": "warning",
+                "path": "/repair",
             },
         ]
 
@@ -272,23 +280,23 @@ def build_overview_cards(
                 "path": "/return-exchange",
             },
             {
-                "key": "pending_my_approval",
-                "title": "待我审批",
-                "value": pending_my_approval_count,
-                "subtext": "需要当前账号处理的审批事项",
-                "status": "info",
-                "path": "/approvals",
+                "key": "pending_repair",
+                "title": "待处理维修",
+                "value": pending_repair_count,
+                "subtext": "维修登记中待维修与维修中的记录",
+                "status": "warning",
+                "path": "/repair",
             },
         ]
 
     return [
         {
-            "key": "my_approvals",
-            "title": "我发起的审批",
-            "value": my_approval_count,
-            "subtext": "含进行中与已处理审批",
+            "key": "pending_delivery",
+            "title": "待发货订单",
+            "value": pending_delivery_count,
+            "subtext": "发货登记中待发货的订单数量",
             "status": "info",
-            "path": "/approvals",
+            "path": "/gifts",
         },
         {
             "key": "pending_delivery",
@@ -307,12 +315,12 @@ def build_overview_cards(
             "path": "/return-exchange",
         },
         {
-            "key": "pending_invoices",
-            "title": "待开票数量",
-            "value": pending_invoices_count,
-            "subtext": "客户开票申请中待处理的数量",
+            "key": "pending_repair",
+            "title": "待处理维修",
+            "value": pending_repair_count,
+            "subtext": "维修登记中待维修与维修中的记录",
             "status": "warning",
-            "path": "/finance",
+            "path": "/repair",
         },
     ]
 
@@ -367,6 +375,62 @@ def build_shortcuts(user_perms: list[str]) -> list[dict]:
         "path": item["path"],
         "icon": item["icon"],
     } for item in shortcuts if has_permission(user_perms, *item["permissions"])]
+
+
+def build_my_todo(db: Session, current_user: User) -> list[dict]:
+    """我的待办事项（最多8条）"""
+    items = []
+
+    # 待我审批
+    from database import ApprovalStep
+    pending_steps = db.query(ApprovalStep).filter(
+        ApprovalStep.approver_id == current_user.id,
+        ApprovalStep.status == "pending",
+        ApprovalStep.company_id == current_user.company_id,
+    ).order_by(ApprovalStep.id.desc()).limit(3).all()
+    for step in pending_steps:
+        req = step.request
+        if req:
+            items.append({
+                "type": "approval",
+                "label": "待审批",
+                "title": req.title or "审批申请",
+                "time": format_datetime(req.created_at),
+                "path": "/approvals",
+            })
+
+    # 分配给我的未完成任务
+    tasks = db.query(TaskBoard).filter(
+        TaskBoard.assignee_id == current_user.id,
+        TaskBoard.status.in_(["todo", "in_progress"]),
+        TaskBoard.company_id == current_user.company_id,
+    ).order_by(TaskBoard.created_at.desc()).limit(3).all()
+    for t in tasks:
+        items.append({
+            "type": "task",
+            "label": "任务",
+            "title": t.title or "未命名任务",
+            "time": format_datetime(t.created_at),
+            "path": "/tasks",
+        })
+
+    # 我创建的待发货订单
+    gifts = db.query(GiftRecord).filter(
+        GiftRecord.created_by == current_user.id,
+        GiftRecord.status == "pending",
+        GiftRecord.company_id == current_user.company_id,
+    ).order_by(GiftRecord.created_at.desc()).limit(3).all()
+    for g in gifts:
+        items.append({
+            "type": "delivery",
+            "label": "待发货",
+            "title": f"订单 {g.order_no or '#'+str(g.id)} - {g.shop_name or ''}",
+            "time": format_datetime(g.created_at),
+            "path": "/gifts",
+        })
+
+    items.sort(key=lambda x: x["time"] or "", reverse=True)
+    return items[:8]
 
 
 def build_unread_messages(db: Session, current_user: User) -> list[dict]:
@@ -465,26 +529,75 @@ def build_recent_activity(db: Session, current_user: User) -> list[dict]:
             "path": f"/tickets/{ticket.id}",
         })
 
-    for model, kind, title_prefix, path in [
-        (GiftRecord, "gift", "发货登记", "/gifts"),
-        (GiftResendRecord, "gift_resend", "礼品补发", "/gift-resend"),
-    ]:
-        records = db.query(model).filter(
-            model.created_by == current_user.id,
-            model.company_id == current_user.company_id,
-        ).order_by(model.updated_at.desc()).limit(3).all()
-        for record in records:
-            items.append({
-                "key": f"{kind}-{record.id}",
-                "kind": kind,
-                "title": f"{title_prefix} #{record.id}",
-                "description": "最近有更新",
-                "time": format_datetime(record.updated_at or record.created_at),
-                "path": path,
-            })
+    # 发货记录
+    gifts = db.query(GiftRecord).filter(
+        GiftRecord.created_by == current_user.id,
+        GiftRecord.company_id == current_user.company_id,
+    ).order_by(GiftRecord.updated_at.desc()).limit(3).all()
+    for r in gifts:
+        status_label = "已发货" if r.status == "sent" else "待发货"
+        items.append({
+            "key": f"gift-{r.id}",
+            "kind": "gift",
+            "title": f"发货 #{r.id}",
+            "description": f"订单 {r.order_no or '-'} | {r.shop_name or '-'} | {status_label}",
+            "time": format_datetime(r.updated_at or r.created_at),
+            "path": "/gifts",
+        })
 
-    items.sort(key=lambda item: item["time"], reverse=True)
-    return items[:5]
+    # 补发记录
+    resends = db.query(GiftResendRecord).filter(
+        GiftResendRecord.created_by == current_user.id,
+        GiftResendRecord.company_id == current_user.company_id,
+    ).order_by(GiftResendRecord.updated_at.desc()).limit(3).all()
+    for r in resends:
+        detail = ""
+        if r.gift_items:
+            detail = "、".join(f"{g.get('name','')}" for g in r.gift_items[:3] if isinstance(g, dict))
+        items.append({
+            "key": f"gift_resend-{r.id}",
+            "kind": "gift_resend",
+            "title": f"补发 #{r.id}",
+            "description": f"订单 {r.order_no or '-'} | {detail or r.shop_name or '-'}",
+            "time": format_datetime(r.updated_at or r.created_at),
+            "path": "/gift-resend",
+        })
+
+    # 退换记录
+    re_records = db.query(ReturnExchangeRecord).filter(
+        ReturnExchangeRecord.created_by == current_user.id,
+        ReturnExchangeRecord.company_id == current_user.company_id,
+    ).order_by(ReturnExchangeRecord.updated_at.desc()).limit(3).all()
+    for r in re_records:
+        type_label = "退货" if r.record_type == "return" else "换货"
+        status_map = {"pending": "待处理", "processing": "处理中", "completed": "已完成"}
+        items.append({
+            "key": f"return_exchange-{r.id}",
+            "kind": "return_exchange",
+            "title": f"{type_label} #{r.id}",
+            "description": f"订单 {r.order_no or '-'} | {status_map.get(r.progress, r.progress)}",
+            "time": format_datetime(r.updated_at or r.created_at),
+            "path": "/return-exchange",
+        })
+
+    # 维修记录
+    repairs = db.query(RepairRecord).filter(
+        RepairRecord.created_by == current_user.id,
+        RepairRecord.company_id == current_user.company_id,
+    ).order_by(RepairRecord.updated_at.desc()).limit(3).all()
+    for r in repairs:
+        status_map = {"pending_repair": "待维修", "processing_repair": "维修中", "completed_repair": "已完成"}
+        items.append({
+            "key": f"repair-{r.id}",
+            "kind": "repair",
+            "title": f"维修 #{r.id}",
+            "description": f"订单 {r.order_no or '-'} | {status_map.get(r.repair_status, r.repair_status)}",
+            "time": format_datetime(r.updated_at or r.created_at),
+            "path": "/repair",
+        })
+
+    items.sort(key=lambda item: item["time"] or "", reverse=True)
+    return items[:10]
 
 
 @router.get("")
@@ -514,4 +627,5 @@ def get_dashboard(
         "shortcuts": build_shortcuts(user_perms),
         "recent_activity": build_recent_activity(db, current_user),
         "unread_messages": build_unread_messages(db, current_user),
+        "my_todo": build_my_todo(db, current_user),
     }

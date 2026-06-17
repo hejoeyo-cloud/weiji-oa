@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import AppLayout from './components/AppLayout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import { useAuth } from './hooks/useAuth'
 import TicketList from './pages/TicketList'
 import TicketCreate from './pages/TicketCreate'
 import TicketDetail from './pages/TicketDetail'
@@ -73,6 +74,31 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function DashboardRoute() {
+  const { hasPermission, user } = useAuth()
+  if (!user) return <Dashboard />
+  if (hasPermission('dashboard:view')) return <Dashboard />
+  // 无工作台权限，跳转到第一个有权限的模块
+  const fallbackRoutes = [
+    { perm: 'tickets:view', path: '/tickets' },
+    { perm: 'return_exchange:view', path: '/return-exchange' },
+    { perm: 'repair:view', path: '/repair' },
+    { perm: 'gifts:view', path: '/gifts' },
+    { perm: 'gift_cashback:view', path: '/gift-cashback' },
+    { perm: 'gift_resend:view', path: '/gift-resend' },
+    { perm: 'warehouse_products:view', path: '/warehouse' },
+    { perm: 'finance_invoice_request:view', path: '/finance' },
+    { perm: 'attendance:view', path: '/attendance' },
+    { perm: 'tasks:view', path: '/tasks' },
+    { perm: 'messages:view', path: '/messages' },
+    { perm: 'announcements:view', path: '/announcements' },
+    { perm: 'approvals:view', path: '/approvals' },
+    { perm: 'schedule:view', path: '/schedule' },
+  ]
+  const target = fallbackRoutes.find(r => hasPermission(r.perm))
+  return <Navigate to={target?.path || '/profile'} replace />
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -85,7 +111,7 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<DashboardRoute />} />
           <Route path="/tickets" element={<TicketList />} />
           <Route path="/tickets/create" element={<TicketCreate />} />
           <Route path="/tickets/:id" element={<TicketDetail />} />

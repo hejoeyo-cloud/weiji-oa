@@ -703,6 +703,7 @@ export interface DashboardResponse {
   shortcuts: DashboardShortcut[]
   recent_activity: DashboardRecentActivityItem[]
   unread_messages?: any[]
+  my_todo?: { type: string; label: string; title: string; time: string; path: string }[]
 }
 
 // ── 考勤打卡 ─────────────────────────────────────────────────────────

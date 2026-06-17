@@ -165,8 +165,21 @@ def update_record(
     r = db.query(ReturnExchangeRecord).filter(ReturnExchangeRecord.id == record_id, ReturnExchangeRecord.company_id == current_user.company_id).first()
     if not r:
         raise HTTPException(status_code=404, detail="Record not found")
+    old_progress = r.progress
     for field, value in req.model_dump(exclude_none=True).items():
         setattr(r, field, value)
+    # 状态变更通知
+    if r.progress != old_progress and r.created_by:
+        try:
+            from services.notification_service import create_and_push
+            type_label = "退货" if r.record_type == "return" else "换货"
+            status_map = {"pending": "待处理", "processing": "处理中", "completed": "已完成"}
+            create_and_push(db, r.created_by, r.id,
+                            f"{type_label} #{r.id} 状态变更",
+                            f"状态已更新为：{status_map.get(r.progress, r.progress)}",
+                            resource_type="return_exchange")
+        except Exception:
+            pass
     db.commit()
     db.refresh(r)
     audit_service.log(db, current_user, "update", "return_exchange", r.id,

@@ -12,14 +12,14 @@ export default function UnreadMessagesPanel({ messages }: { messages: UnreadMess
     <div className="bg-white rounded-lg border p-4" style={{ borderColor: '#f0f0f0' }}>
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
-          <Mail size={14} className="text-blue-600" /> 未读邮件
+          <Mail size={14} className="text-blue-600" /> 邮件
         </h3>
         <button onClick={() => navigate('/messages')} className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-0.5">
           查看全部 <ArrowRight size={12} />
         </button>
       </div>
       {messages.length === 0 ? (
-        <div className="text-center py-4 text-xs text-gray-400">暂无未读邮件</div>
+        <div className="text-center py-4 text-xs text-gray-400">暂无邮件</div>
       ) : (
         <div className="space-y-2">
           {messages.slice(0, 3).map(msg => (

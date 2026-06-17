@@ -162,6 +162,21 @@ def create_announcement(
     db.add(a)
     db.commit()
     db.refresh(a)
+    # 通知目标用户
+    try:
+        from services.notification_service import create_and_push
+        from database import User as UserModel
+        query = db.query(UserModel).filter(UserModel.company_id == current_user.company_id, UserModel.id != current_user.id)
+        if req.target_departments:
+            query = query.filter(UserModel.department_id.in_(req.target_departments))
+        users = query.all()
+        for u in users:
+            create_and_push(db, u.id, a.id,
+                            f"新公告: {a.title}",
+                            f"{current_user.name} 发布了新公告",
+                            resource_type="announcement")
+    except Exception:
+        pass
     audit_service.log(db, current_user, "create", "announcement", a.id,
                       f"发布公告: {a.title}")
     return ann_to_out(a, current_user.id, db)

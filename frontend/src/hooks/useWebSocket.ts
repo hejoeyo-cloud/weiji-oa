@@ -32,6 +32,8 @@ export function useWebSocket(userId: number | undefined) {
         if (msg.type === 'notification') {
           setUnreadCount((prev) => prev + 1)
           setNotifications((prev) => [msg.data, ...prev])
+          // 触发工作台刷新
+          window.dispatchEvent(new CustomEvent('dashboard-refresh'))
         }
       } catch { /* ignore */ }
     }

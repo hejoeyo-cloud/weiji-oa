@@ -79,7 +79,7 @@ def get_module_registry():
 
 # ── 模块配置 ──
 @router.get("", response_model=list[ModuleConfigOut])
-def list_modules(current_user: User = Depends(require_permission("module_settings:view")), db: Session = Depends(get_db)):
+def list_modules(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     # 自动补全缺失的模块配置
     from models.seed_modules import seed_module_configs
     seed_module_configs(db, current_user.company_id)

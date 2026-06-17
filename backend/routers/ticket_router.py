@@ -142,6 +142,12 @@ def update_ticket(
         assignee = db.query(User).filter(User.id == req.assigned_to, User.company_id == current_user.company_id).first()
         if not assignee:
             raise HTTPException(status_code=400, detail="指派用户不存在")
+        if req.assigned_to != ticket.assigned_to:
+            notification_service.create_and_push(
+                db, req.assigned_to, ticket.id,
+                f"工单 #{ticket_id} 已分配给您",
+                f"{current_user.name} 将工单分配给您处理",
+            )
         ticket.assigned_to = req.assigned_to
     if req.diagnosis_result is not None:
         ticket.diagnosis_result = req.diagnosis_result

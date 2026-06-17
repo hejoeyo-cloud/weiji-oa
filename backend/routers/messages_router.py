@@ -123,11 +123,16 @@ def send_message(req: MessageCreate, current_user: User = Depends(require_permis
             MessageAttachment.company_id == current_user.company_id,
         ).update({"message_id": msg.id}, synchronize_session=False)
         db.commit()
-    # 创建收件人通知
-    notif = Notification(company_id=current_user.company_id, user_id=req.recipient_id,
-                         title=f"新邮件: {req.subject}", content=f"来自 {current_user.name}",
-                         is_read=False)
-    db.add(notif); db.commit()
+    # 创建收件人通知（实时推送）
+    try:
+        from services.notification_service import create_and_push
+        create_and_push(db, req.recipient_id, f"新邮件: {req.subject}",
+                        f"来自 {current_user.name}", company_id=current_user.company_id)
+    except Exception:
+        notif = Notification(company_id=current_user.company_id, user_id=req.recipient_id,
+                             title=f"新邮件: {req.subject}", content=f"来自 {current_user.name}",
+                             is_read=False)
+        db.add(notif); db.commit()
     return _out(msg)
 
 

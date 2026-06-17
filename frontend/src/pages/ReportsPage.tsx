@@ -253,7 +253,7 @@ function ShippingTab({ data }: { data: ShippingData }) {
 
         {/* 客户颜色偏好 */}
         <div className={cardStyle}>
-          <h3 className="text-sm font-semibold text-gray-600 mb-4">客户产品颜色偏好</h3>
+          <h3 className="text-sm font-semibold text-gray-600 mb-4">产品颜色偏好</h3>
           <ResponsiveContainer width="100%" height={chartH}>
             <BarChart data={data.color_preference} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />

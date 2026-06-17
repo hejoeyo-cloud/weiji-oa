@@ -233,13 +233,14 @@ def handle_approval(
 
 
 def _notify(db, user_id: int, content: str, company_id: int):
-    """发送系统通知"""
+    """发送系统通知（实时推送）"""
     try:
+        from services.notification_service import create_and_push
+        create_and_push(db, user_id, "审批通知", content, company_id=company_id)
+    except Exception:
         from database import Notification
         n = Notification(company_id=company_id, user_id=user_id, title="审批通知", content=content, is_read=False)
         db.add(n)
-    except:
-        pass
 
 
 @router.delete("/{req_id}")

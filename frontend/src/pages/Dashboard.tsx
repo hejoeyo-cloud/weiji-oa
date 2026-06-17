@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { markAnnouncementRead } from '../api/announcements'
@@ -16,20 +16,33 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const navigate = useNavigate()
+  const timerRef = useRef<ReturnType<typeof setInterval>>()
 
-  useEffect(() => {
-    setLoading(true)
-    setError('')
+  const load = useCallback(() => {
     getDashboard()
-      .then(data => {
-        setDashboard(data)
-      })
+      .then(data => setDashboard(data))
       .catch((err: any) => {
         console.error('Dashboard fetch failed:', err)
         setError('工作台数据加载失败，请稍后刷新重试。')
       })
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    setLoading(true)
+    setError('')
+    load()
+    // 每 5 分钟自动刷新
+    timerRef.current = setInterval(load, 5 * 60 * 1000)
+    return () => clearInterval(timerRef.current)
+  }, [load])
+
+  // 收到 WebSocket 通知时刷新
+  useEffect(() => {
+    const handler = () => load()
+    window.addEventListener('dashboard-refresh', handler)
+    return () => window.removeEventListener('dashboard-refresh', handler)
+  }, [load])
 
   const handleMarkRead = (annId: number) => {
     markAnnouncementRead(annId)

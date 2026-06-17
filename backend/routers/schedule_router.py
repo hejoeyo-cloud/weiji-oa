@@ -223,6 +223,16 @@ def batch_range_create_slots(
         count += 1
         current += timedelta(days=1)
     db.commit()
+    # 通知被排班的用户
+    if req.user_id != current_user.id:
+        try:
+            from services.notification_service import create_and_push
+            create_and_push(db, req.user_id, 0,
+                            "排班已更新",
+                            f"{current_user.name} 为您安排了 {req.start_date} 至 {req.end_date} 的班次",
+                            resource_type="schedule")
+        except Exception:
+            pass
     return {"message": "OK", "count": count}
 
 
@@ -314,6 +324,15 @@ def create_swap(
     db.add(swap)
     db.commit()
     db.refresh(swap)
+    # 通知目标用户
+    try:
+        from services.notification_service import create_and_push
+        create_and_push(db, req.target_user_id, swap.id,
+                        "换班申请",
+                        f"{current_user.name} 申请与您换班（{req.applicant_date} ↔ {req.target_date}）",
+                        resource_type="schedule")
+    except Exception:
+        pass
     return swap_to_out(swap)
 
 
@@ -357,6 +376,17 @@ def action_swap(
         db.commit()
     else:
         raise HTTPException(400, "action 必须为 approve 或 reject")
+
+    # 通知申请人
+    try:
+        from services.notification_service import create_and_push
+        action_label = "已通过" if req.action == "approve" else "已驳回"
+        create_and_push(db, swap.applicant_id, swap.id,
+                        f"换班申请{action_label}",
+                        f"您的换班申请（{swap.applicant_date} ↔ {swap.target_date}）{action_label}",
+                        resource_type="schedule")
+    except Exception:
+        pass
 
     db.refresh(swap)
     return swap_to_out(swap)

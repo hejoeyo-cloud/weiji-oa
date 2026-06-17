@@ -177,8 +177,20 @@ def update_record(
     r = db.query(RepairRecord).filter(RepairRecord.id == record_id, RepairRecord.company_id == current_user.company_id).first()
     if not r:
         raise HTTPException(status_code=404, detail="Record not found")
+    old_repair_status = r.repair_status
     for field, value in req.model_dump(exclude_none=True).items():
         setattr(r, field, value)
+    # 状态变更通知
+    if r.repair_status != old_repair_status and r.created_by:
+        try:
+            from services.notification_service import create_and_push
+            status_map = {"pending_repair": "待维修", "processing_repair": "维修中", "completed_repair": "已完成"}
+            create_and_push(db, r.created_by, r.id,
+                            f"维修 #{r.id} 状态变更",
+                            f"状态已更新为：{status_map.get(r.repair_status, r.repair_status)}",
+                            resource_type="repair")
+        except Exception:
+            pass
     db.commit()
     db.refresh(r)
     audit_service.log(db, current_user, "update", "repair", r.id,

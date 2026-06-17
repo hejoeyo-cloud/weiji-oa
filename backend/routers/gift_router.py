@@ -207,6 +207,18 @@ def update_record(
         r.status = "sent" if (r.send_tracking and r.send_tracking.strip()) else "pending"
     if r.send_tracking and r.send_tracking.strip() and not r.ship_date:
         r.ship_date = datetime.now().strftime("%Y-%m-%d")
+    # 发货状态变更通知
+    old_status = db.query(GiftRecord.status).filter(GiftRecord.id == record_id).scalar()
+    new_status = r.status
+    if old_status != new_status and new_status == "sent" and r.created_by:
+        try:
+            from services.notification_service import create_and_push
+            create_and_push(db, r.created_by, r.id,
+                            f"发货 #{r.id} 已发出",
+                            f"订单 {r.order_no or ''} 已发货，快递单号：{r.send_tracking or ''}",
+                            resource_type="gift")
+        except Exception:
+            pass
     db.commit()
     db.refresh(r)
     audit_service.log(db, current_user, "update", "gift", r.id,
