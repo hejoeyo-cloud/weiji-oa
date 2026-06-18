@@ -264,27 +264,46 @@ function OverviewTab({
       {/* 低库存预警 */}
       {stats.low_stock_count > 0 && (
         <div className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: '#f0f0f0' }}>
-          <div className="flex items-center gap-2 px-5 py-4 border-b" style={{ borderColor: '#f0f0f0', background: '#fff7ed' }}>
-            <AlertTriangle className="w-4 h-4" style={{ color: '#f97316' }} />
-            <span className="text-sm font-semibold" style={{ color: '#f97316' }}>
+          <div className="flex items-center gap-2 px-5 py-4 border-b" style={{ borderColor: '#f0f0f0', background: '#fef2f2' }}>
+            <AlertTriangle className="w-5 h-5" style={{ color: '#dc2626' }} />
+            <span className="text-base font-bold" style={{ color: '#dc2626' }}>
               低库存预警（{stats.low_stock_count} 种货品库存 ≤ 20）
             </span>
           </div>
-          <div className="divide-y" style={{ borderColor: '#f9f9f9' }}>
-            {stats.low_stock_items.map(item => (
-              <div key={item.id} className="flex items-center justify-between px-5 py-3">
-                <div>
-                  <span className="text-sm font-medium" style={{ color: '#1f1f1f' }}>{item.name}</span>
-                  <span className="ml-2 text-xs" style={{ color: '#a3a3a3' }}>{item.code}</span>
+          <div className="p-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {[...stats.low_stock_items]
+              .sort((a, b) => a.current_qty - b.current_qty)
+              .map(item => (
+                <div
+                  key={item.id}
+                  className="rounded-xl p-4 border-2 transition-all hover:scale-105"
+                  style={{
+                    borderColor: item.current_qty === 0 ? '#dc2626' : '#f59e0b',
+                    background: item.current_qty === 0
+                      ? 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)'
+                      : 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)'
+                  }}
+                >
+                  <div className="text-base font-semibold mb-2 truncate" style={{ color: '#1f2937' }}>
+                    {item.name}
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span
+                      className="text-3xl font-bold"
+                      style={{ color: item.current_qty === 0 ? '#dc2626' : '#d97706' }}
+                    >
+                      {item.current_qty}
+                    </span>
+                    <span className="text-sm" style={{ color: '#6b7280' }}>{item.unit}</span>
+                  </div>
+                  {item.current_qty === 0 && (
+                    <div className="mt-2 text-xs font-semibold px-2 py-1 rounded-full inline-block"
+                      style={{ background: '#dc2626', color: '#ffffff' }}>
+                      缺货
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-sm font-semibold" style={{ color: item.current_qty === 0 ? '#ef4444' : '#f97316' }}>
-                    {item.current_qty}
-                  </span>
-                  <span className="text-xs" style={{ color: '#a3a3a3' }}>{item.unit}</span>
-                </div>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
       )}
