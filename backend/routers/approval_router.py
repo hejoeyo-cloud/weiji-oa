@@ -249,16 +249,18 @@ def cancel_request(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """申请人撤销自己的申请"""
+    """删除审批申请（申请人可删除自己的，管理员可删除任意）"""
     r = db.query(ApprovalRequest).filter(ApprovalRequest.id == req_id, ApprovalRequest.company_id == current_user.company_id).first()
     if not r:
         raise HTTPException(status_code=404, detail="Approval request not found")
-    if r.applicant_id != current_user.id and current_user.role not in ("admin", "technician"):
+    if r.applicant_id != current_user.id and current_user.role not in ("admin",):
         raise HTTPException(status_code=403, detail="Forbidden")
-    if r.status not in ("pending",):
-        raise HTTPException(status_code=400, detail="Can only cancel pending requests")
-    r.status = "cancelled"
+    # 删除关联的审批步骤
+    db.query(ApprovalStep).filter(ApprovalStep.request_id == req_id).delete()
+    # 删除审批申请
+    title = r.title or "未命名"
+    db.delete(r)
     db.commit()
     audit_service.log(db, current_user, "delete", "approval", req_id,
-                      f"撤销审批申请: {r.title}")
+                      f"删除审批申请: {title}")
     return {"message": "OK"}

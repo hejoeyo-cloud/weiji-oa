@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, X, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, X, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
 import { getApprovals, createApproval, handleApproval, cancelApproval, getApprovalUsers } from '../api/approvals'
 import { ApprovalRequest } from '../types'
 import { useAuth } from '../hooks/useAuth'
@@ -76,6 +76,11 @@ export default function ApprovalPage() {
 
   const handleCancel = (id: number) => {
     if (!confirm('确认撤销此申请？')) return
+    cancelApproval(id).then(load).catch(console.error)
+  }
+
+  const handleDelete = (id: number) => {
+    if (!confirm('确认删除此审批单？删除后无法恢复。')) return
     cancelApproval(id).then(load).catch(console.error)
   }
 
@@ -172,6 +177,12 @@ export default function ApprovalPage() {
                     {req.applicant_id === user?.id && req.status === 'pending' && (
                       <button onClick={() => handleCancel(req.id)}
                         className="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600 text-xs rounded-lg transition-colors">撤销</button>
+                    )}
+                    {(req.applicant_id === user?.id || user?.role === 'admin') && (
+                      <button onClick={() => handleDelete(req.id)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-medium rounded-lg transition-colors">
+                        <Trash2 size={13} /> 删除
+                      </button>
                     )}
                     <button onClick={() => setExpanded(isExpanded ? null : req.id)}
                       className="p-1.5 hover:bg-gray-100 text-gray-400 rounded-lg transition-colors">
