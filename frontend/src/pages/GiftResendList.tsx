@@ -31,11 +31,24 @@ function exportToExcel(filename: string, rows: Record<string, any>[]) {
   }
 }
 
+const STATUSES = [
+  { value: 'pending', label: '待发货', color: 'bg-amber-100 text-amber-700' },
+  { value: 'sent', label: '已发出', color: 'bg-blue-100 text-blue-700' },
+  { value: 'intercepted', label: '已拦截', color: 'bg-red-100 text-red-700' },
+  { value: 'torn', label: '已撕单', color: 'bg-gray-100 text-gray-700' },
+  { value: 'cancelled', label: '已取消', color: 'bg-stone-100 text-stone-600' },
+]
+
+function StatusBadge({ status }: { status: string }) {
+  const s = STATUSES.find(x => x.value === status) || STATUSES[0]
+  return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${s.color}`}>{s.label}</span>
+}
+
 const emptyForm = {
   apply_date: '', order_no: '', shop_name: '', type: '',
   gift_detail: '', gift_items: [] as { name: string; quantity: number; amount: number }[],
   customer_info: '', express_company: '',
-  tracking_no: '', remark: '',
+  tracking_no: '', status: 'pending', remark: '',
 }
 
 /** 获取本地 YYYY-MM-DD 格式日期字符串 */
@@ -147,7 +160,8 @@ export default function GiftResendList() {
       apply_date: r.apply_date, order_no: r.order_no, shop_name: r.shop_name,
       type: r.type, gift_detail: r.gift_detail, gift_items: r.gift_items || [],
       customer_info: r.customer_info,
-      express_company: r.express_company, tracking_no: r.tracking_no, remark: r.remark,
+      express_company: r.express_company, tracking_no: r.tracking_no,
+      status: r.status || 'pending', remark: r.remark,
     })
     setShowDetail(false)
     setShowModal(true)
@@ -191,6 +205,71 @@ export default function GiftResendList() {
   const handleDelete = (id: number) => {
     if (!confirm('确认删除这条补发记录？')) return
     deleteGiftResend(id).then(load).catch(console.error)
+  }
+
+  const handleIntercept = () => {
+    if (!detailRecord) return
+    if (!confirm('确认拦截此快递？拦截后状态将变为"已拦截"')) return
+    const oldLabel = STATUSES.find(s => s.value === detailRecord.status)?.label || detailRecord.status
+    updateGiftResend(detailRecord.id, { status: 'intercepted' })
+      .then(() => {
+        addGiftResendFeedback(detailRecord.id, `拦截快递，状态: ${oldLabel} → 已拦截`).catch(console.error)
+        return getGiftResendList({ page: 1, page_size: 1 }).then(() => detailRecord.id)
+      })
+      .then(() => load())
+      .catch(console.error)
+  }
+
+  const handleTorn = () => {
+    if (!detailRecord) return
+    if (!confirm('确认撕单？撕单后状态将变为"已撕单"')) return
+    const oldLabel = STATUSES.find(s => s.value === detailRecord.status)?.label || detailRecord.status
+    updateGiftResend(detailRecord.id, { status: 'torn' })
+      .then(() => {
+        addGiftResendFeedback(detailRecord.id, `撕单，状态: ${oldLabel} → 已撕单`).catch(console.error)
+        return getGiftResendList({ page: 1, page_size: 1 }).then(() => detailRecord.id)
+      })
+      .then(() => load())
+      .catch(console.error)
+  }
+
+  const handleCancel = () => {
+    if (!detailRecord) return
+    if (!confirm('确认取消此补发记录？')) return
+    const oldLabel = STATUSES.find(s => s.value === detailRecord.status)?.label || detailRecord.status
+    updateGiftResend(detailRecord.id, { status: 'cancelled' })
+      .then(() => {
+        addGiftResendFeedback(detailRecord.id, `取消补发，状态: ${oldLabel} → 已取消`).catch(console.error)
+        return getGiftResendList({ page: 1, page_size: 1 }).then(() => detailRecord.id)
+      })
+      .then(() => load())
+      .catch(console.error)
+  }
+
+  const handlePending = () => {
+    if (!detailRecord) return
+    if (!confirm('确认将状态改为"待发货"？')) return
+    const oldLabel = STATUSES.find(s => s.value === detailRecord.status)?.label || detailRecord.status
+    updateGiftResend(detailRecord.id, { status: 'pending' })
+      .then(() => {
+        addGiftResendFeedback(detailRecord.id, `状态变更: ${oldLabel} → 待发货`).catch(console.error)
+        return getGiftResendList({ page: 1, page_size: 1 }).then(() => detailRecord.id)
+      })
+      .then(() => load())
+      .catch(console.error)
+  }
+
+  const handleSent = () => {
+    if (!detailRecord) return
+    if (!confirm('确认将状态改为"已发出"？')) return
+    const oldLabel = STATUSES.find(s => s.value === detailRecord.status)?.label || detailRecord.status
+    updateGiftResend(detailRecord.id, { status: 'sent' })
+      .then(() => {
+        addGiftResendFeedback(detailRecord.id, `状态变更: ${oldLabel} → 已发出`).catch(console.error)
+        return getGiftResendList({ page: 1, page_size: 1 }).then(() => detailRecord.id)
+      })
+      .then(() => load())
+      .catch(console.error)
   }
 
   const handleAddFeedback = () => {
@@ -250,17 +329,17 @@ export default function GiftResendList() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-600">
               <tr>
-                {['#', '申请时间', '订单编号', '店铺名称', '类型', '礼品明细', '礼品总金额', '客户信息', '快递公司', '寄出单号', '操作'].map(h => (
+                {['#', '申请时间', '订单编号', '店铺名称', '类型', '礼品明细', '礼品总金额', '状态', '客户信息', '快递公司', '寄出单号', '操作'].map(h => (
                   <th key={h} className="text-left px-4 py-3 font-medium whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading ? (
-                <tr><td colSpan={11} className="text-center py-10 text-gray-400">加载中...</td></tr>
+                <tr><td colSpan={12} className="text-center py-10 text-gray-400">加载中...</td></tr>
               ) : records.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="text-center py-16 text-gray-400">
+                  <td colSpan={12} className="text-center py-16 text-gray-400">
                     <Gift size={32} className="mx-auto mb-2 opacity-30" />
                     <p>暂无补发记录</p>
                   </td>
@@ -287,6 +366,7 @@ export default function GiftResendList() {
                       ? `¥${r.gift_items.reduce((sum, g) => sum + (g.amount || 0) * g.quantity, 0).toFixed(2)}`
                       : '-'
                   }</td>
+                  <td className="px-4 py-3"><StatusBadge status={r.status || (r.tracking_no ? 'sent' : 'pending')} /></td>
                   <td className="px-4 py-3 text-gray-600 max-w-36 truncate">{r.customer_info || '-'}</td>
                   <td className="px-4 py-3 text-gray-700">{r.express_company || '-'}</td>
                   <td className="px-4 py-3 text-gray-600 font-mono text-xs">{r.tracking_no || '-'}</td>
@@ -357,6 +437,27 @@ export default function GiftResendList() {
               ) : (
                 <DetailItem label="礼品明细" value={detailRecord.gift_detail} full />
               )}
+              {/* 状态显示和操作按钮 */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">状态：</span>
+                  <StatusBadge status={detailRecord.status || (detailRecord.tracking_no ? 'sent' : 'pending')} />
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={handleIntercept}
+                    className="px-2.5 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700">
+                    拦截快递
+                  </button>
+                  <button onClick={handleTorn}
+                    className="px-2.5 py-1 bg-gray-600 text-white rounded text-xs hover:bg-gray-700">
+                    撕单
+                  </button>
+                  <button onClick={handleCancel}
+                    className="px-2.5 py-1 bg-stone-500 text-white rounded text-xs hover:bg-stone-600">
+                    取消
+                  </button>
+                </div>
+              </div>
               <DetailItem label="客户信息" value={detailRecord.customer_info} full />
               <DetailItem label="备注" value={detailRecord.remark} full />
               <div className="flex items-center justify-between text-xs text-gray-400 pt-1">

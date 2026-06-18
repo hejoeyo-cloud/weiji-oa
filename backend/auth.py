@@ -148,6 +148,34 @@ def owner_filter(user: User) -> bool:
 
 
 def apply_owner_filter(query, model, user: User):
-    """对查询应用行级权限过滤 — 所有用户都可以看到公司内的所有数据"""
-    # 不再限制用户只能看到自己创建的数据
+    """对查询应用行级权限过滤 — 根据角色绑定的店铺过滤数据"""
+    # 管理员不受限制
+    if user.role == "admin" or (user.role_obj and user.role_obj.name and user.role_obj.name.startswith("admin")):
+        return query
+
+    # 检查角色是否绑定了店铺
+    bound_shops = []
+    if user.role_obj and user.role_obj.bound_shops:
+        bound_shops = user.role_obj.bound_shops
+
+    # 没有绑定店铺则不限制
+    if not bound_shops:
+        return query
+
+    # 获取绑定店铺的名称
+    from database import Shop
+    from models.base import SessionLocal
+    db = SessionLocal()
+    try:
+        shop_names = [s.name for s in db.query(Shop).filter(Shop.id.in_(bound_shops)).all()]
+    finally:
+        db.close()
+
+    if not shop_names:
+        return query
+
+    # 检查模型是否有 shop_name 字段
+    if hasattr(model, 'shop_name'):
+        return query.filter(model.shop_name.in_(shop_names))
+
     return query

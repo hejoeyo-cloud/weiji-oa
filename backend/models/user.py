@@ -12,6 +12,7 @@ class Role(Base):
     label = Column(String(50), nullable=False)               # 显示名称（如 超级管理员）
     color = Column(String(20), default="#1677FF")            # 显示颜色
     permissions = Column(JSONType, default=list)             # 权限列表
+    bound_shops = Column(JSONType, default=list)             # 绑定店铺ID列表，空列表表示不限制
     is_builtin = Column(Boolean, default=False)              # 内置角色不可删除
     sort_order = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.now)

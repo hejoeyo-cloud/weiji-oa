@@ -285,6 +285,14 @@ def _migrate_db():
             conn.execute(text("UPDATE users SET is_manager = 1 WHERE username = 'admin' AND is_manager = 0"))
             conn.commit()
 
+    # 新迁移：roles 表新增 bound_shops 列
+    if 'roles' in existing_tables:
+        columns = [c['name'] for c in inspector.get_columns('roles')]
+        if 'bound_shops' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE roles ADD COLUMN bound_shops TEXT DEFAULT '[]'"))
+                conn.commit()
+
     # ── 售后登记表重构迁移 ──────────────────────────────────────────
     # 旧字段：customer_name, customer_phone, platform, product_name, issue_desc,
     #         handle_result, status, images, customer_address, customer_id
@@ -651,6 +659,11 @@ def _migrate_db():
         if 'gift_items' not in columns:
             with engine.connect() as conn:
                 conn.execute(text("ALTER TABLE gift_resend_records ADD COLUMN gift_items TEXT DEFAULT '[]'"))
+                conn.commit()
+        # 迁移：gift_resend_records 新增 status 列
+        if 'status' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE gift_resend_records ADD COLUMN status VARCHAR(20) DEFAULT 'pending'"))
                 conn.commit()
 
 

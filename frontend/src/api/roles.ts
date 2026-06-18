@@ -5,17 +5,19 @@ export interface RoleCreateParams {
   label: string
   color?: string
   permissions?: string[]
+  bound_shops?: number[]
 }
 
 export interface RoleUpdateParams {
   label?: string
   color?: string
   permissions?: string[]
+  bound_shops?: number[]
 }
 
 export async function getRoles() {
   const res = await client.get('/roles')
-  return res.data as { id: number; name: string; label: string; color: string; permissions: string[]; is_builtin: boolean; sort_order: number; user_count: number }[]
+  return res.data as { id: number; name: string; label: string; color: string; permissions: string[]; bound_shops: number[]; is_builtin: boolean; sort_order: number; user_count: number }[]
 }
 
 export async function getAllPermissions() {

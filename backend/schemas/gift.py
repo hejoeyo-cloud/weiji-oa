@@ -66,6 +66,7 @@ class GiftResendCreate(BaseModel):
     customer_info: str = ""
     express_company: str = ""
     tracking_no: str = ""
+    status: str = "pending"
     remark: str = ""
 
 class GiftResendUpdate(BaseModel):
@@ -78,6 +79,7 @@ class GiftResendUpdate(BaseModel):
     customer_info: Optional[str] = None
     express_company: Optional[str] = None
     tracking_no: Optional[str] = None
+    status: Optional[str] = None
     remark: Optional[str] = None
 
 class GiftResendOut(BaseModel):
@@ -91,6 +93,7 @@ class GiftResendOut(BaseModel):
     customer_info: str = ""
     express_company: str = ""
     tracking_no: str = ""
+    status: str = "pending"
     remark: str = ""
     created_by: Optional[int] = None
     creator_name: str = ""

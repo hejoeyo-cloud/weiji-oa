@@ -310,6 +310,7 @@ export interface GiftResendRecord {
   customer_info: string
   express_company: string
   tracking_no: string
+  status: string
   remark: string
   created_by?: number
   creator_name: string
@@ -590,6 +591,7 @@ export interface Role {
   label: string
   color: string
   permissions: string[]
+  bound_shops: number[]
   is_builtin: boolean
   sort_order: number
   user_count: number

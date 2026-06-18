@@ -3,16 +3,18 @@ import { Plus, Trash2, X, Edit2, Building2, Users, RefreshCw, Shield } from 'luc
 import { getUsers, createUser, updateUser, deleteUser } from '../api/users'
 import { getDepartments, createDepartment, deleteDepartment } from '../api/departments'
 import { getRoles, createRole, updateRole, deleteRole, getAllPermissions } from '../api/roles'
-import type { User, Department, Role } from '../types'
+import { getShops } from '../api/shops'
+import type { User, Department, Role, Shop } from '../types'
 
 const emptyUserForm = { email: '', username: '', password: '', name: '', note: '', role: 'customer', department_id: 0, is_manager: false }
 const emptyDeptForm = { name: '', description: '', sort_order: 0 }
-const emptyRoleForm = { name: '', label: '', color: '#1677FF', permissions: [] as string[] }
+const emptyRoleForm = { name: '', label: '', color: '#1677FF', permissions: [] as string[], bound_shops: [] as number[] }
 
 export default function UserManage() {
   const [users, setUsers] = useState<User[]>([])
   const [depts, setDepts] = useState<Department[]>([])
   const [roles, setRoles] = useState<Role[]>([])
+  const [shops, setShops] = useState<Shop[]>([])
   const [allPerms, setAllPerms] = useState<string[]>([])
   const [permGroups, setPermGroups] = useState<{ key: string; label: string; perms: string[] }[]>([])
   const [tab, setTab] = useState<'users' | 'departments' | 'roles'>('users')
@@ -33,6 +35,7 @@ export default function UserManage() {
     getUsers().then(r => setUsers(r.data)).catch(console.error)
     getDepartments().then(data => setDepts(data)).catch(console.error)
     getRoles().then(data => setRoles(data)).catch(console.error)
+    getShops().then(data => setShops(data)).catch(console.error)
     getAllPermissions().then(data => {
       setAllPerms(data.permissions || [])
       setPermGroups(data.groups || [])
@@ -151,7 +154,7 @@ export default function UserManage() {
 
   const openEditRole = (r: Role) => {
     setEditRole(r)
-    setRoleForm({ name: r.name, label: r.label, color: r.color, permissions: [...(r.permissions || [])] })
+    setRoleForm({ name: r.name, label: r.label, color: r.color, permissions: [...(r.permissions || [])], bound_shops: [...(r.bound_shops || [])] })
     setRoleError('')
     setShowRoleModal(true)
   }
@@ -171,9 +174,9 @@ export default function UserManage() {
     setRoleError('')
     try {
       if (editRole) {
-        await updateRole(editRole.id, { label: roleForm.label, color: roleForm.color, permissions: roleForm.permissions })
+        await updateRole(editRole.id, { label: roleForm.label, color: roleForm.color, permissions: roleForm.permissions, bound_shops: roleForm.bound_shops })
       } else {
-        await createRole({ name: roleForm.name, label: roleForm.label, color: roleForm.color, permissions: roleForm.permissions })
+        await createRole({ name: roleForm.name, label: roleForm.label, color: roleForm.color, permissions: roleForm.permissions, bound_shops: roleForm.bound_shops })
       }
       setShowRoleModal(false)
       load()
@@ -535,6 +538,44 @@ export default function UserManage() {
                   ))}
                 </div>
               </div>
+              {shops.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-medium text-gray-600">店铺数据权限</label>
+                    <span className="text-[10px] text-gray-400">
+                      {roleForm.bound_shops.length === 0 ? '不限制' : `限制 ${roleForm.bound_shops.length} 个店铺`}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-400 mb-2">不选择店铺则可查看所有店铺数据，选择后只能查看绑定店铺的数据</p>
+                  <div className="flex flex-wrap gap-1.5 border border-gray-100 rounded-xl p-3 max-h-40 overflow-y-auto">
+                    {shops.map(shop => {
+                      const checked = roleForm.bound_shops.includes(shop.id)
+                      return (
+                        <button key={shop.id}
+                          onClick={() => {
+                            setRoleForm(f => ({
+                              ...f,
+                              bound_shops: checked
+                                ? f.bound_shops.filter(id => id !== shop.id)
+                                : [...f.bound_shops, shop.id]
+                            }))
+                          }}
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                            checked ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
+                          }`}
+                        >
+                          <span className={`w-3 h-3 rounded border flex items-center justify-center ${
+                            checked ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300'
+                          }`}>
+                            {checked && <span className="text-white text-[8px]">&#10003;</span>}
+                          </span>
+                          {shop.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex justify-end gap-3 p-5 border-t border-gray-100 flex-shrink-0">
               <button onClick={() => setShowRoleModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>

@@ -14,8 +14,8 @@ def _role_to_out(r: Role, db: Session) -> RoleOut:
     user_count = db.query(func.count(User.id)).filter(User.role_id == r.id, User.company_id == r.company_id).scalar() or 0
     return RoleOut(
         id=r.id, name=r.name, label=r.label, color=r.color,
-        permissions=r.permissions or [], is_builtin=r.is_builtin or False,
-        sort_order=r.sort_order or 0, user_count=user_count,
+        permissions=r.permissions or [], bound_shops=r.bound_shops or [],
+        is_builtin=r.is_builtin or False, sort_order=r.sort_order or 0, user_count=user_count,
     )
 
 
@@ -55,7 +55,7 @@ def create_role(
     invalid_perms = set(req.permissions) - set(ALL_PERMISSIONS)
     if invalid_perms:
         raise HTTPException(status_code=400, detail=f"无效权限: {', '.join(invalid_perms)}")
-    role = Role(company_id=current_user.company_id, name=role_name, label=req.label, color=req.color, permissions=req.permissions)
+    role = Role(company_id=current_user.company_id, name=role_name, label=req.label, color=req.color, permissions=req.permissions, bound_shops=req.bound_shops)
     db.add(role)
     db.commit()
     db.refresh(role)
@@ -87,6 +87,8 @@ def update_role(
         if invalid_perms:
             raise HTTPException(status_code=400, detail=f"无效权限: {', '.join(invalid_perms)}")
         role.permissions = req.permissions
+    if req.bound_shops is not None:
+        role.bound_shops = req.bound_shops
     db.commit()
     db.refresh(role)
     audit_service.log(db, current_user, "update", "role", role_id,

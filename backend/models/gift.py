@@ -107,6 +107,7 @@ class GiftResendRecord(Base):
     customer_info = Column(Text, default="")             # 客户信息
     express_company = Column(String(100), default="")    # 快递公司
     tracking_no = Column(String(100), default="")        # 礼品寄出单号
+    status = Column(String(20), default="pending")       # pending/sent/intercepted/torn/cancelled
     remark = Column(Text, default="")                    # 备注
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.now)

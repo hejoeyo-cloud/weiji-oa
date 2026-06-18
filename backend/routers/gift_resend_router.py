@@ -22,6 +22,7 @@ def record_to_out(r: GiftResendRecord) -> GiftResendOut:
         customer_info=r.customer_info or "",
         express_company=r.express_company or "",
         tracking_no=r.tracking_no or "",
+        status=r.status or "pending",
         remark=r.remark or "",
         created_by=r.created_by,
         creator_name=r.creator.name if r.creator else "",
@@ -35,6 +36,7 @@ def list_records(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1),
     shop_name: str = Query("", description="Filter by shop_name"),
+    status: str = Query("", description="Filter by status"),
     search: str = Query("", description="Search in order_no/shop_name/customer_info"),
     start_date: str = Query("", description="Filter by apply_date >= start_date (YYYY-MM-DD)"),
     end_date: str = Query("", description="Filter by apply_date <= end_date (YYYY-MM-DD)"),
@@ -46,6 +48,8 @@ def list_records(
     query = apply_owner_filter(query, GiftResendRecord, current_user)
     if shop_name:
         query = query.filter(GiftResendRecord.shop_name == shop_name)
+    if status:
+        query = query.filter(GiftResendRecord.status == status)
     if search:
         pattern = f"%{search}%"
         query = query.filter(
@@ -114,13 +118,21 @@ def update_record(
     record_id: int,
     req: GiftResendUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("gift_resend:delete")),
+    current_user: User = Depends(require_permission("gift_resend:edit")),
 ):
     r = db.query(GiftResendRecord).filter(GiftResendRecord.id == record_id, GiftResendRecord.company_id == current_user.company_id).first()
     if not r:
         raise HTTPException(status_code=404, detail="Record not found")
-    for field, value in req.model_dump(exclude_none=True).items():
+    incoming = req.model_dump(exclude_none=True)
+    incoming_status = incoming.pop("status", None)
+    for field, value in incoming.items():
         setattr(r, field, value)
+    # 状态处理：拦截/撕单/取消/sent 优先，否则由发出单号自动决定
+    if incoming_status in ("intercepted", "torn", "cancelled", "sent"):
+        r.status = incoming_status
+    else:
+        # 自动推导：有快递单号则为 sent，否则为 pending
+        r.status = "sent" if (r.tracking_no and r.tracking_no.strip()) else "pending"
     db.commit()
     db.refresh(r)
     audit_service.log(db, current_user, "update", "gift_resend", r.id,
