@@ -7,6 +7,7 @@ class AttendanceRecordOut(BaseModel):
     company_id: Optional[int] = None
     user_id: int
     user_name: str = ""
+    department_name: str = ""
     date: str
     check_in: Optional[datetime] = None
     check_out: Optional[datetime] = None
@@ -14,6 +15,8 @@ class AttendanceRecordOut(BaseModel):
     source: str = "manual"
     location: str = ""
     remark: str = ""
+    scheduled_start: str = ""
+    scheduled_end: str = ""
     created_at: Optional[datetime] = None
 
     class Config:

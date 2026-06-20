@@ -695,6 +695,7 @@ export interface AttendanceRecord {
   company_id?: number
   user_id: number
   user_name: string
+  department_name: string
   date: string
   check_in?: string
   check_out?: string
@@ -702,6 +703,8 @@ export interface AttendanceRecord {
   source: string
   location: string
   remark: string
+  scheduled_start: string
+  scheduled_end: string
   created_at?: string
 }
 

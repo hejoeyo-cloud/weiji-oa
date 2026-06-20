@@ -12,8 +12,10 @@ class AttendanceRecord(Base):
     date = Column(String(20), nullable=False, index=True)          # YYYY-MM-DD
     check_in = Column(DateTime, nullable=True)                     # 签到时间
     check_out = Column(DateTime, nullable=True)                    # 签退时间
-    status = Column(String(20), default="normal")                  # normal/late/early/absent
+    status = Column(String(20), default="normal")                  # normal/late/early/absent/no_shift
     source = Column(String(20), default="manual")                  # manual / dingtalk
+    scheduled_start = Column(String(10), default="")               # 排班上班时间快照（如 "09:00"）
+    scheduled_end = Column(String(10), default="")                 # 排班下班时间快照
     location = Column(String(200), default="")                     # 打卡地点
     remark = Column(String(200), default="")                       # 备注
     created_at = Column(DateTime, default=datetime.now)

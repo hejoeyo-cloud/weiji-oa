@@ -153,6 +153,11 @@ def _migrate_db():
             with engine.connect() as conn:
                 conn.execute(text("ALTER TABLE attendance_records ADD COLUMN source VARCHAR(20) DEFAULT 'manual'"))
                 conn.commit()
+        if "scheduled_start" not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE attendance_records ADD COLUMN scheduled_start VARCHAR(10) DEFAULT ''"))
+                conn.execute(text("ALTER TABLE attendance_records ADD COLUMN scheduled_end VARCHAR(10) DEFAULT ''"))
+                conn.commit()
 
     new_tables = inspect(engine).get_table_names()
     if "dingtalk_configs" not in new_tables:
