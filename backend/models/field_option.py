@@ -12,6 +12,7 @@ class FieldOption(Base):
     field_name = Column(String(50), nullable=False, index=True)  # product/model/config/size/color/accessories/gift_name
     value = Column(String(200), nullable=False)
     price = Column(Float, default=0)                             # 关联价格（仅 gift_name 使用）
+    color_code = Column(String(20), nullable=True)               # 颜色色值（仅 color 字段使用，如 #ff0000）
     created_at = Column(DateTime, default=datetime.now)
 
     __table_args__ = (

@@ -470,12 +470,12 @@ export default function RepairList() {
               <tr
                 key={r.id}
                 ref={r.id.toString() === highlightId ? highlightRef : undefined}
-                className={`hover:bg-gray-50 ${r.id.toString() === highlightId ? 'highlight-row' : ''}`}
+                className={`hover:bg-gray-50 ${r.id.toString() === highlightId ? 'highlight-row' : ''} ${(r.duplicate_count ?? 0) > 1 ? 'bg-orange-50 border-l-2 border-l-orange-400' : ''}`}
                 style={r.id.toString() === highlightId ? { animation: 'highlight-flash 3s ease-out' } : {}}
               >
                 <td className="px-4 py-3">{(page - 1) * pageSize + idx + 1}</td>
                 <td className="px-4 py-3">{r.apply_date || '-'}</td>
-                <td className="px-4 py-3">{r.order_no || '-'}</td>
+                <td className="px-4 py-3">{r.order_no || '-'}{(r.duplicate_count ?? 0) > 1 && <span className="ml-1 text-xs text-orange-600 font-medium">重复</span>}</td>
                 <td className="px-4 py-3">{r.model || '-'}</td>
                 <td className="px-4 py-3 font-mono text-xs">{r.return_tracking || '-'}</td>
                 <td className="px-4 py-3"><RepairStatusBadge status={r.repair_status} /></td>

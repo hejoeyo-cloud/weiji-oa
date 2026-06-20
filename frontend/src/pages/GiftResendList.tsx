@@ -348,12 +348,12 @@ export default function GiftResendList() {
                 <tr
                   key={r.id}
                   ref={r.id.toString() === highlightId ? highlightRef : undefined}
-                  className={`hover:bg-gray-50 transition-colors ${r.id.toString() === highlightId ? 'highlight-row' : ''}`}
+                  className={`hover:bg-gray-50 transition-colors ${r.id.toString() === highlightId ? 'highlight-row' : ''} ${(r.duplicate_count ?? 0) > 1 ? 'bg-orange-50 border-l-2 border-l-orange-400' : ''}`}
                   style={r.id.toString() === highlightId ? { animation: 'highlight-flash 3s ease-out' } : {}}
                 >
                   <td className="px-4 py-3 text-gray-400 font-mono">#{r.id}</td>
                   <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{r.apply_date || '-'}</td>
-                  <td className="px-4 py-3 text-gray-700 font-mono text-xs max-w-28 truncate">{r.order_no || '-'}</td>
+                  <td className="px-4 py-3 text-gray-700 font-mono text-xs max-w-28 truncate">{r.order_no || '-'}{(r.duplicate_count ?? 0) > 1 && <span className="ml-1 text-xs text-orange-600 font-medium">重复</span>}</td>
                   <td className="px-4 py-3 text-gray-700 max-w-28 truncate">{r.shop_name || '-'}</td>
                   <td className="px-4 py-3 text-gray-700">{r.type || '-'}</td>
                   <td className="px-4 py-3 text-gray-600 max-w-36 truncate">{

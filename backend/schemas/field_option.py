@@ -7,6 +7,7 @@ class FieldOptionCreate(BaseModel):
     field_name: str
     value: str
     price: float = 0
+    color_code: Optional[str] = None
 
 
 class FieldOptionOut(BaseModel):
@@ -14,6 +15,7 @@ class FieldOptionOut(BaseModel):
     field_name: str
     value: str
     price: float = 0
+    color_code: Optional[str] = None
     created_at: Optional[datetime] = None
 
     class Config:

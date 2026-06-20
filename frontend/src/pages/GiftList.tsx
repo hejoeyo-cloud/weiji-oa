@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, ChevronDown, Eye, Download, Settings } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { getGiftList, getGiftDetail, createGift, updateGift, deleteGift, addGiftFeedback, getGiftFeedbacks, getGiftPresets, createGiftPreset, deleteGiftPreset, GiftPreset } from '../api/gifts'
@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth'
 import ShopSelect from '../components/ShopSelect'
 import FieldSelect from '../components/FieldSelect'
 import { GiftRecord, GiftFeedback } from '../types'
+import api from '../api/client'
 import * as XLSX from 'xlsx'
 
 /** 通用 Excel 导出（浏览器端） */
@@ -95,7 +96,23 @@ export default function GiftList() {
   const [showPresetDropdown, setShowPresetDropdown] = useState(false)
   const [showSavePreset, setShowSavePreset] = useState(false)
   const [presetName, setPresetName] = useState('')
+  const [colorOptions, setColorOptions] = useState<{ value: string; color_code: string }[]>([])
   const pageSize = 15
+
+  // 加载颜色选项（用于颜色列背景色显示）
+  useEffect(() => {
+    api.get('/field-options/color').then(res => {
+      const data = Array.isArray(res.data) ? res.data : []
+      setColorOptions(data.filter((o: any) => o.color_code).map((o: any) => ({ value: o.value, color_code: o.color_code })))
+    }).catch(() => {})
+  }, [])
+
+  // 颜色查找映射
+  const colorMap = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const o of colorOptions) m.set(o.value, o.color_code)
+    return m
+  }, [colorOptions])
 
   // 高亮动画样式
   const highlightStyle = `
@@ -399,15 +416,22 @@ export default function GiftList() {
               <tr
                 key={r.id}
                 ref={r.id.toString() === highlightId ? highlightRef : undefined}
-                className={`hover:bg-gray-50 ${r.id.toString() === highlightId ? 'highlight-row' : ''}`}
+                className={`hover:bg-gray-50 ${r.id.toString() === highlightId ? 'highlight-row' : ''} ${(r.duplicate_count ?? 0) > 1 ? 'bg-orange-50 border-l-2 border-l-orange-400' : ''}`}
                 style={r.id.toString() === highlightId ? { animation: 'highlight-flash 3s ease-out' } : {}}
               >
                 <td className="px-4 py-3 text-gray-400">{(page - 1) * pageSize + idx + 1}</td>
                 <td className="px-4 py-3 text-gray-600">{r.date || '-'}</td>
                 <td className="px-4 py-3 text-gray-600">{r.shop_name || '-'}</td>
-                <td className="px-4 py-3 font-medium">{r.order_no || '-'}</td>
+                <td className="px-4 py-3 font-medium">{r.order_no || '-'}{(r.duplicate_count ?? 0) > 1 && <span className="ml-1 text-xs text-orange-600 font-medium">重复</span>}</td>
                 <td className="px-4 py-3 text-gray-600">{r.model || '-'}{r.config ? ` / ${r.config}` : ''}</td>
-                <td className="px-4 py-3">{r.color || '-'}</td>
+                <td className="px-4 py-3">
+                  {r.color ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      {colorMap.has(r.color) && <span className="w-3 h-3 rounded-full border border-gray-200 flex-shrink-0" style={{ background: colorMap.get(r.color) }} />}
+                      <span style={colorMap.has(r.color) ? { color: colorMap.get(r.color), fontWeight: 500 } : {}}>{r.color}</span>
+                    </span>
+                  ) : '-'}
+                </td>
                 <td className={`px-4 py-3 font-bold ${r.quantity > 1 ? 'text-red-600 bg-red-50 rounded' : ''}`}>{r.quantity || 1}</td>
                 <td className="px-4 py-3 text-gray-600 max-w-[150px] truncate">{r.customer_info || '-'}</td>
                 {canCostView && (

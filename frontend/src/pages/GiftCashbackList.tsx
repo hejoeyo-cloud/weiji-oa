@@ -177,9 +177,9 @@ export default function GiftCashbackList() {
             ) : records.length === 0 ? (
               <tr><td colSpan={8} className="text-center py-8 text-gray-400">暂无数据</td></tr>
             ) : records.map((r, idx) => (
-              <tr key={r.id} className="hover:bg-gray-50">
+              <tr key={r.id} className={`hover:bg-gray-50 ${(r.duplicate_count ?? 0) > 1 ? 'bg-orange-50 border-l-2 border-l-orange-400' : ''}`}>
                 <td className="px-4 py-3 text-gray-400">{(page - 1) * pageSize + idx + 1}</td>
-                <td className="px-4 py-3 font-medium">{r.order_no}</td>
+                <td className="px-4 py-3 font-medium">{r.order_no}{(r.duplicate_count ?? 0) > 1 && <span className="ml-1 text-xs text-orange-600 font-medium">重复</span>}</td>
                 <td className="px-4 py-3 text-red-600 font-medium">¥{r.cashback_amount.toFixed(2)}</td>
                 <td className="px-4 py-3 text-gray-600 max-w-xs truncate">{r.reason || '-'}</td>
                 <td className="px-4 py-3">{r.applicant || '-'}</td>

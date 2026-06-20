@@ -220,6 +220,7 @@ class ReturnExchangeOut(BaseModel):
     creator_name: str = ""
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    duplicate_count: int = 0
 
     class Config:
         from_attributes = True
@@ -316,6 +317,7 @@ class RepairOut(BaseModel):
     creator_name: str = ""
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    duplicate_count: int = 0
 
     class Config:
         from_attributes = True

@@ -1,3 +1,4 @@
+from collections import Counter
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -52,18 +53,22 @@ def list_cashbacks(
         query = query.filter(GiftCashback.created_at >= start_date)
     if end_date:
         query = query.filter(GiftCashback.created_at <= end_date)
-    
+    # 计算重复订单号
+    all_order_nos = [r[0] for r in query.with_entities(GiftCashback.order_no).filter(GiftCashback.order_no != "").all()]
+    dup_counts = dict(Counter(all_order_nos))
     if all:
         items = query.order_by(GiftCashback.created_at.desc()).all()
-        return {"total": len(items), "page": 1, "page_size": len(items), "items": [cashback_to_out(c) for c in items]}
-    
+        out_items = [cashback_to_out(c) for c in items]
+        for o in out_items:
+            o.duplicate_count = dup_counts.get(o.order_no, 0)
+        return {"total": len(items), "page": 1, "page_size": len(items), "items": out_items}
     total = query.count()
     items = query.order_by(GiftCashback.created_at.desc()) \
         .offset((page - 1) * page_size).limit(page_size).all()
-    return {
-        "total": total, "page": page, "page_size": page_size,
-        "items": [cashback_to_out(c) for c in items],
-    }
+    out_items = [cashback_to_out(c) for c in items]
+    for o in out_items:
+        o.duplicate_count = dup_counts.get(o.order_no, 0)
+    return {"total": total, "page": page, "page_size": page_size, "items": out_items}
 
 
 @router.get("/{cashback_id}", response_model=GiftCashbackOut)

@@ -173,6 +173,7 @@ export interface ReturnExchangeRecord {
   creator_name: string
   created_at?: string
   updated_at?: string
+  duplicate_count?: number
 }
 
 export interface ReturnExchangeFeedback {
@@ -212,6 +213,7 @@ export interface RepairRecord {
   creator_name: string
   created_at?: string
   updated_at?: string
+  duplicate_count?: number
 }
 
 export interface RepairFeedback {
@@ -275,6 +277,7 @@ export interface GiftRecord {
   creator_name: string
   created_at?: string
   updated_at?: string
+  duplicate_count?: number
 }
 
 // ── 返现登记 ─────────────────────────────────────────────────────────
@@ -290,6 +293,7 @@ export interface GiftCashback {
   creator_name: string
   created_at?: string
   updated_at?: string
+  duplicate_count?: number
 }
 
 // ── 礼品补发登记 ─────────────────────────────────────────────────────
@@ -316,6 +320,7 @@ export interface GiftResendRecord {
   creator_name: string
   created_at?: string
   updated_at?: string
+  duplicate_count?: number
 }
 
 // ── 三种处理记录类型 ─────────────────────────────────────────────────

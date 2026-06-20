@@ -1,4 +1,5 @@
 from datetime import datetime
+from collections import Counter
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -102,17 +103,22 @@ def list_records(
         query = query.filter(GiftRecord.date >= start_date)
     if end_date:
         query = query.filter(GiftRecord.date <= end_date)
+    # 计算重复订单号
+    all_order_nos = [r[0] for r in query.with_entities(GiftRecord.order_no).filter(GiftRecord.order_no != "").all()]
+    dup_counts = dict(Counter(all_order_nos))
     if all:
         items = query.order_by(GiftRecord.created_at.desc()).all()
-        return {"total": len(items), "page": 1, "page_size": len(items), 
-                "items": [record_to_out(db, r, has_cost_permission) for r in items]}
+        out_items = [record_to_out(db, r, has_cost_permission) for r in items]
+        for o in out_items:
+            o.duplicate_count = dup_counts.get(o.order_no, 0)
+        return {"total": len(items), "page": 1, "page_size": len(items), "items": out_items}
     total = query.count()
     items = query.order_by(GiftRecord.created_at.desc()) \
         .offset((page - 1) * page_size).limit(page_size).all()
-    return {
-        "total": total, "page": page, "page_size": page_size,
-        "items": [record_to_out(db, r, has_cost_permission) for r in items],
-    }
+    out_items = [record_to_out(db, r, has_cost_permission) for r in items]
+    for o in out_items:
+        o.duplicate_count = dup_counts.get(o.order_no, 0)
+    return {"total": total, "page": page, "page_size": page_size, "items": out_items}
 
 
 @router.get("/{record_id}", response_model=GiftRecordOut)

@@ -607,6 +607,14 @@ def _migrate_db():
                 conn.execute(text("ALTER TABLE field_options ADD COLUMN price REAL DEFAULT 0"))
                 conn.commit()
 
+    # ── 迁移：field_options 新增 color_code 列 ───────────────────
+    if 'field_options' in existing_tables:
+        columns = [c['name'] for c in inspector.get_columns('field_options')]
+        if 'color_code' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE field_options ADD COLUMN color_code VARCHAR(20)"))
+                conn.commit()
+
     # ── 创建礼品预设组合表 ────────────────────────────────────────
     if "gift_presets" not in inspector.get_table_names():
         with engine.connect() as conn:

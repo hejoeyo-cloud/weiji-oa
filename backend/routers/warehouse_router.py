@@ -623,7 +623,7 @@ def get_stats(
         "total_outbound": total_outbound,
         "current_qty": (db.query(func.sum(WarehouseProduct.initial_qty)).filter(WarehouseProduct.company_id == current_user.company_id).scalar() or 0) + total_inbound - total_outbound,
         "low_stock_count": len(low_stock_items),
-        "low_stock_items": low_stock_items[:10],
+        "low_stock_items": low_stock_items,
     }
 
 

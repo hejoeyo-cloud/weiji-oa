@@ -7,6 +7,7 @@ interface FieldOption {
   field_name: string
   value: string
   price?: number
+  color_code?: string
 }
 
 interface FieldSelectProps {
@@ -37,9 +38,11 @@ export default function FieldSelect({
   const [showModal, setShowModal] = useState(false)
   const [newName, setNewName] = useState('')
   const [newPrice, setNewPrice] = useState('')
+  const [newColorCode, setNewColorCode] = useState('#')
   const [editId, setEditId] = useState<number | null>(null)
   const [editName, setEditName] = useState('')
   const [editPrice, setEditPrice] = useState('')
+  const [editColorCode, setEditColorCode] = useState('')
   const [loading, setLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -77,10 +80,12 @@ export default function FieldSelect({
     try {
       const payload: any = { field_name: fieldName, value: name }
       if (showPrice) payload.price = parseFloat(newPrice) || 0
+      if (fieldName === 'color' && newColorCode && newColorCode !== '#') payload.color_code = newColorCode
       const res = await api.post('/field-options/', payload)
       setOptions(prev => [...prev, res.data].sort((a, b) => a.value.localeCompare(b.value)))
       setNewName('')
       setNewPrice('')
+      setNewColorCode('#')
     } catch {
       // duplicate or error
     } finally {
@@ -97,6 +102,7 @@ export default function FieldSelect({
       await api.delete(`/field-options/${id}`)
       const payload: any = { field_name: fieldName, value: name }
       if (showPrice) payload.price = parseFloat(editPrice) || 0
+      if (fieldName === 'color') payload.color_code = editColorCode || null
       const res = await api.post('/field-options/', payload)
       setOptions(prev => prev.filter(o => o.id !== id).concat(res.data).sort((a, b) => a.value.localeCompare(b.value)))
       if (value === oldOpt?.value) {
@@ -105,6 +111,7 @@ export default function FieldSelect({
       setEditId(null)
       setEditName('')
       setEditPrice('')
+      setEditColorCode('')
     } catch {
       // error
     } finally {
@@ -162,7 +169,10 @@ export default function FieldSelect({
                   onClick={() => handleSelect(o)}
                   className="px-3 py-2 text-sm text-gray-700 hover:bg-violet-50 hover:text-violet-700 cursor-pointer flex items-center justify-between"
                 >
-                  <span>{o.value}</span>
+                  <span className="flex items-center gap-2">
+                    {o.color_code && <span className="inline-block w-3 h-3 rounded-full border border-gray-200 flex-shrink-0" style={{ background: o.color_code }} />}
+                    {o.value}
+                  </span>
                   {showPrice && o.price ? <span className="text-gray-400 text-xs">¥{o.price.toFixed(2)}</span> : null}
                 </div>
               ))}
@@ -215,6 +225,15 @@ export default function FieldSelect({
                     className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
                   />
                 )}
+                {fieldName === 'color' && (
+                  <input
+                    type="color"
+                    value={newColorCode === '#' ? '#000000' : newColorCode}
+                    onChange={e => setNewColorCode(e.target.value)}
+                    className="w-9 h-9 rounded-lg border border-gray-200 cursor-pointer p-0.5"
+                    title="选择颜色"
+                  />
+                )}
                 <button
                   onClick={handleAdd}
                   disabled={loading || !newName.trim()}
@@ -253,6 +272,14 @@ export default function FieldSelect({
                               className="w-24 border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
                             />
                           )}
+                          {fieldName === 'color' && (
+                            <input
+                              type="color"
+                              value={editColorCode || '#000000'}
+                              onChange={e => setEditColorCode(e.target.value)}
+                              className="w-8 h-8 rounded border border-gray-200 cursor-pointer p-0.5"
+                            />
+                          )}
                           <button onClick={() => handleUpdate(o.id)} disabled={loading} className="p-1 hover:bg-green-50 rounded text-green-600">
                             <Check size={14} />
                           </button>
@@ -262,10 +289,11 @@ export default function FieldSelect({
                         </>
                       ) : (
                         <>
+                          {o.color_code && <span className="w-4 h-4 rounded-full border border-gray-200 flex-shrink-0" style={{ background: o.color_code }} />}
                           <span className="flex-1 text-sm text-gray-700">{o.value}</span>
                           {showPrice && o.price ? <span className="text-xs text-gray-400">¥{o.price.toFixed(2)}</span> : null}
                           <button
-                            onClick={() => { setEditId(o.id); setEditName(o.value); setEditPrice(String(o.price || '')) }}
+                            onClick={() => { setEditId(o.id); setEditName(o.value); setEditPrice(String(o.price || '')); setEditColorCode(o.color_code || '') }}
                             className="p-1 hover:bg-gray-100 rounded text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
                             <Pencil size={14} />

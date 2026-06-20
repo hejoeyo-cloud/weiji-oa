@@ -30,6 +30,7 @@ class GiftCashbackOut(BaseModel):
     creator_name: str = ""
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    duplicate_count: int = 0
 
     class Config:
         from_attributes = True
@@ -99,6 +100,7 @@ class GiftResendOut(BaseModel):
     creator_name: str = ""
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    duplicate_count: int = 0
 
     class Config:
         from_attributes = True
@@ -200,6 +202,7 @@ class GiftRecordOut(BaseModel):
     creator_name: str = ""
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    duplicate_count: int = 0
 
     class Config:
         from_attributes = True

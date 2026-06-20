@@ -398,11 +398,11 @@ export default function ReturnExchangeList() {
             ) : records.length === 0 ? (
               <tr><td colSpan={10} className="text-center py-8 text-gray-400">暂无数据</td></tr>
             ) : records.map((r, idx) => (
-              <tr key={r.id} className="hover:bg-gray-50">
+              <tr key={r.id} className={`hover:bg-gray-50 ${(r.duplicate_count ?? 0) > 1 ? 'bg-orange-50 border-l-2 border-l-orange-400' : ''}`}>
                 <td className="px-4 py-3">{(page - 1) * pageSize + idx + 1}</td>
                 <td className="px-4 py-3">{r.apply_date || '-'}</td>
                 <td className="px-4 py-3"><RecordTypeBadge recordType={r.record_type} /></td>
-                <td className="px-4 py-3">{r.order_no || '-'}</td>
+                <td className="px-4 py-3">{r.order_no || '-'}{(r.duplicate_count ?? 0) > 1 && <span className="ml-1 text-xs text-orange-600 font-medium">重复</span>}</td>
                 <td className="px-4 py-3">{r.model || '-'}</td>
                 <td className="px-4 py-3">{r.config || '-'}</td>
                 <td className="px-4 py-3 max-w-[150px] truncate">{r.customer_info || '-'}</td>
