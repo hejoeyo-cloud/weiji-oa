@@ -6,7 +6,7 @@ from sqlalchemy import func, case
 from sqlalchemy.orm import Session
 
 from database import (
-    get_db, User, Ticket, AfterSalesRecord, ReturnExchangeRecord,
+    get_db, User, Ticket, ReturnExchangeRecord,
     RepairRecord, GiftRecord, GiftCashback, GiftResendRecord,
     AttendanceRecord, TaskBoard, SalesInvoice, PurchaseInvoice,
     ExpenseInvoice, CustomerInvoiceRequest,
@@ -15,7 +15,7 @@ from schemas.dashboard import DashboardStatsOut, TicketTrendItem, ModuleDistribu
 from schemas.report import (
     OverviewData, OverviewCard, ShippingData, ProfitItem,
     AftersalesData, FinanceData, ShopData, ShopRankItem,
-    MonthValue, NameValue,
+    MonthValue, NameValue, RepairEfficiencyData,
 )
 from auth import get_current_user, require_permission
 
@@ -282,6 +282,59 @@ def get_report_shipping(
     )
 
 
+# ── 维修效率 ─────────────────────────────────────────────────────
+
+@router.get("/repair-efficiency", response_model=RepairEfficiencyData)
+def get_report_repair_efficiency(
+    year: int = Query(...),
+    month: Optional[int] = Query(None),
+    current_user: User = Depends(require_permission("reports:view")),
+    db: Session = Depends(get_db),
+):
+    cid = current_user.company_id
+    start, end = _month_range(year, month) if month else _year_range(year)
+
+    # 月度维修量趋势
+    repair_trend = []
+    for m in range(1, 13):
+        ms, me = _month_range(year, m)
+        count = db.query(func.count(RepairRecord.id)).filter(
+            RepairRecord.company_id == cid,
+            RepairRecord.apply_date >= ms, RepairRecord.apply_date < me,
+        ).scalar() or 0
+        repair_trend.append({"month": f"{m}月", "count": count})
+
+    # 按型号统计 Top 10
+    top_model_rows = db.query(RepairRecord.model, func.count(RepairRecord.id)).filter(
+        RepairRecord.company_id == cid,
+        RepairRecord.apply_date >= start, RepairRecord.apply_date < end,
+        RepairRecord.model != "",
+    ).group_by(RepairRecord.model).order_by(func.count(RepairRecord.id).desc()).limit(10).all()
+    top_models = [NameValue(name=r[0], value=r[1]) for r in top_model_rows]
+
+    # 按故障原因统计 Top 10
+    top_reason_rows = db.query(RepairRecord.return_reason, func.count(RepairRecord.id)).filter(
+        RepairRecord.company_id == cid,
+        RepairRecord.apply_date >= start, RepairRecord.apply_date < end,
+        RepairRecord.return_reason != "",
+    ).group_by(RepairRecord.return_reason).order_by(func.count(RepairRecord.id).desc()).limit(10).all()
+    top_reasons = [NameValue(name=r[0][:20], value=r[1]) for r in top_reason_rows]
+
+    # 维修状态分布
+    status_labels = {"pending_repair": "待维修", "processing_repair": "维修中", "completed_repair": "已完成"}
+    status_rows = db.query(RepairRecord.repair_status, func.count(RepairRecord.id)).filter(
+        RepairRecord.company_id == cid,
+        RepairRecord.apply_date >= start, RepairRecord.apply_date < end,
+    ).group_by(RepairRecord.repair_status).all()
+    status_distribution = [NameValue(name=status_labels.get(r[0], r[0]), value=r[1]) for r in status_rows]
+
+    return RepairEfficiencyData(
+        repair_trend=repair_trend,
+        top_models=top_models, top_reasons=top_reasons,
+        status_distribution=status_distribution,
+    )
+
+
 # ── 售后分析 ─────────────────────────────────────────────────────
 
 @router.get("/aftersales", response_model=AftersalesData)
@@ -358,11 +411,51 @@ def get_report_aftersales(
     status_labels = {"pending": "待处理", "processing": "处理中", "completed": "已完成"}
     status_distribution = [NameValue(name=status_labels.get(r[0], r[0]), value=r[1]) for r in status_rows]
 
+    # 退换货率月度趋势
+    return_rate_trend = []
+    for m in range(1, 13):
+        ms, me = _month_range(year, m)
+        ret_qty = db.query(func.sum(ReturnExchangeRecord.quantity)).filter(
+            ReturnExchangeRecord.company_id == cid,
+            ReturnExchangeRecord.apply_date >= ms, ReturnExchangeRecord.apply_date < me,
+        ).scalar() or 0
+        ship_qty = db.query(func.sum(GiftRecord.quantity)).filter(
+            GiftRecord.company_id == cid, GiftRecord.date >= ms, GiftRecord.date < me,
+        ).scalar() or 0
+        return_rate_trend.append({"month": f"{m}月", "return_rate": _safe_div(ret_qty, ship_qty)})
+
+    # 按型号退换统计 Top 10
+    top_return_model_rows = db.query(ReturnExchangeRecord.model, func.count(ReturnExchangeRecord.id)).filter(
+        ReturnExchangeRecord.company_id == cid,
+        ReturnExchangeRecord.apply_date >= start, ReturnExchangeRecord.apply_date < end,
+        ReturnExchangeRecord.model != "",
+    ).group_by(ReturnExchangeRecord.model).order_by(func.count(ReturnExchangeRecord.id).desc()).limit(10).all()
+    top_return_models = [NameValue(name=r[0], value=r[1]) for r in top_return_model_rows]
+
+    # 平均处理周期
+    completed_records = db.query(ReturnExchangeRecord).filter(
+        ReturnExchangeRecord.company_id == cid,
+        ReturnExchangeRecord.progress == "completed",
+        ReturnExchangeRecord.apply_date >= start, ReturnExchangeRecord.apply_date < end,
+    ).all()
+    process_days = []
+    for r in completed_records:
+        try:
+            apply = datetime.strptime(r.apply_date, "%Y-%m-%d")
+            delta = (r.updated_at - apply).days
+            if delta >= 0:
+                process_days.append(delta)
+        except (ValueError, TypeError):
+            pass
+    avg_process_days = round(sum(process_days) / len(process_days), 1) if process_days else 0
+
     return AftersalesData(
         return_exchange_trend=re_trend, return_reasons=return_reasons,
         repair_trend=repair_trend, repair_charge_rate=repair_charge_rate,
         damage_count=damage_count, damage_amount=round(damage_amount, 2),
         status_distribution=status_distribution,
+        return_rate_trend=return_rate_trend, top_return_models=top_return_models,
+        avg_process_days=avg_process_days,
     )
 
 

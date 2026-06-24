@@ -687,6 +687,14 @@ def _migrate_db():
                 conn.execute(text("ALTER TABLE products ADD COLUMN ram_freq VARCHAR(100) DEFAULT ''"))
                 conn.commit()
 
+    # ── 操作日志增加 changes 字段 ──
+    if "audit_logs" in existing_tables:
+        columns = {col["name"] for col in inspector.get_columns("audit_logs")}
+        if "changes" not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE audit_logs ADD COLUMN changes TEXT DEFAULT '{}'"))
+                conn.commit()
+
 
 def _sync_user_role_ids():
     """将现有用户的 role 字符串与 roles 表的 id 关联"""

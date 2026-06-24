@@ -1,5 +1,5 @@
 import client from './client'
-import type { DashboardStats, OverviewData, ShippingData, AftersalesData, FinanceData, ShopData } from '../types'
+import type { DashboardStats, OverviewData, ShippingData, AftersalesData, FinanceData, ShopData, RepairEfficiencyData } from '../types'
 
 export function getDashboardStats() {
   return client.get<DashboardStats>('/reports/dashboard-stats').then(r => r.data)
@@ -23,4 +23,8 @@ export function getReportFinance(year: number, month?: number) {
 
 export function getReportShop(year: number, month?: number) {
   return client.get<ShopData>('/reports/shop', { params: { year, month } }).then(r => r.data)
+}
+
+export function getReportRepairEfficiency(year: number, month?: number) {
+  return client.get<RepairEfficiencyData>('/reports/repair-efficiency', { params: { year, month } }).then(r => r.data)
 }

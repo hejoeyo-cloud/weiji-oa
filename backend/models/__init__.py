@@ -16,6 +16,5 @@ from .shop import *
 from .task import *
 from .ticket import *
 from .product import *
-from .shop import *
 from .user import *
 from .warehouse import *

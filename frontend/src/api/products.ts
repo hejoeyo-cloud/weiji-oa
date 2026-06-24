@@ -40,3 +40,9 @@ export const updateProduct = (id: number, data: Partial<ProductCreateData>) =>
 
 export const deleteProduct = (id: number) =>
   client.delete(`/products/${id}`).then(r => r.data)
+
+export const getProductAftersales = (id: number) =>
+  client.get<{ repairs: any[]; returns: any[] }>(`/products/${id}/aftersales`).then(r => r.data)
+
+export const getProductStats = (id: number) =>
+  client.get<{ repair_count: number; return_count: number; exchange_count: number; recent_records: any[] }>(`/products/${id}/stats`).then(r => r.data)

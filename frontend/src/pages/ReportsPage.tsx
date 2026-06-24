@@ -1,15 +1,15 @@
 import { useEffect, useState, useCallback } from 'react'
-import { TrendingUp, RefreshCw, Package, RotateCcw, DollarSign, Store, BarChart3, ChevronUp, ChevronDown } from 'lucide-react'
+import { TrendingUp, RefreshCw, Package, RotateCcw, DollarSign, Store, BarChart3, ChevronUp, ChevronDown, Wrench } from 'lucide-react'
 import {
   ComposedChart, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
 import {
   getReportOverview, getReportShipping, getReportAftersales,
-  getReportFinance, getReportShop,
+  getReportFinance, getReportShop, getReportRepairEfficiency,
 } from '../api/reports'
 import type {
-  OverviewData, ShippingData, AftersalesData, FinanceData, ShopData,
+  OverviewData, ShippingData, AftersalesData, FinanceData, ShopData, RepairEfficiencyData,
 } from '../types'
 
 const COLORS = ['#2563eb', '#16a34a', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899']
@@ -35,28 +35,31 @@ function ChartTooltip({ active, payload, label }: any) {
 export default function ReportsPage() {
   const [year, setYear] = useState(currentYear)
   const [month, setMonth] = useState<number | undefined>(undefined)
-  const [tab, setTab] = useState<'overview' | 'shipping' | 'aftersales' | 'finance' | 'shop'>('overview')
+  const [tab, setTab] = useState<'overview' | 'shipping' | 'aftersales' | 'repair_efficiency' | 'finance' | 'shop'>('overview')
   const [loading, setLoading] = useState(false)
 
   const [overview, setOverview] = useState<OverviewData | null>(null)
   const [shipping, setShipping] = useState<ShippingData | null>(null)
   const [aftersales, setAftersales] = useState<AftersalesData | null>(null)
+  const [repairEfficiency, setRepairEfficiency] = useState<RepairEfficiencyData | null>(null)
   const [finance, setFinance] = useState<FinanceData | null>(null)
   const [shop, setShop] = useState<ShopData | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [ov, sh, af, fi, sp] = await Promise.all([
+      const [ov, sh, af, re, fi, sp] = await Promise.all([
         getReportOverview(year, month),
         getReportShipping(year, month),
         getReportAftersales(year, month),
+        getReportRepairEfficiency(year, month),
         getReportFinance(year, month),
         getReportShop(year, month),
       ])
       setOverview(ov)
       setShipping(sh)
       setAftersales(af)
+      setRepairEfficiency(re)
       setFinance(fi)
       setShop(sp)
     } catch (e) {
@@ -72,6 +75,7 @@ export default function ReportsPage() {
     { key: 'overview', label: '总览', icon: BarChart3 },
     { key: 'shipping', label: '发货分析', icon: Package },
     { key: 'aftersales', label: '售后分析', icon: RotateCcw },
+    { key: 'repair_efficiency', label: '维修分析', icon: Wrench },
     { key: 'finance', label: '财务分析', icon: DollarSign },
     { key: 'shop', label: '店铺分析', icon: Store },
   ] as const
@@ -113,6 +117,7 @@ export default function ReportsPage() {
       {tab === 'overview' && overview && <OverviewTab data={overview} />}
       {tab === 'shipping' && shipping && <ShippingTab data={shipping} />}
       {tab === 'aftersales' && aftersales && <AftersalesTab data={aftersales} />}
+      {tab === 'repair_efficiency' && repairEfficiency && <RepairEfficiencyTab data={repairEfficiency} />}
       {tab === 'finance' && finance && <FinanceTab data={finance} />}
       {tab === 'shop' && shop && <ShopTab data={shop} />}
     </div>
@@ -310,6 +315,22 @@ function AftersalesTab({ data }: { data: AftersalesData }) {
           </ResponsiveContainer>
         </div>
 
+        {/* 退换货率趋势 */}
+        <div className={cardStyle}>
+          <h3 className="text-sm font-semibold text-gray-600 mb-4">退换货率月度趋势</h3>
+          <ResponsiveContainer width="100%" height={chartH}>
+            <LineChart data={data.return_rate_trend}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9ca3af' }} />
+              <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} unit="%" />
+              <Tooltip content={<ChartTooltip />} />
+              <Line type="monotone" dataKey="return_rate" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} name="退换货率" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
         {/* 退货原因 */}
         <div className={cardStyle}>
           <h3 className="text-sm font-semibold text-gray-600 mb-4">退货原因 Top 10</h3>
@@ -320,6 +341,20 @@ function AftersalesTab({ data }: { data: AftersalesData }) {
               <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#9ca3af' }} width={100} />
               <Tooltip content={<ChartTooltip />} />
               <Bar dataKey="value" fill="#f59e0b" radius={[0, 4, 4, 0]} name="次数" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* 退换型号 Top 10 */}
+        <div className={cardStyle}>
+          <h3 className="text-sm font-semibold text-gray-600 mb-4">退换型号 Top 10</h3>
+          <ResponsiveContainer width="100%" height={chartH}>
+            <BarChart data={data.top_return_models} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#9ca3af' }} width={100} />
+              <Tooltip content={<ChartTooltip />} />
+              <Bar dataKey="value" fill="#ec4899" radius={[0, 4, 4, 0]} name="退换量" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -340,7 +375,7 @@ function AftersalesTab({ data }: { data: AftersalesData }) {
           </ResponsiveContainer>
         </div>
 
-        {/* 货损 & 收费率 */}
+        {/* 货损 & 收费率 & 处理周期 */}
         <div className={cardStyle + ' flex flex-col justify-center'}>
           <h3 className="text-sm font-semibold text-gray-600 mb-4">关键指标</h3>
           <div className="space-y-6">
@@ -355,6 +390,10 @@ function AftersalesTab({ data }: { data: AftersalesData }) {
             <div className="text-center">
               <p className="text-3xl font-bold text-blue-600">{data.repair_charge_rate}%</p>
               <p className="text-xs text-gray-500 mt-1">维修收费率</p>
+            </div>
+            <div className="text-center">
+              <p className="text-3xl font-bold text-purple-600">{data.avg_process_days} <span className="text-sm font-normal text-gray-400">天</span></p>
+              <p className="text-xs text-gray-500 mt-1">平均处理周期</p>
             </div>
           </div>
         </div>
@@ -371,6 +410,91 @@ function AftersalesTab({ data }: { data: AftersalesData }) {
               </Pie>
               <Tooltip />
             </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── 维修效率 ─────────────────────────────────────────────────────
+
+function RepairEfficiencyTab({ data }: { data: RepairEfficiencyData }) {
+  return (
+    <div className="space-y-5">
+      {/* 指标卡片 */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className={cardStyle}>
+          <p className="text-xs text-gray-500 mb-1">总维修量</p>
+          <p className="text-2xl font-bold text-gray-800">{data.repair_trend.reduce((s, t) => s + t.count, 0)}</p>
+        </div>
+        <div className={cardStyle}>
+          <p className="text-xs text-gray-500 mb-1">待维修</p>
+          <p className="text-2xl font-bold text-orange-600">{data.status_distribution.find(s => s.name === '待维修')?.value || 0}</p>
+        </div>
+        <div className={cardStyle}>
+          <p className="text-xs text-gray-500 mb-1">已完成</p>
+          <p className="text-2xl font-bold text-blue-600">{data.status_distribution.find(s => s.name === '已完成')?.value || 0}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        {/* 维修量趋势 */}
+        <div className={cardStyle}>
+          <h3 className="text-sm font-semibold text-gray-600 mb-4">维修量月度趋势</h3>
+          <ResponsiveContainer width="100%" height={chartH}>
+            <BarChart data={data.repair_trend}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9ca3af' }} />
+              <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} />
+              <Tooltip content={<ChartTooltip />} />
+              <Bar dataKey="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} name="维修量" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* 状态分布 */}
+        <div className={cardStyle}>
+          <h3 className="text-sm font-semibold text-gray-600 mb-4">维修状态分布</h3>
+          <ResponsiveContainer width="100%" height={chartH}>
+            <PieChart>
+              <Pie data={data.status_distribution} dataKey="value" nameKey="name"
+                cx="50%" cy="50%" outerRadius={100}
+                label={({ name, value }: any) => `${name}: ${value}`}>
+                {data.status_distribution.map((_, i) => <Cell key={i} fill={['#f59e0b', '#2563eb', '#16a34a'][i % 3]} />)}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        {/* 按型号 Top 10 */}
+        <div className={cardStyle}>
+          <h3 className="text-sm font-semibold text-gray-600 mb-4">维修型号 Top 10</h3>
+          <ResponsiveContainer width="100%" height={chartH}>
+            <BarChart data={data.top_models} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#9ca3af' }} width={100} />
+              <Tooltip content={<ChartTooltip />} />
+              <Bar dataKey="value" fill="#8b5cf6" radius={[0, 4, 4, 0]} name="维修量" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* 按故障原因 Top 10 */}
+        <div className={cardStyle}>
+          <h3 className="text-sm font-semibold text-gray-600 mb-4">故障原因 Top 10</h3>
+          <ResponsiveContainer width="100%" height={chartH}>
+            <BarChart data={data.top_reasons} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#9ca3af' }} width={100} />
+              <Tooltip content={<ChartTooltip />} />
+              <Bar dataKey="value" fill="#ef4444" radius={[0, 4, 4, 0]} name="次数" />
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </div>

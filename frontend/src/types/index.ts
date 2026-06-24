@@ -393,6 +393,7 @@ export interface AuditLog {
   resource_type: string
   resource_id?: number
   detail: string
+  changes?: Record<string, { old: string; new: string }>
   ip_address: string
   created_at?: string
 }
@@ -800,6 +801,16 @@ export interface AftersalesData {
   repair_charge_rate: number
   damage_count: number
   damage_amount: number
+  status_distribution: NameValue[]
+  return_rate_trend: { month: string; return_rate: number }[]
+  top_return_models: NameValue[]
+  avg_process_days: number
+}
+
+export interface RepairEfficiencyData {
+  repair_trend: { month: string; count: number }[]
+  top_models: NameValue[]
+  top_reasons: NameValue[]
   status_distribution: NameValue[]
 }
 

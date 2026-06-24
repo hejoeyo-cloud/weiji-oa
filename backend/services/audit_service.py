@@ -10,6 +10,7 @@ def log(
     resource_id: int = None,
     detail: str = "",
     ip_address: str = "",
+    changes: dict = None,
 ):
     """记录操作日志（非阻塞，失败不影响主流程）"""
     try:
@@ -22,6 +23,7 @@ def log(
             resource_id=resource_id,
             detail=detail,
             ip_address=ip_address,
+            changes=changes or {},
         )
         db.add(entry)
         db.commit()

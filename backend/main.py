@@ -13,7 +13,19 @@ async def lifespan(app: FastAPI):
     from seed_data import seed_knowledge
     init_db()
     seed_knowledge()
+
+    # 启动定时数据库备份（每天凌晨3点）
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from backup import backup_database
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(backup_database, "cron", hour=3, minute=0, id="db_backup")
+    scheduler.start()
+    # 启动时立即执行一次备份
+    backup_database()
+
     yield
+
+    scheduler.shutdown()
 
 from middleware.rate_limit import RateLimitMiddleware
 from middleware.company_guard import company_guard
@@ -55,7 +67,7 @@ from routers import approval_rules_router
 from routers import field_option_router
 from routers import sidebar_badge_router
 from routers import product_router
-import finance_router
+from routers import finance_router
 from websocket.manager import manager
 
 app = FastAPI(title="微迹OA 内部系统", version="1.0.0", lifespan=lifespan)
@@ -103,7 +115,7 @@ app.include_router(approval_rules_router.router)
 app.include_router(field_option_router.router)
 app.include_router(sidebar_badge_router.router)
 app.include_router(product_router.router)
-app.include_router(finance_router.router, prefix="/api")
+app.include_router(finance_router.router)
 
 
 @app.websocket("/ws/{user_id}")

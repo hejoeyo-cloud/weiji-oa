@@ -57,6 +57,9 @@ class AftersalesData(BaseModel):
     damage_count: int = 0
     damage_amount: float = 0
     status_distribution: List[NameValue] = []
+    return_rate_trend: List[dict] = []  # [{month, return_rate}]
+    top_return_models: List[NameValue] = []
+    avg_process_days: float = 0
 
 
 # ── 财务分析 ─────────────────────────────────────────────────────
@@ -67,6 +70,15 @@ class FinanceData(BaseModel):
     cashback_reasons: List[NameValue] = []
     invoice_status: List[NameValue] = []
     invoice_type_amount: List[NameValue] = []
+
+
+# ── 维修效率 ─────────────────────────────────────────────────────
+
+class RepairEfficiencyData(BaseModel):
+    repair_trend: List[dict] = []  # [{month, count}]
+    top_models: List[NameValue] = []
+    top_reasons: List[NameValue] = []
+    status_distribution: List[NameValue] = []
 
 
 # ── 店铺分析 ─────────────────────────────────────────────────────

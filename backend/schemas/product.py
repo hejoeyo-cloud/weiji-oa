@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Any
 from datetime import datetime
 
 
@@ -61,3 +61,10 @@ class ProductOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ProductAftersalesSummary(BaseModel):
+    repair_count: int = 0
+    return_count: int = 0
+    exchange_count: int = 0
+    recent_records: List[Any] = []

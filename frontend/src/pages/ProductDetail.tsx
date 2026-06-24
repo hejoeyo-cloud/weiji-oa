@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, X, Edit2, Trash2, ChevronLeft, ChevronRight, Laptop } from 'lucide-react'
+import { ArrowLeft, X, Edit2, Trash2, ChevronLeft, ChevronRight, Laptop, Wrench, RotateCcw, ExternalLink } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
-import { getProductDetail, updateProduct, deleteProduct } from '../api/products'
+import { getProductDetail, updateProduct, deleteProduct, getProductStats } from '../api/products'
 import type { ProductCreateData } from '../api/products'
 import type { Product } from '../types'
 import ImageUpload from '../components/ImageUpload'
@@ -24,6 +24,7 @@ export default function ProductDetail() {
   const [form, setForm] = useState<ProductCreateData | null>(null)
   const [portInput, setPortInput] = useState('')
   const [saving, setSaving] = useState(false)
+  const [stats, setStats] = useState<{ repair_count: number; return_count: number; exchange_count: number; recent_records: any[] } | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -32,6 +33,7 @@ export default function ProductDetail() {
       .then(setProduct)
       .catch(() => navigate('/products'))
       .finally(() => setLoading(false))
+    getProductStats(Number(id)).then(setStats).catch(() => {})
   }, [id])
 
   const openEdit = () => {
@@ -250,6 +252,91 @@ export default function ProductDetail() {
           </div>
         </div>
       </div>
+
+      {/* After-sales records */}
+      {stats && (stats.repair_count > 0 || stats.return_count > 0 || stats.exchange_count > 0) && (
+        <div className="mt-6 bg-white rounded-xl border p-5" style={{ borderColor: '#f0f0f0' }}>
+          <h3 className="text-sm font-semibold mb-4" style={{ color: '#1f1f1f' }}>售后记录</h3>
+          {/* Stats cards */}
+          <div className="grid grid-cols-3 gap-4 mb-5">
+            <div className="text-center p-3 rounded-lg" style={{ background: '#fafaf9' }}>
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                <Wrench className="w-4 h-4" style={{ color: '#8b5cf6' }} />
+                <span className="text-2xl font-bold" style={{ color: '#8b5cf6' }}>{stats.repair_count}</span>
+              </div>
+              <p className="text-xs" style={{ color: '#a3a3a3' }}>维修</p>
+            </div>
+            <div className="text-center p-3 rounded-lg" style={{ background: '#fafaf9' }}>
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                <RotateCcw className="w-4 h-4" style={{ color: '#ef4444' }} />
+                <span className="text-2xl font-bold" style={{ color: '#ef4444' }}>{stats.return_count}</span>
+              </div>
+              <p className="text-xs" style={{ color: '#a3a3a3' }}>退货</p>
+            </div>
+            <div className="text-center p-3 rounded-lg" style={{ background: '#fafaf9' }}>
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                <RotateCcw className="w-4 h-4" style={{ color: '#2563eb' }} />
+                <span className="text-2xl font-bold" style={{ color: '#2563eb' }}>{stats.exchange_count}</span>
+              </div>
+              <p className="text-xs" style={{ color: '#a3a3a3' }}>换货</p>
+            </div>
+          </div>
+
+          {/* Recent records */}
+          {stats.recent_records.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ background: '#fafaf9' }}>
+                    <th className="px-3 py-2 text-left text-xs font-medium" style={{ color: '#737373' }}>类型</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium" style={{ color: '#737373' }}>日期</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium" style={{ color: '#737373' }}>型号</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium" style={{ color: '#737373' }}>故障/原因</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium" style={{ color: '#737373' }}>状态</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium" style={{ color: '#737373' }}></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y" style={{ borderColor: '#f0f0f0' }}>
+                  {stats.recent_records.map((r: any, i: number) => {
+                    const statusMap: Record<string, { label: string; color: string }> = {
+                      pending_repair: { label: '待维修', color: '#f59e0b' },
+                      processing_repair: { label: '维修中', color: '#2563eb' },
+                      completed_repair: { label: '已完成', color: '#16a34a' },
+                      pending: { label: '待处理', color: '#f59e0b' },
+                      processing: { label: '处理中', color: '#2563eb' },
+                      completed: { label: '已完成', color: '#16a34a' },
+                    }
+                    const s = statusMap[r.status] || { label: r.status, color: '#737373' }
+                    const detailPath = r.type === '维修' ? `/repair` : `/return-exchange`
+                    return (
+                      <tr key={i} className="hover:bg-gray-50">
+                        <td className="px-3 py-2">
+                          <span className="inline-block px-2 py-0.5 text-xs rounded-full font-medium"
+                            style={{ background: r.type === '维修' ? '#f3e8ff' : '#fef2f2', color: r.type === '维修' ? '#7c3aed' : '#dc2626' }}>
+                            {r.type}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-xs" style={{ color: '#525252' }}>{r.date}</td>
+                        <td className="px-3 py-2 text-xs" style={{ color: '#525252' }}>{r.model}</td>
+                        <td className="px-3 py-2 text-xs max-w-40 truncate" style={{ color: '#737373' }}>{r.reason || '-'}</td>
+                        <td className="px-3 py-2">
+                          <span className="text-xs font-medium" style={{ color: s.color }}>{s.label}</span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <button onClick={() => navigate(detailPath)}
+                            className="p-1 rounded hover:bg-gray-100" title="查看详情">
+                            <ExternalLink className="w-3.5 h-3.5" style={{ color: '#a3a3a3' }} />
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Image preview modal */}
       {previewIdx !== null && product.images[previewIdx] && (

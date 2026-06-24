@@ -14,6 +14,7 @@ class AuditLog(Base):
     resource_type = Column(String(50), default="")   # ticket/user/knowledge/after_sales/gift/announcement/approval
     resource_id = Column(Integer, nullable=True)
     detail = Column(Text, default="")                # JSON 格式的详细变更信息
+    changes = Column(JSONType, default=dict)          # 字段变更对比 {"field": {"old": x, "new": y}}
     ip_address = Column(String(50), default="")
     created_at = Column(DateTime, default=datetime.now)
 

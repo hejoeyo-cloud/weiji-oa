@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime
 
 class AuditLogOut(BaseModel):
@@ -11,6 +11,7 @@ class AuditLogOut(BaseModel):
     resource_type: str
     resource_id: Optional[int]
     detail: str
+    changes: Optional[Dict[str, Any]] = None
     ip_address: str
     created_at: Optional[datetime]
 

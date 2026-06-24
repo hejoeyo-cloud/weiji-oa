@@ -227,6 +227,14 @@ def update_record(
     incoming = req.model_dump(exclude_none=True)
     incoming_status = incoming.pop("status", None)
     incoming_gift_costs = incoming.pop("gift_costs", None)
+    # 记录变更前的值
+    changes = {}
+    for field, value in incoming.items():
+        if field == "cashback":
+            continue
+        old_val = getattr(r, field, None)
+        if old_val != value:
+            changes[field] = {"old": str(old_val) if old_val is not None else "", "new": str(value) if value is not None else ""}
     for field, value in incoming.items():
         # 排除前端传过来的 cashback 字段（现在由返现表独立管理）
         if field == "cashback":
@@ -259,7 +267,7 @@ def update_record(
     db.commit()
     db.refresh(r)
     audit_service.log(db, current_user, "update", "gift", r.id,
-                      f"更新发货登记: #{r.id}")
+                      f"更新发货登记: #{r.id}", changes=changes or None)
     return record_to_out(db, r, has_cost_permission)
 
 

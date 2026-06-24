@@ -196,7 +196,14 @@ def update_record(
     if not r:
         raise HTTPException(status_code=404, detail="Record not found")
     old_progress = r.progress
-    for field, value in req.model_dump(exclude_none=True).items():
+    update_data = req.model_dump(exclude_none=True)
+    # 记录变更前的值
+    changes = {}
+    for field, value in update_data.items():
+        old_val = getattr(r, field, None)
+        if old_val != value:
+            changes[field] = {"old": str(old_val) if old_val is not None else "", "new": str(value) if value is not None else ""}
+    for field, value in update_data.items():
         setattr(r, field, value)
     # 退货完成 → 联动发货登记状态
     if r.progress == "completed" and r.record_type == "return" and r.order_no and r.order_no.strip():
@@ -221,7 +228,7 @@ def update_record(
     db.commit()
     db.refresh(r)
     audit_service.log(db, current_user, "update", "return_exchange", r.id,
-                      f"更新退换登记: #{r.id}")
+                      f"更新退换登记: #{r.id}", changes=changes or None)
     return record_to_out(r)
 
 

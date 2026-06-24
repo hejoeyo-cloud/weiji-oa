@@ -24,7 +24,7 @@ from storage import get_storage
 storage = get_storage()
 from services import notification_service
 
-router = APIRouter(prefix="/finance", tags=["finance"])
+router = APIRouter(prefix="/api/finance", tags=["finance"])
 
 # 财务用户识别：拥有财务业务编辑/删除权限的用户
 FINANCE_EDIT_PERMISSIONS = [

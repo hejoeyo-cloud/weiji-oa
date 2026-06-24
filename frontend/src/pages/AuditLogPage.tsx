@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Search, Shield, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
 import { getAuditLogs } from '../api/auditLogs'
 import { AuditLog } from '../types'
@@ -11,10 +11,22 @@ const RESOURCE_TYPES = [
   { value: 'knowledge_category', label: '知识库分类' },
   { value: 'return_exchange', label: '退换登记' },
   { value: 'repair', label: '维修登记' },
-  { value: 'gift', label: '赠品登记' },
+  { value: 'gift', label: '发货登记' },
+  { value: 'gift_cashback', label: '返现登记' },
+  { value: 'gift_resend', label: '礼品补发' },
   { value: 'announcement', label: '公告' },
   { value: 'approval', label: '审批' },
   { value: 'department', label: '部门' },
+  { value: 'shop', label: '店铺' },
+  { value: 'role', label: '角色' },
+  { value: 'product', label: '产品' },
+  { value: 'warehouse_product', label: '仓储货品' },
+  { value: 'warehouse_inbound', label: '入库' },
+  { value: 'warehouse_outbound', label: '出库' },
+  { value: 'task', label: '任务' },
+  { value: 'message', label: '邮件' },
+  { value: 'schedule', label: '排班' },
+  { value: 'attendance', label: '考勤' },
 ]
 
 const ACTION_COLORS: Record<string, string> = {
@@ -43,6 +55,7 @@ export default function AuditLogPage() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [loading, setLoading] = useState(false)
+  const [expandedId, setExpandedId] = useState<number | null>(null)
   const pageSize = 30
 
   const load = useCallback(() => {
@@ -106,34 +119,69 @@ export default function AuditLogPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-gray-600">
             <tr>
-              {['时间', '操作人', '操作', '资源类型', '资源ID', '详情'].map(h => (
+              {['时间', '操作人', '操作', '资源类型', '资源ID', '详情', '变更'].map(h => (
                 <th key={h} className="text-left px-4 py-3 font-medium whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {loading ? (
-              <tr><td colSpan={6} className="text-center py-10 text-gray-400">加载中...</td></tr>
+              <tr><td colSpan={7} className="text-center py-10 text-gray-400">加载中...</td></tr>
             ) : logs.length === 0 ? (
-              <tr><td colSpan={6} className="text-center py-10 text-gray-400">暂无操作日志</td></tr>
-            ) : logs.map(log => (
-              <tr key={log.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-3 text-gray-500 font-mono text-xs whitespace-nowrap">{formatTime(log.created_at)}</td>
-                <td className="px-4 py-3 font-medium text-gray-800">{log.user_name || log.username}</td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${ACTION_COLORS[log.action] || 'bg-gray-100 text-gray-600'}`}>
-                    {ACTION_LABELS[log.action] || log.action}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="inline-flex px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full">
-                    {RESOURCE_TYPES.find(r => r.value === log.resource_type)?.label || log.resource_type}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-gray-400 font-mono">{log.resource_id || '-'}</td>
-                <td className="px-4 py-3 text-gray-600 max-w-64 truncate">{log.detail || '-'}</td>
-              </tr>
-            ))}
+              <tr><td colSpan={7} className="text-center py-10 text-gray-400">暂无操作日志</td></tr>
+            ) : logs.map(log => {
+              const hasChanges = log.changes && Object.keys(log.changes).length > 0
+              const isExpanded = expandedId === log.id
+              return (
+                <React.Fragment key={log.id}>
+                  <tr className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 text-gray-500 font-mono text-xs whitespace-nowrap">{formatTime(log.created_at)}</td>
+                    <td className="px-4 py-3 font-medium text-gray-800">{log.user_name || log.username}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${ACTION_COLORS[log.action] || 'bg-gray-100 text-gray-600'}`}>
+                        {ACTION_LABELS[log.action] || log.action}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full">
+                        {RESOURCE_TYPES.find(r => r.value === log.resource_type)?.label || log.resource_type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-400 font-mono">{log.resource_id || '-'}</td>
+                    <td className="px-4 py-3 text-gray-600 max-w-64 truncate">{log.detail || '-'}</td>
+                    <td className="px-4 py-3">
+                      {hasChanges ? (
+                        <button onClick={() => setExpandedId(isExpanded ? null : log.id)}
+                          className="text-xs text-blue-600 hover:text-blue-800 underline">
+                          {isExpanded ? '收起' : '查看变更'}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-gray-300">-</span>
+                      )}
+                    </td>
+                  </tr>
+                  {isExpanded && hasChanges && (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-3 bg-gray-50">
+                        <div className="max-w-2xl">
+                          <p className="text-xs font-medium text-gray-500 mb-2">字段变更详情</p>
+                          <div className="space-y-1">
+                            {Object.entries(log.changes!).map(([field, val]) => (
+                              <div key={field} className="flex items-center gap-2 text-xs">
+                                <span className="font-medium text-gray-600 w-24 flex-shrink-0">{field}</span>
+                                <span className="text-red-500 bg-red-50 px-1.5 py-0.5 rounded max-w-48 truncate">{val.old || '(空)'}</span>
+                                <span className="text-gray-400">→</span>
+                                <span className="text-green-600 bg-green-50 px-1.5 py-0.5 rounded max-w-48 truncate">{val.new || '(空)'}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              )
+            })}
           </tbody>
         </table>
 
