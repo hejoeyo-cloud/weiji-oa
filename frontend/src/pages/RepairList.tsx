@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Eye, Download, Wallet, Ban } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Eye, Download, Wallet, Ban, Wand2 } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import {
   getRepairList,
@@ -14,6 +14,7 @@ import {
   markRepairChargePaid,
   cancelRepairChargeRequest,
 } from '../api/repair'
+import { lookupOrder } from '../api/gifts'
 import { RepairRecord, RepairFeedback, RepairChargeRequest } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import ShopSelect from '../components/ShopSelect'
@@ -66,7 +67,7 @@ function ChargeStatusBadge({ status }: { status: string }) {
 }
 
 const emptyForm = {
-  apply_date: '', order_no: '', return_reason: '', model: '',
+  apply_date: '', order_no: '', shop_name: '', return_reason: '', model: '',
   config: '', quantity: 1, accessories: '',
   customer_info: '', return_tracking: '', send_tracking: '', handle_result: '',
   repair_status: 'pending_repair',
@@ -149,6 +150,26 @@ export default function RepairList() {
   const canEdit = hasPermission('repair:edit')
   const canDelete = hasPermission('repair:delete')
   const canProcess = hasPermission('repair:process')
+  const [lookingUp, setLookingUp] = useState(false)
+
+  const handleAutoFill = async () => {
+    if (!form.order_no.trim()) { alert('请先输入订单编号'); return }
+    setLookingUp(true)
+    try {
+      const result = await lookupOrder(form.order_no.trim())
+      if (!result.found) { alert('未找到匹配的发货记录'); return }
+      setForm(prev => ({
+        ...prev,
+        ...(result.shop_name && { shop_name: result.shop_name }),
+        ...(result.model && { model: result.model }),
+        ...(result.config && { config: result.config }),
+        ...(result.quantity && { quantity: result.quantity }),
+        ...(result.accessories && { accessories: result.accessories }),
+        ...(result.customer_info && { customer_info: result.customer_info }),
+      }))
+    } catch { alert('查询失败，请重试') }
+    finally { setLookingUp(false) }
+  }
   const canCreateChargeRequest = user?.role === 'admin' || user?.role === 'technician'
   const canMarkChargePaid = user?.role === 'admin' || user?.role === 'customer'
   const pendingChargeRequest = chargeRequests.find(item => item.status === 'pending_charge')
@@ -222,6 +243,7 @@ export default function RepairList() {
           '序号': idx + 1,
           '申请日期': r.apply_date || '',
           '订单编号': r.order_no || '',
+          '店铺名称': r.shop_name || '',
           '型号': r.model || '',
           '配置': r.config || '',
           '数量': r.quantity || '',
@@ -256,6 +278,7 @@ export default function RepairList() {
     setForm({
       apply_date: record.apply_date || '',
       order_no: record.order_no || '',
+      shop_name: record.shop_name || '',
       return_reason: record.return_reason || '',
       model: record.model || '',
       config: record.config || '',
@@ -433,7 +456,7 @@ export default function RepairList() {
           <div className="flex-1 min-w-[200px]">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input type="text" placeholder="搜索订单编号/型号/客户信息" value={search}
+              <input type="text" placeholder="搜索订单编号/寄回单号/型号/客户信息" value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1) }}
                 className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm" />
             </div>
@@ -540,9 +563,19 @@ export default function RepairList() {
                     className="w-full border rounded-lg px-3 py-2" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">订单编号</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    订单编号
+                    <button type="button" onClick={handleAutoFill} disabled={lookingUp}
+                      className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 disabled:opacity-50">
+                      <Wand2 size={12} />{lookingUp ? '识别中...' : '自动识别'}
+                    </button>
+                  </label>
                   <input type="text" value={form.order_no} onChange={e => setForm({ ...form, order_no: e.target.value })}
                     className="w-full border rounded-lg px-3 py-2" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">店铺名称</label>
+                  <ShopSelect value={form.shop_name} onChange={v => setForm({ ...form, shop_name: v })} showGear={hasPermission('field_options:manage')} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">型号</label>
@@ -639,6 +672,7 @@ export default function RepairList() {
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div><span className="text-gray-500">申请日期：</span>{detailRecord.apply_date || '-'}</div>
                 <div><span className="text-gray-500">订单编号：</span>{detailRecord.order_no || '-'}</div>
+                <div><span className="text-gray-500">店铺名称：</span>{detailRecord.shop_name || '-'}</div>
                 <div><span className="text-gray-500">型号：</span>{detailRecord.model || '-'}</div>
                 <div><span className="text-gray-500">配置：</span>{detailRecord.config || '-'}</div>
                 <div><span className="text-gray-500">数量：</span>{detailRecord.quantity || 1}</div>

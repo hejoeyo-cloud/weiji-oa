@@ -76,6 +76,9 @@ export default function ShopSelect({ value, onChange, className = '', showGear =
   }
 
   const selectCls = `w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 ${className}`
+  const allOptions = value && !shops.some(s => s.name === value)
+    ? [{ id: -1, name: value, address: '', contact: '', created_by: 0 }, ...shops]
+    : shops
 
   return (
     <div className="space-y-1">
@@ -86,12 +89,9 @@ export default function ShopSelect({ value, onChange, className = '', showGear =
           className={selectCls + ' flex-1'}
         >
           <option value="">{placeholder}</option>
-          {shops.map(s => (
+          {allOptions.map(s => (
             <option key={s.id} value={s.name}>{s.name}</option>
           ))}
-          {value && !shops.some(s => s.name === value) && (
-            <option value={value}>{value}</option>
-          )}
         </select>
         {showGear && (
           <button

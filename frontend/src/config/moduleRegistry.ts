@@ -5,7 +5,7 @@
  */
 
 import {
-  RotateCcw, Wrench, Gift, DollarSign, PackageCheck, Ticket,
+  RotateCcw, Wrench, Gift, DollarSign, PackageCheck, Ticket, Laptop,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -39,7 +39,7 @@ export interface ModuleDefinition {
 // ============================================================
 
 export const ICON_MAP: Record<string, LucideIcon> = {
-  RotateCcw, Wrench, Gift, DollarSign, PackageCheck, Ticket,
+  RotateCcw, Wrench, Gift, DollarSign, PackageCheck, Ticket, Laptop,
 }
 
 // ============================================================
@@ -153,5 +153,16 @@ export const MODULE_REGISTRY: Record<string, ModuleDefinition> = {
       { name: 'express_company', label: '快递公司', type: 'text', required: false, sortOrder: 4 },
       { name: 'tracking_no', label: '快递单号', type: 'text', required: false, sortOrder: 5 },
     ],
+  },
+  products: {
+    moduleKey: 'products',
+    displayName: '产品概览',
+    icon: 'Laptop',
+    routePath: '/products',
+    navigationGroup: '主要功能',
+    permissions: ['products:view'],
+    sortOrder: 3,
+    enabledByDefault: true,
+    fields: [],
   },
 }

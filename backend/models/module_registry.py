@@ -140,4 +140,14 @@ MODULE_REGISTRY: Dict[str, ModuleDefinition] = {
             FieldDefinition("tracking_no", "快递单号", sort_order=5),
         ],
     ),
+    "products": ModuleDefinition(
+        module_key="products",
+        display_name="产品概览",
+        icon="Laptop",
+        route_path="/products",
+        navigation_group="主要功能",
+        permissions=["products:view"],
+        sort_order=3,
+        fields=[],
+    ),
 }

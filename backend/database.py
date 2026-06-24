@@ -22,6 +22,7 @@ from models.ticket import *
 from models.field_option import *
 from models.user import *
 from models.warehouse import *
+from models.product import *
 
 from sqlalchemy.orm import Session
 

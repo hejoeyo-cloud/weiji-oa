@@ -34,7 +34,7 @@ No test framework is configured. Alembic config exists but is unused — databas
 - **Database migrations**: Alembic config exists but is stale/unused. Schema changes are managed via raw SQL in `backend/models/init_db.py`'s `_migrate_db()` function — add ALTER TABLE / CREATE TABLE statements there. This handles SQLite limitations (no DROP COLUMN, etc.) by rebuilding tables when needed.
 - **Auth**: `backend/auth.py` — JWT (python-jose) + bcrypt, 8-hour token expiry. Role-based with fine-grained permissions (`tickets:view`, `tickets:edit`, etc.). Three built-in roles: `admin`, `technician`, `customer`. Admin role bypasses all permission checks. Row-level access via `owner_filter()` / `apply_owner_filter()` (non-admins see only their own records).
 - **Multi-tenancy**: `backend/middleware/company_guard.py` — most models have `company_id` foreign keys; actual tenant isolation is enforced per-router via query scoping (the middleware is a pattern enforcer, not an active filter).
-- **Routers**: ~31 FastAPI routers in `backend/routers/`, one per business domain
+- **Routers**: ~33 FastAPI routers in `backend/routers/`, one per business domain
 - **Schemas**: Pydantic v2 models in `backend/schemas/`
 - **Services**: Business logic in `backend/services/` (audit, notifications, DingTalk sync, subscriptions, charges)
 - **File storage**: `backend/storage.py` — abstract `StorageBackend` with Local and S3 (Tencent COS / AWS S3 / MinIO) implementations. Switch via `STORAGE_BACKEND=s3`. Local uploads stored in `uploads/` at project root.
@@ -81,6 +81,7 @@ When working on this project, check which branch you're on before making changes
 - Adding a new module requires updates in **both** the backend (`backend/models/module_registry.py`) and frontend (`frontend/src/config/moduleRegistry.ts`) module registries, plus a new model/router/schema/page
 - The `company_guard` middleware means most queries must be scoped to `company_id`
 - Auth permissions are checked via `require_permission` dependency in backend routers and `useAuth().hasPermission()` hook in frontend. Admin role bypasses all checks.
+- User model has `is_manager` boolean field — used for department-level access control (e.g., attendance records). This is separate from role permissions.
 - Row-level data filtering uses `owner_filter()` / `apply_owner_filter()` from `auth.py` — non-admins see only their own records
 - Database sessions in routers use `Depends(get_db)` from `database.py`, not `SessionLocal()` directly
 - File uploads go through `backend/storage.py` — don't write direct file I/O for uploads
@@ -88,5 +89,10 @@ When working on this project, check which branch you're on before making changes
 - Navigation sidebar groups and their permission requirements are defined in `AppLayout.tsx`; dynamic module items are merged in at runtime from `/api/module-configs`
 - After editing frontend code, run `npm run build` (from `frontend/`) before restarting the backend — FastAPI serves from `frontend/dist/`, not the dev server
 - To restart the backend: kill the process on port 8000, then `cd backend && python main.py`
+- **Deployment package**: Build frontend (`npm run build`), copy `backend/` (excluding `__pycache__`, `.DS_Store`, `data.db`, `uploads/`, `logs/`, `.vite`) and `frontend/dist/` into `weijioa-deploy/`, add `install.bat`/`start.bat`/`README.txt` (pure ASCII, no special symbols), zip as `微迹OA系统-部署包.zip`
 - WebSocket endpoint is `/ws/{user_id}` — used for real-time notifications (new tickets, status changes, etc.)
 - The `ReturnExchangeRecord` model uses JSON columns for `damage_items` (array of `{name, amount, desc}`) — follow this same pattern for any new array-type fields
+- **Field options system**: `backend/models/field_option.py` provides a generic per-company key-value store for dropdown presets. `field_name` distinguishes categories (e.g., `model`, `config`, `color`, `accessories`). The `FieldSelect` component (`frontend/src/components/FieldSelect.tsx`) is the frontend consumer — it auto-loads options for a given `fieldName` and renders a searchable dropdown with management modal. The `color` field_name additionally supports `color_code` for visual swatches.
+- **Visibility pattern for attendance/records**: Use `is_manager` (boolean on User model) for department-level visibility and `attendance:manage` permission for company-wide visibility. The `_build_records_query` pattern in `attendance_router.py` shows how to scope queries: `has_manage` → full company, `is_manager` → department, else → self only.
+- **Frontend Excel export**: Export is done client-side using the `xlsx` library (see `GiftList.tsx` or `AttendancePage.tsx`). The backend supports `all=true` query parameter on list endpoints to return unpaginated data for export. Use the `exportToExcel()` helper pattern.
+- **Attendance-schedule integration**: `AttendanceRecord` has `scheduled_start`/`scheduled_end` fields that snapshot the shift times at check-in. The `ScheduleSlot` + `ScheduleShift` models define who works when. Check-in logic queries the user's slot for the day and uses the shift's `start_time`/`end_time` for late/early detection.

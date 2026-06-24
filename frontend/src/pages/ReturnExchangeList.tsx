@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Eye, Download } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Eye, Download, Wand2 } from 'lucide-react'
 import {
   getReturnExchangeList,
   getReturnExchangeDetail,
@@ -9,6 +9,7 @@ import {
   addReturnExchangeFeedback,
   getReturnExchangeFeedbacks,
 } from '../api/returnExchange'
+import { lookupOrder } from '../api/gifts'
 import { ReturnExchangeRecord, ReturnExchangeFeedback } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import ShopSelect from '../components/ShopSelect'
@@ -108,6 +109,56 @@ export default function ReturnExchangeList() {
   const canCreate = hasPermission('return_exchange:create')
   const canEdit = hasPermission('return_exchange:edit')
   const canDelete = hasPermission('return_exchange:delete')
+  const [lookingUp, setLookingUp] = useState(false)
+  const [editingDamage, setEditingDamage] = useState(false)
+  const [damageForm, setDamageForm] = useState<{ has_damage: boolean; claim_status: string; damage_items: { name: string; amount: number; desc: string }[] }>({ has_damage: false, claim_status: 'none', damage_items: [] })
+  const [savingDamage, setSavingDamage] = useState(false)
+
+  const handleAutoFill = async () => {
+    if (!form.order_no.trim()) { alert('请先输入订单编号'); return }
+    setLookingUp(true)
+    try {
+      const result = await lookupOrder(form.order_no.trim())
+      if (!result.found) { alert('未找到匹配的发货记录'); return }
+      setForm(prev => ({
+        ...prev,
+        ...(result.shop_name && { shop_name: result.shop_name }),
+        ...(result.customer_info && { customer_info: result.customer_info }),
+      }))
+    } catch { alert('查询失败，请重试') }
+    finally { setLookingUp(false) }
+  }
+
+  const openDamageEditor = () => {
+    if (!detailRecord) return
+    setDamageForm({
+      has_damage: detailRecord.has_damage || false,
+      claim_status: detailRecord.claim_status || 'none',
+      damage_items: detailRecord.damage_items?.map(d => ({ ...d })) || [],
+    })
+    setEditingDamage(true)
+  }
+
+  const handleSaveDamage = async () => {
+    if (!detailRecord) return
+    setSavingDamage(true)
+    try {
+      await updateReturnExchange(detailRecord.id, {
+        has_damage: damageForm.has_damage,
+        claim_status: damageForm.claim_status,
+        damage_items: damageForm.damage_items,
+      })
+      const [fresh, fbList] = await Promise.all([
+        getReturnExchangeDetail(detailRecord.id),
+        getReturnExchangeFeedbacks(detailRecord.id),
+      ])
+      setDetailRecord(fresh)
+      setFeedbacks(fbList)
+      setEditingDamage(false)
+      load()
+    } catch { alert('保存失败') }
+    finally { setSavingDamage(false) }
+  }
 
   const load = useCallback(() => {
     setLoading(true)
@@ -282,6 +333,26 @@ export default function ReturnExchangeList() {
     }
   }
 
+  const handleProgressChange = async (newProgress: string) => {
+    if (!detailRecord) return
+    const label = PROGRESSES.find(p => p.value === newProgress)?.label || newProgress
+    if (!confirm(`确认将状态更改为「${label}」？`)) return
+    try {
+      await updateReturnExchange(detailRecord.id, { progress: newProgress })
+      const oldLabel = PROGRESSES.find(p => p.value === detailRecord.progress)?.label || detailRecord.progress
+      addReturnExchangeFeedback(detailRecord.id, `处理进度: ${oldLabel} → ${label}`).catch(console.error)
+      const [fresh, fbList] = await Promise.all([
+        getReturnExchangeDetail(detailRecord.id),
+        getReturnExchangeFeedbacks(detailRecord.id),
+      ])
+      setDetailRecord(fresh)
+      setFeedbacks(fbList)
+      load()
+    } catch {
+      alert('操作失败')
+    }
+  }
+
   const handleMarkClaimed = async () => {
     if (!detailRecord) return
     if (!confirm('确认标记为已追赔？')) return
@@ -363,7 +434,7 @@ export default function ReturnExchangeList() {
           <div className="flex-1 min-w-[200px]">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input type="text" placeholder="搜索订单编号/型号/客户信息" value={search}
+              <input type="text" placeholder="搜索订单编号/寄回单号/型号/客户信息" value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1) }}
                 className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm" />
             </div>
@@ -467,25 +538,19 @@ export default function ReturnExchangeList() {
                     className="w-full border rounded-lg px-3 py-2" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">店铺名称</label>
-                  <ShopSelect value={form.shop_name} onChange={v => setForm({ ...form, shop_name: v })} showGear={hasPermission('field_options:manage')} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">订单编号</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    订单编号
+                    <button type="button" onClick={handleAutoFill} disabled={lookingUp}
+                      className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 disabled:opacity-50">
+                      <Wand2 size={12} />{lookingUp ? '识别中...' : '自动识别'}
+                    </button>
+                  </label>
                   <input type="text" value={form.order_no} onChange={e => setForm({ ...form, order_no: e.target.value })}
                     className="w-full border rounded-lg px-3 py-2" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">型号</label>
-                  <FieldSelect fieldName="model" label="型号" value={form.model || ''} onChange={v => setForm({ ...form, model: v })} placeholder="请选择或输入型号" showGear={hasPermission('field_options:manage')} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">配置</label>
-                  <FieldSelect fieldName="config" label="配置" value={form.config || ''} onChange={v => setForm({ ...form, config: v })} placeholder="请选择或输入配置" showGear={hasPermission('field_options:manage')} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">尺寸</label>
-                  <FieldSelect fieldName="size" label="尺寸" value={form.size || ''} onChange={v => setForm({ ...form, size: v })} placeholder="请选择或输入尺寸" showGear={hasPermission('field_options:manage')} />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">店铺名称</label>
+                  <ShopSelect value={form.shop_name} onChange={v => setForm({ ...form, shop_name: v })} showGear={hasPermission('field_options:manage')} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">数量</label>
@@ -493,20 +558,6 @@ export default function ReturnExchangeList() {
                     className="w-full border rounded-lg px-3 py-2" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">电脑价格</label>
-                  <input type="number" min="0" step="0.01" value={form.computer_price} onChange={e => setForm({ ...form, computer_price: Number(e.target.value) })}
-                    className="w-full border rounded-lg px-3 py-2" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">配件</label>
-                  <FieldSelect fieldName="accessories" label="配件" value={form.accessories || ''} onChange={v => setForm({ ...form, accessories: v })} placeholder="请选择或输入配件" showGear={hasPermission('field_options:manage')} />
-                </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">配件价格</label>
-                <input type="number" min="0" step="0.01" value={form.accessories_price} onChange={e => setForm({ ...form, accessories_price: Number(e.target.value) })}
-                  className="w-full border rounded-lg px-3 py-2" />
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">登记类型</label>
                 <select value={form.record_type} onChange={e => setForm({ ...form, record_type: e.target.value })}
                   className="w-full border rounded-lg px-3 py-2">
@@ -554,73 +605,6 @@ export default function ReturnExchangeList() {
                 <textarea value={form.disassembly_feedback} onChange={e => setForm({ ...form, disassembly_feedback: e.target.value })}
                   rows={2} className="w-full border rounded-lg px-3 py-2" />
               </div>
-              {/* 货损追赔 */}
-              <div className="border rounded-lg p-4 space-y-3" style={{ borderColor: form.has_damage ? '#fca5a5' : '#e5e7eb', background: form.has_damage ? '#fef2f2' : 'transparent' }}>
-                <div className="flex items-center gap-6">
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                    <input type="checkbox" checked={form.has_damage} onChange={e => setForm({ ...form, has_damage: e.target.checked, claim_status: e.target.checked ? form.claim_status : 'none' })}
-                      className="w-4 h-4 rounded border-gray-300" />
-                    有货损
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm text-gray-500">追赔状态：</label>
-                    <select value={form.claim_status} onChange={e => setForm({ ...form, claim_status: e.target.value })}
-                      disabled={!form.has_damage}
-                      className="border rounded-lg px-3 py-1.5 text-sm disabled:opacity-50" style={{ borderColor: '#e5e5e5' }}>
-                      <option value="none">不需要追赔</option>
-                      <option value="pending">待追赔</option>
-                      <option value="claimed">已追赔</option>
-                    </select>
-                  </div>
-                </div>
-                {form.has_damage && (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-medium text-gray-700">货损明细</label>
-                      <button type="button"
-                        onClick={() => setForm({ ...form, damage_items: [...form.damage_items, { name: '', amount: 0, desc: '' }] })}
-                        className="text-xs text-red-600 hover:text-red-700 flex items-center gap-1">
-                        <Plus size={12} /> 添加货损物品
-                      </button>
-                    </div>
-                    {form.damage_items.length > 0 && (
-                      <div className="space-y-2 mb-2">
-                        {form.damage_items.map((item, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <FieldSelect fieldName="damage_item_name" label="物品名称"
-                              value={item.name}
-                              onChange={v => { const updated = [...form.damage_items]; updated[idx] = { ...updated[idx], name: v }; setForm({ ...form, damage_items: updated }) }}
-                              onOptionSelect={opt => {
-                                if (opt.price) {
-                                  const updated = [...form.damage_items]
-                                  updated[idx] = { ...updated[idx], name: opt.value, amount: opt.price }
-                                  setForm({ ...form, damage_items: updated })
-                                }
-                              }}
-                              placeholder="物品名称" showGear={hasPermission('field_options:manage')} showPrice />
-                            <input type="number" step="0.01" min="0" value={item.amount}
-                              onChange={e => { const updated = [...form.damage_items]; updated[idx] = { ...updated[idx], amount: parseFloat(e.target.value) || 0 }; setForm({ ...form, damage_items: updated }) }}
-                              placeholder="金额" className="w-24 border rounded-lg px-3 py-2 text-sm" style={{ borderColor: '#e5e5e5' }} />
-                            <input type="text" value={item.desc}
-                              onChange={e => { const updated = [...form.damage_items]; updated[idx] = { ...updated[idx], desc: e.target.value }; setForm({ ...form, damage_items: updated }) }}
-                              placeholder="损坏描述" className="flex-1 border rounded-lg px-3 py-2 text-sm" style={{ borderColor: '#e5e5e5' }} />
-                            <button type="button"
-                              onClick={() => setForm({ ...form, damage_items: form.damage_items.filter((_, i) => i !== idx) })}
-                              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded">
-                              <X size={14} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {form.damage_items.length > 0 && (
-                      <div className="text-sm text-red-600 text-right font-medium">
-                        货损合计: ¥{form.damage_items.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">运费</label>
@@ -660,15 +644,18 @@ export default function ReturnExchangeList() {
                 <div><span className="text-gray-500">申请日期：</span>{detailRecord.apply_date || '-'}</div>
                 <div><span className="text-gray-500">店铺名称：</span>{detailRecord.shop_name || '-'}</div>
                 <div><span className="text-gray-500">订单编号：</span>{detailRecord.order_no || '-'}</div>
-                <div><span className="text-gray-500">型号：</span>{detailRecord.model || '-'}</div>
-                <div><span className="text-gray-500">配置：</span>{detailRecord.config || '-'}</div>
-                <div><span className="text-gray-500">尺寸：</span>{detailRecord.size || '-'}</div>
                 <div><span className="text-gray-500">数量：</span>{detailRecord.quantity || 1}</div>
-                <div><span className="text-gray-500">配件：</span>{detailRecord.accessories || '-'}</div>
-                <div><span className="text-gray-500">配件价格：</span>¥{detailRecord.accessories_price?.toFixed(2) || '0.00'}</div>
-                <div><span className="text-gray-500">电脑价格：</span>¥{detailRecord.computer_price?.toFixed(2) || '0.00'}</div>
                 <div><span className="text-gray-500">登记类型：</span><RecordTypeBadge recordType={detailRecord.record_type} /></div>
-                <div><span className="text-gray-500">处理进度：</span><ProgressBadge progress={detailRecord.progress} /></div>
+                <div className="flex items-center gap-2"><span className="text-gray-500">处理进度：</span><ProgressBadge progress={detailRecord.progress} />
+                  {canEdit && detailRecord.progress === 'pending' && (
+                    <button onClick={() => handleProgressChange('processing')}
+                      className="px-2.5 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">处理中</button>
+                  )}
+                  {canEdit && detailRecord.progress !== 'completed' && (
+                    <button onClick={() => handleProgressChange('completed')}
+                      className="px-2.5 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700">已完成</button>
+                  )}
+                </div>
                 <div className="col-span-2"><span className="text-gray-500">客户信息：</span>{detailRecord.customer_info || '-'}</div>
                 <div className="col-span-2"><span className="text-gray-500">退换原因：</span>{detailRecord.return_reason || '-'}</div>
                 <div><span className="text-gray-500">寄回单号：</span>{detailRecord.return_tracking || '-'}</div>
@@ -677,38 +664,170 @@ export default function ReturnExchangeList() {
                 <div className="col-span-2"><span className="text-gray-500">拆件反馈：</span>{detailRecord.disassembly_feedback || '-'}</div>
                 <div><span className="text-gray-500">运费：</span>¥{detailRecord.shipping_fee?.toFixed(2) || '0.00'}</div>
                 <div><span className="text-gray-500">备注：</span>{detailRecord.remark || '-'}</div>
-                {detailRecord.has_damage && (
-                  <>
-                    <div className="col-span-2 border-t pt-3 mt-1" style={{ borderColor: '#fecaca' }}>
-                      <span className="text-red-600 font-medium">货损信息</span>
+                {detailRecord.matched_gift && (() => {
+                  const gift = detailRecord.matched_gift
+                  const GIFT_STATUS: Record<string, { label: string; cls: string }> = {
+                    pending: { label: '待发货', cls: 'bg-yellow-100 text-yellow-700' },
+                    sent: { label: '已发货', cls: 'bg-green-100 text-green-700' },
+                    intercepted: { label: '已拦截', cls: 'bg-orange-100 text-orange-700' },
+                    torn: { label: '已撕单', cls: 'bg-gray-100 text-gray-500' },
+                    cancelled: { label: '已取消', cls: 'bg-gray-100 text-gray-500' },
+                    returned: { label: '已退货', cls: 'bg-red-100 text-red-600' },
+                  }
+                  const gs = GIFT_STATUS[gift.status] || { label: gift.status, cls: 'bg-gray-100 text-gray-500' }
+                  return (
+                    <div className="col-span-2 border-t pt-3 mt-1" style={{ borderColor: '#bfdbfe' }}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-blue-600 font-medium">关联发货单</span>
+                        <span className={`text-xs px-1.5 py-0.5 rounded ${gs.cls}`}>{gs.label}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-x-5 gap-y-1">
+                        <span><span className="text-gray-500">发货日期：</span>{gift.date || '-'}</span>
+                        <span><span className="text-gray-500">型号：</span>{gift.model || '-'}</span>
+                        <span><span className="text-gray-500">配置：</span>{gift.config || '-'}</span>
+                        <span><span className="text-gray-500">颜色：</span>{gift.color || '-'}</span>
+                        <span><span className="text-gray-500">数量：</span>{gift.quantity}</span>
+                        <span><span className="text-gray-500">发出单号：</span>{gift.send_tracking || '-'}</span>
+                        <span><span className="text-gray-500">订单金额：</span>¥{gift.order_amount.toFixed(2)}</span>
+                      </div>
+                      {gift.gift_costs && gift.gift_costs.length > 0 && (
+                        <div className="mt-1">
+                          <span className="text-gray-500">礼品：</span>
+                          {gift.gift_costs.map((g, i) => (
+                            <span key={i} className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 rounded px-1.5 py-0.5 text-sm mr-1">
+                              {g.name} <span className="text-blue-500">¥{g.amount}</span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2"><span className="text-gray-500">追赔状态：</span>
-                      <span className={detailRecord.claim_status === 'claimed' ? 'text-green-600' : detailRecord.claim_status === 'pending' ? 'text-orange-600' : 'text-gray-500'}>
-                        {detailRecord.claim_status === 'claimed' ? '已追赔' : detailRecord.claim_status === 'pending' ? '待追赔' : '不需要追赔'}
+                  )
+                })()}
+                {/* 货损信息 */}
+                {editingDamage ? (
+                  <div className="col-span-2 border-t pt-3 mt-1" style={{ borderColor: '#fecaca' }}>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-red-600 font-medium">编辑货损信息</span>
+                      <div className="flex gap-2">
+                        <button onClick={() => setEditingDamage(false)} className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700">取消</button>
+                        <button onClick={handleSaveDamage} disabled={savingDamage}
+                          className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50">
+                          {savingDamage ? '保存中...' : '保存'}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-6 mb-3">
+                      <label className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={damageForm.has_damage}
+                          onChange={e => setDamageForm({ ...damageForm, has_damage: e.target.checked, claim_status: e.target.checked ? damageForm.claim_status : 'none', damage_items: e.target.checked ? damageForm.damage_items : [] })}
+                          className="w-4 h-4 rounded border-gray-300" />
+                        有货损
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm text-gray-500">追赔状态：</label>
+                        <select value={damageForm.claim_status} onChange={e => setDamageForm({ ...damageForm, claim_status: e.target.value })}
+                          disabled={!damageForm.has_damage}
+                          className="border rounded-lg px-3 py-1.5 text-sm disabled:opacity-50" style={{ borderColor: '#e5e5e5' }}>
+                          <option value="none">不需要追赔</option>
+                          <option value="pending">待追赔</option>
+                          <option value="claimed">已追赔</option>
+                        </select>
+                      </div>
+                    </div>
+                    {damageForm.has_damage && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm font-medium text-gray-700">货损明细</label>
+                          <button type="button"
+                            onClick={() => setDamageForm({ ...damageForm, damage_items: [...damageForm.damage_items, { name: '', amount: 0, desc: '' }] })}
+                            className="text-xs text-red-600 hover:text-red-700 flex items-center gap-1">
+                            <Plus size={12} /> 添加货损物品
+                          </button>
+                        </div>
+                        {damageForm.damage_items.length > 0 && (
+                          <div className="space-y-2 mb-2">
+                            {damageForm.damage_items.map((item, idx) => (
+                              <div key={idx} className="flex items-center gap-2">
+                                <FieldSelect fieldName="damage_item_name" label="物品名称"
+                                  value={item.name}
+                                  onChange={v => { const updated = [...damageForm.damage_items]; updated[idx] = { ...updated[idx], name: v }; setDamageForm({ ...damageForm, damage_items: updated }) }}
+                                  onOptionSelect={opt => {
+                                    if (opt.price) {
+                                      const updated = [...damageForm.damage_items]
+                                      updated[idx] = { ...updated[idx], name: opt.value, amount: opt.price }
+                                      setDamageForm({ ...damageForm, damage_items: updated })
+                                    }
+                                  }}
+                                  placeholder="物品名称" showGear={hasPermission('field_options:manage')} showPrice />
+                                <input type="number" step="0.01" min="0" value={item.amount}
+                                  onChange={e => { const updated = [...damageForm.damage_items]; updated[idx] = { ...updated[idx], amount: parseFloat(e.target.value) || 0 }; setDamageForm({ ...damageForm, damage_items: updated }) }}
+                                  placeholder="金额" className="w-24 border rounded-lg px-3 py-2 text-sm" style={{ borderColor: '#e5e5e5' }} />
+                                <input type="text" value={item.desc}
+                                  onChange={e => { const updated = [...damageForm.damage_items]; updated[idx] = { ...updated[idx], desc: e.target.value }; setDamageForm({ ...damageForm, damage_items: updated }) }}
+                                  placeholder="损坏描述" className="flex-1 border rounded-lg px-3 py-2 text-sm" style={{ borderColor: '#e5e5e5' }} />
+                                <button type="button"
+                                  onClick={() => setDamageForm({ ...damageForm, damage_items: damageForm.damage_items.filter((_, i) => i !== idx) })}
+                                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded">
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {damageForm.damage_items.length > 0 && (
+                          <div className="text-sm text-red-600 text-right font-medium">
+                            货损合计: ¥{damageForm.damage_items.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="col-span-2 border-t pt-3 mt-1" style={{ borderColor: detailRecord.has_damage ? '#fecaca' : '#e5e7eb' }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={detailRecord.has_damage ? 'text-red-600 font-medium' : 'text-gray-500 font-medium'}>
+                        货损信息
                       </span>
-                      {detailRecord.claim_status === 'pending' && canEdit && (
-                        <button onClick={handleMarkClaimed}
-                          className="px-2.5 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700">
-                          已追赔
+                      {canEdit && (
+                        <button onClick={openDamageEditor}
+                          className="px-2.5 py-1 bg-red-500 text-white rounded text-xs font-medium hover:bg-red-600">
+                          {detailRecord.has_damage ? '编辑货损' : '登记货损'}
                         </button>
                       )}
                     </div>
-                    <div><span className="text-gray-500">货损总额：</span><span className="text-red-600 font-medium">¥{detailRecord.total_damage_amount?.toFixed(2) || '0.00'}</span></div>
-                    {detailRecord.damage_items && detailRecord.damage_items.length > 0 && (
-                      <div className="col-span-2">
-                        <span className="text-gray-500">货损明细：</span>
-                        <div className="mt-1 space-y-1">
-                          {detailRecord.damage_items.map((item, idx) => (
-                            <div key={idx} className="flex items-center gap-3 text-sm">
-                              <span className="text-gray-700">{item.name || '未命名'}</span>
-                              <span className="text-red-500">¥{item.amount?.toFixed(2) || '0.00'}</span>
-                              {item.desc && <span className="text-gray-400">{item.desc}</span>}
-                            </div>
-                          ))}
+                    {detailRecord.has_damage ? (
+                      <>
+                        <div className="flex items-center gap-2"><span className="text-gray-500">追赔状态：</span>
+                          <span className={detailRecord.claim_status === 'claimed' ? 'text-green-600' : detailRecord.claim_status === 'pending' ? 'text-orange-600' : 'text-gray-500'}>
+                            {detailRecord.claim_status === 'claimed' ? '已追赔' : detailRecord.claim_status === 'pending' ? '待追赔' : '不需要追赔'}
+                          </span>
+                          {detailRecord.claim_status === 'pending' && canEdit && (
+                            <button onClick={handleMarkClaimed}
+                              className="px-2.5 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700">
+                              已追赔
+                            </button>
+                          )}
                         </div>
-                      </div>
+                        <div><span className="text-gray-500">货损总额：</span><span className="text-red-600 font-medium">¥{detailRecord.total_damage_amount?.toFixed(2) || '0.00'}</span></div>
+                        {detailRecord.damage_items && detailRecord.damage_items.length > 0 && (
+                          <div className="col-span-2">
+                            <span className="text-gray-500">货损明细：</span>
+                            <div className="mt-1 space-y-1">
+                              {detailRecord.damage_items.map((item, idx) => (
+                                <div key={idx} className="flex items-center gap-3 text-sm">
+                                  <span className="text-gray-700">{item.name || '未命名'}</span>
+                                  <span className="text-red-500">¥{item.amount?.toFixed(2) || '0.00'}</span>
+                                  {item.desc && <span className="text-gray-400">{item.desc}</span>}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-gray-400">暂无货损记录</p>
                     )}
-                  </>
+                  </div>
                 )}
                 <div><span className="text-gray-500">登记人：</span>{detailRecord.creator_name || '-'}</div>
                 <div><span className="text-gray-500">登记时间：</span>{formatDateTime(detailRecord.created_at)}</div>

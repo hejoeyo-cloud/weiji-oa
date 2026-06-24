@@ -66,3 +66,19 @@ export const createGiftPreset = (data: { name: string; items: { name: string; am
 
 export const deleteGiftPreset = (id: number) =>
   client.delete(`/gift-presets/${id}`).then(r => r.data)
+
+export interface OrderLookupResult {
+  found: boolean
+  shop_name?: string
+  model?: string
+  config?: string
+  color?: string
+  quantity?: number
+  accessories?: string
+  customer_info?: string
+  order_amount?: number
+  send_tracking?: string
+}
+
+export const lookupOrder = (order_no: string) =>
+  client.get<OrderLookupResult>('/gifts/lookup', { params: { order_no } }).then(r => r.data)

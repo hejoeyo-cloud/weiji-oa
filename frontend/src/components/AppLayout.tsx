@@ -114,6 +114,7 @@ export default function AppLayout() {
   const [announcementPopup, setAnnouncementPopup] = useState<Announcement | null>(null)
   const [moduleItems, setModuleItems] = useState<{ path: string; label: string; icon: React.ElementType; permission: string[] }[]>([])
   const [warehouseModuleItems, setWarehouseModuleItems] = useState<{ path: string; label: string; icon: React.ElementType; permission: string[] }[]>([])
+  const [mainModuleItems, setMainModuleItems] = useState<{ path: string; label: string; icon: React.ElementType; permission: string[] }[]>([])
   const [ticketsEnabled, setTicketsEnabled] = useState(true)
 
   const handleLogout = () => {
@@ -187,6 +188,7 @@ export default function AppLayout() {
       // 按 navigation_group 分组，而不是硬编码路由前缀
       setModuleItems(items.filter(i => i.navigationGroup === '客服业务'))
       setWarehouseModuleItems(items.filter(i => i.navigationGroup === '仓储业务'))
+      setMainModuleItems(items.filter(i => i.navigationGroup === '主要功能'))
     }).catch(() => {})
   }, [authLoading, user])
 
@@ -242,8 +244,10 @@ export default function AppLayout() {
     .filter(g => !g.permission || hasPermission(...g.permission))
     .map(g => {
       let items = [...g.items]
-      // Merge dynamic module items into 客服业务 / 仓储业务
-      if (g.label === '客服业务') {
+      // Merge dynamic module items into 主要功能 / 客服业务 / 仓储业务
+      if (g.label === '主要功能') {
+        items = [...items, ...mainModuleItems]
+      } else if (g.label === '客服业务') {
         items = [...items, ...moduleItems]
         // 工单系统开关：关闭时隐藏工单池和创建工单
         if (!ticketsEnabled) {

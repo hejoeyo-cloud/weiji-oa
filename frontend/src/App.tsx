@@ -28,6 +28,8 @@ import ReportsPage from './pages/ReportsPage'
 import ModuleSettingsPage from './pages/ModuleSettingsPage'
 import MessagesPage from './pages/MessagesPage'
 import ApprovalRulesPage from './pages/ApprovalRulesPage'
+import ProductList from './pages/ProductList'
+import ProductDetail from './pages/ProductDetail'
 import { MODULE_REGISTRY } from './config/moduleRegistry'
 
 function isTokenExpired(): boolean {
@@ -94,6 +96,7 @@ function DashboardRoute() {
     { perm: 'announcements:view', path: '/announcements' },
     { perm: 'approvals:view', path: '/approvals' },
     { perm: 'schedule:view', path: '/schedule' },
+    { perm: 'products:view', path: '/products' },
   ]
   const target = fallbackRoutes.find(r => hasPermission(r.perm))
   return <Navigate to={target?.path || '/profile'} replace />
@@ -121,6 +124,8 @@ export default function App() {
           <Route path="/knowledge/new" element={<KnowledgeEdit />} />
           <Route path="/knowledge/:id" element={<KnowledgeDetail />} />
           <Route path="/knowledge/:id/edit" element={<KnowledgeEdit />} />
+          <Route path="/products" element={<ProductList />} />
+          <Route path="/products/:id" element={<ProductDetail />} />
           {dynamicModuleRoutes}
           <Route path="/warehouse" element={<WarehousePage />} />
           <Route path="/announcements" element={<AnnouncementPage />} />

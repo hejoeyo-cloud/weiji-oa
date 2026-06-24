@@ -12,6 +12,35 @@ from services import audit_service
 router = APIRouter(prefix="/api/gifts", tags=["gifts"])
 
 
+@router.get("/lookup")
+def lookup_order(
+    order_no: str = Query(..., description="订单编号"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """根据订单编号查找发货记录，用于退换/维修表单自动填充"""
+    if not order_no.strip():
+        return {"found": False}
+    gift = db.query(GiftRecord).filter(
+        GiftRecord.company_id == current_user.company_id,
+        GiftRecord.order_no == order_no.strip(),
+    ).first()
+    if not gift:
+        return {"found": False}
+    return {
+        "found": True,
+        "shop_name": gift.shop_name or "",
+        "model": gift.model or "",
+        "config": gift.config or "",
+        "color": gift.color or "",
+        "quantity": gift.quantity or 1,
+        "accessories": gift.accessories or "",
+        "customer_info": gift.customer_info or "",
+        "order_amount": gift.order_amount or 0,
+        "send_tracking": gift.send_tracking or "",
+    }
+
+
 def get_total_cashback(db: Session, order_no: str, company_id: int) -> float:
     """根据订单号汇总返现表中的返现总金额"""
     if not order_no:
@@ -206,9 +235,11 @@ def update_record(
     # 处理礼品成本
     if incoming_gift_costs is not None:
         r.gift_costs = incoming_gift_costs
-    # 如果前端明确设置了 "intercepted" 或 "torn" 状态，保留它；否则由发出单号自动决定
+    # 如果前端明确设置了终态状态，保留它；如果已经是 returned 则不覆盖；否则由发出单号自动决定
     if incoming_status in ("intercepted", "torn", "cancelled"):
         r.status = incoming_status
+    elif r.status == "returned":
+        pass  # 已退货状态由退换登记联动设置，不自动覆盖
     else:
         r.status = "sent" if (r.send_tracking and r.send_tracking.strip()) else "pending"
     if r.send_tracking and r.send_tracking.strip() and not r.ship_date:

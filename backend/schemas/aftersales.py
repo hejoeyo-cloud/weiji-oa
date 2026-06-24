@@ -190,6 +190,19 @@ class ReturnExchangeUpdate(BaseModel):
     damage_items: Optional[List[DamageItem]] = None
     claim_status: Optional[str] = None
 
+class GiftBrief(BaseModel):
+    id: int
+    date: str = ""
+    model: str = ""
+    config: str = ""
+    color: str = ""
+    quantity: int = 0
+    accessories: str = ""
+    send_tracking: str = ""
+    order_amount: float = 0
+    gift_costs: list = []
+    status: str = ""
+
 class ReturnExchangeOut(BaseModel):
     id: int
     apply_date: str = ""
@@ -221,6 +234,7 @@ class ReturnExchangeOut(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     duplicate_count: int = 0
+    matched_gift: Optional[GiftBrief] = None
 
     class Config:
         from_attributes = True

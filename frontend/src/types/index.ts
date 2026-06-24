@@ -143,6 +143,20 @@ export interface Shop {
 }
 
 // ── 退换登记 ─────────────────────────────────────────────────────────
+export interface GiftBrief {
+  id: number
+  date: string
+  model: string
+  config: string
+  color: string
+  quantity: number
+  accessories: string
+  send_tracking: string
+  order_amount: number
+  gift_costs: { name: string; amount: number }[]
+  status: string
+}
+
 export interface ReturnExchangeRecord {
   id: number
   apply_date: string
@@ -174,6 +188,7 @@ export interface ReturnExchangeRecord {
   created_at?: string
   updated_at?: string
   duplicate_count?: number
+  matched_gift?: GiftBrief | null
 }
 
 export interface ReturnExchangeFeedback {
@@ -872,4 +887,28 @@ export interface ApprovalRule {
   condition_field: string; condition_op: string; condition_value: string
   sign_mode: string; approver_ids: string; approver_names: string
   enabled: boolean; sort_order: number
+}
+
+// ── 产品概览 ─────────────────────────────────────────────────────────
+export interface Product {
+  id: number
+  company_id?: number
+  name: string
+  model_number: string
+  images: string[]
+  cpu: string
+  ram: string
+  ram_freq: string
+  storage: string
+  display: string
+  gpu: string
+  ports: string[]
+  battery: string
+  weight: string
+  description: string
+  status: string
+  created_by?: number
+  creator_name: string
+  created_at?: string
+  updated_at?: string
 }

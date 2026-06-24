@@ -16,6 +16,7 @@ export interface RepairListParams {
 export interface RepairCreateData {
   apply_date?: string
   order_no?: string
+  shop_name?: string
   return_reason?: string  // 故障描述
   model?: string
   config?: string

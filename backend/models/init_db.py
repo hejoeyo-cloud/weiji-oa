@@ -679,6 +679,14 @@ def _migrate_db():
                 conn.execute(text("ALTER TABLE gift_resend_records ADD COLUMN status VARCHAR(20) DEFAULT 'pending'"))
                 conn.commit()
 
+    # products 表：新增 ram_freq 列
+    if 'products' in existing_tables:
+        columns = [c['name'] for c in inspector.get_columns('products')]
+        if 'ram_freq' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE products ADD COLUMN ram_freq VARCHAR(100) DEFAULT ''"))
+                conn.commit()
+
 
 def _sync_user_role_ids():
     """将现有用户的 role 字符串与 roles 表的 id 关联"""

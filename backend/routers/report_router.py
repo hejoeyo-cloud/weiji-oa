@@ -196,6 +196,9 @@ def get_report_shipping(
 ):
     cid = current_user.company_id
 
+    # 排除已撕单/已取消/拦截快递/已退货
+    _valid = GiftRecord.status.notin_(["intercepted", "torn", "cancelled", "returned"])
+
     if month:
         # 单月：按天统计
         start, end = _month_range(year, month)
@@ -205,7 +208,7 @@ def get_report_shipping(
             ds = f"{year}-{month:02d}-{d:02d}"
             de = f"{year}-{month:02d}-{d + 1:02d}" if d < days_in_month else end
             v = db.query(func.sum(GiftRecord.quantity)).filter(
-                GiftRecord.company_id == cid, GiftRecord.date >= ds, GiftRecord.date < de,
+                GiftRecord.company_id == cid, _valid, GiftRecord.date >= ds, GiftRecord.date < de,
             ).scalar() or 0
             qty_trend.append(MonthValue(month=f"{d}日", value=v))
     else:
@@ -214,7 +217,7 @@ def get_report_shipping(
         for m in range(1, 13):
             ms, me = _month_range(year, m)
             v = db.query(func.sum(GiftRecord.quantity)).filter(
-                GiftRecord.company_id == cid, GiftRecord.date >= ms, GiftRecord.date < me,
+                GiftRecord.company_id == cid, _valid, GiftRecord.date >= ms, GiftRecord.date < me,
             ).scalar() or 0
             qty_trend.append(MonthValue(month=f"{m}月", value=v))
 
@@ -222,21 +225,21 @@ def get_report_shipping(
     amount_trend = []
     for m in range(1, 13):
         ms, me = _month_range(year, m)
-        oa = db.query(func.sum(GiftRecord.order_amount)).filter(GiftRecord.company_id == cid, GiftRecord.date >= ms, GiftRecord.date < me).scalar() or 0
-        co = db.query(func.sum(GiftRecord.cost)).filter(GiftRecord.company_id == cid, GiftRecord.date >= ms, GiftRecord.date < me).scalar() or 0
-        sf = db.query(func.sum(GiftRecord.shipping_fee)).filter(GiftRecord.company_id == cid, GiftRecord.date >= ms, GiftRecord.date < me).scalar() or 0
+        oa = db.query(func.sum(GiftRecord.order_amount)).filter(GiftRecord.company_id == cid, _valid, GiftRecord.date >= ms, GiftRecord.date < me).scalar() or 0
+        co = db.query(func.sum(GiftRecord.cost)).filter(GiftRecord.company_id == cid, _valid, GiftRecord.date >= ms, GiftRecord.date < me).scalar() or 0
+        sf = db.query(func.sum(GiftRecord.shipping_fee)).filter(GiftRecord.company_id == cid, _valid, GiftRecord.date >= ms, GiftRecord.date < me).scalar() or 0
         amount_trend.append({"month": f"{m}月", "order_amount": round(oa, 2), "cost": round(co, 2), "shipping_fee": round(sf, 2)})
 
     # 利润趋势
     profit_trend = []
     for m in range(1, 13):
         ms, me = _month_range(year, m)
-        oa = db.query(func.sum(GiftRecord.order_amount)).filter(GiftRecord.company_id == cid, GiftRecord.date >= ms, GiftRecord.date < me).scalar() or 0
-        co = db.query(func.sum(GiftRecord.cost)).filter(GiftRecord.company_id == cid, GiftRecord.date >= ms, GiftRecord.date < me).scalar() or 0
-        sf = db.query(func.sum(GiftRecord.shipping_fee)).filter(GiftRecord.company_id == cid, GiftRecord.date >= ms, GiftRecord.date < me).scalar() or 0
+        oa = db.query(func.sum(GiftRecord.order_amount)).filter(GiftRecord.company_id == cid, _valid, GiftRecord.date >= ms, GiftRecord.date < me).scalar() or 0
+        co = db.query(func.sum(GiftRecord.cost)).filter(GiftRecord.company_id == cid, _valid, GiftRecord.date >= ms, GiftRecord.date < me).scalar() or 0
+        sf = db.query(func.sum(GiftRecord.shipping_fee)).filter(GiftRecord.company_id == cid, _valid, GiftRecord.date >= ms, GiftRecord.date < me).scalar() or 0
         cb = db.query(func.sum(GiftCashback.cashback_amount)).filter(GiftCashback.company_id == cid, GiftCashback.created_at >= ms, GiftCashback.created_at < me).scalar() or 0
         gc = 0
-        records = db.query(GiftRecord.gift_costs).filter(GiftRecord.company_id == cid, GiftRecord.date >= ms, GiftRecord.date < me).all()
+        records = db.query(GiftRecord.gift_costs).filter(GiftRecord.company_id == cid, _valid, GiftRecord.date >= ms, GiftRecord.date < me).all()
         for (costs_json,) in records:
             if costs_json:
                 for item in costs_json:
@@ -253,21 +256,21 @@ def get_report_shipping(
     if month:
         start, end = _month_range(year, month)
     top_config_rows = db.query(GiftRecord.config, func.sum(GiftRecord.quantity)).filter(
-        GiftRecord.company_id == cid, GiftRecord.date >= start, GiftRecord.date < end,
+        GiftRecord.company_id == cid, _valid, GiftRecord.date >= start, GiftRecord.date < end,
         GiftRecord.config != "",
     ).group_by(GiftRecord.config).order_by(func.sum(GiftRecord.quantity).desc()).limit(10).all()
     top_configs = [NameValue(name=r[0], value=r[1]) for r in top_config_rows]
 
     # 热销型号 Top 10
     top_model_rows = db.query(GiftRecord.model, func.sum(GiftRecord.quantity)).filter(
-        GiftRecord.company_id == cid, GiftRecord.date >= start, GiftRecord.date < end,
+        GiftRecord.company_id == cid, _valid, GiftRecord.date >= start, GiftRecord.date < end,
         GiftRecord.model != "",
     ).group_by(GiftRecord.model).order_by(func.sum(GiftRecord.quantity).desc()).limit(10).all()
     top_models = [NameValue(name=r[0], value=r[1]) for r in top_model_rows]
 
     # 客户颜色偏好
     color_rows = db.query(GiftRecord.color, func.sum(GiftRecord.quantity)).filter(
-        GiftRecord.company_id == cid, GiftRecord.date >= start, GiftRecord.date < end,
+        GiftRecord.company_id == cid, _valid, GiftRecord.date >= start, GiftRecord.date < end,
         GiftRecord.color != "",
     ).group_by(GiftRecord.color).order_by(func.sum(GiftRecord.quantity).desc()).all()
     color_preference = [NameValue(name=r[0], value=r[1]) for r in color_rows]

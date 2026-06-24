@@ -220,6 +220,7 @@ function ShippingTab({ data }: { data: ShippingData }) {
       {/* 利润分析 */}
       <div className={cardStyle}>
         <h3 className="text-sm font-semibold text-gray-600 mb-4">利润分析</h3>
+        <p className="text-xs text-gray-400 -mt-3 mb-3">已过滤：拦截快递 / 已撕单 / 已取消 / 已退货</p>
         <ResponsiveContainer width="100%" height={chartH}>
           <BarChart data={data.profit_trend}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />

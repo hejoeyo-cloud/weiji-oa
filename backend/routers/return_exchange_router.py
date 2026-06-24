@@ -3,11 +3,12 @@ from collections import Counter
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from database import get_db, ReturnExchangeRecord, User, ReturnExchangeFeedback, AfterSalesChargeRequest
+from database import get_db, ReturnExchangeRecord, GiftRecord, User, ReturnExchangeFeedback, AfterSalesChargeRequest
 from schemas import (
     ReturnExchangeCreate,
     ReturnExchangeUpdate,
     ReturnExchangeOut,
+    GiftBrief,
     ReturnExchangeFeedbackCreate,
     ReturnExchangeFeedbackOut,
     AfterSalesChargeRequestCreate,
@@ -22,7 +23,7 @@ from services.charge_service import create_aftersales_charge_request
 router = APIRouter(prefix="/api/return-exchange", tags=["return_exchange"])
 
 
-def record_to_out(r: ReturnExchangeRecord) -> ReturnExchangeOut:
+def record_to_out(r: ReturnExchangeRecord, matched_gift=None) -> ReturnExchangeOut:
     damage_items = r.damage_items or []
     total_damage = sum(item.get("amount", 0) for item in damage_items if isinstance(item, dict))
     return ReturnExchangeOut(
@@ -55,6 +56,7 @@ def record_to_out(r: ReturnExchangeRecord) -> ReturnExchangeOut:
         creator_name=r.creator.name if r.creator else "",
         created_at=r.created_at,
         updated_at=r.updated_at,
+        matched_gift=matched_gift,
     )
 
 
@@ -65,7 +67,7 @@ def list_records(
     status: str = Query("", description="Filter by progress"),
     record_type: str = Query("", description="Filter by record type: return/exchange"),
     shop_name: str = Query("", description="Filter by shop_name"),
-    search: str = Query("", description="Search in order_no/model/customer_info"),
+    search: str = Query("", description="Search in order_no/return_tracking/model/customer_info"),
     start_date: str = Query("", description="Filter by apply_date >= start_date (YYYY-MM-DD)"),
     end_date: str = Query("", description="Filter by apply_date <= end_date (YYYY-MM-DD)"),
     all: bool = Query(False, description="Return all records (for export)"),
@@ -84,6 +86,7 @@ def list_records(
         pattern = f"%{search}%"
         query = query.filter(
             (ReturnExchangeRecord.order_no.like(pattern))
+            | (ReturnExchangeRecord.return_tracking.like(pattern))
             | (ReturnExchangeRecord.model.like(pattern))
             | (ReturnExchangeRecord.customer_info.like(pattern))
         )
@@ -118,7 +121,27 @@ def get_record(
     r = db.query(ReturnExchangeRecord).filter(ReturnExchangeRecord.id == record_id, ReturnExchangeRecord.company_id == current_user.company_id).first()
     if not r:
         raise HTTPException(status_code=404, detail="Record not found")
-    return record_to_out(r)
+    matched_gift = None
+    if r.order_no:
+        gift = db.query(GiftRecord).filter(
+            GiftRecord.company_id == current_user.company_id,
+            GiftRecord.order_no == r.order_no,
+        ).first()
+        if gift:
+            matched_gift = GiftBrief(
+                id=gift.id,
+                date=gift.date or "",
+                model=gift.model or "",
+                config=gift.config or "",
+                color=gift.color or "",
+                quantity=gift.quantity or 0,
+                accessories=gift.accessories or "",
+                send_tracking=gift.send_tracking or "",
+                order_amount=gift.order_amount or 0,
+                gift_costs=gift.gift_costs or [],
+                status=gift.status or "",
+            )
+    return record_to_out(r, matched_gift)
 
 
 @router.post("", response_model=ReturnExchangeOut)
@@ -175,6 +198,14 @@ def update_record(
     old_progress = r.progress
     for field, value in req.model_dump(exclude_none=True).items():
         setattr(r, field, value)
+    # 退货完成 → 联动发货登记状态
+    if r.progress == "completed" and r.record_type == "return" and r.order_no and r.order_no.strip():
+        gift = db.query(GiftRecord).filter(
+            GiftRecord.company_id == r.company_id,
+            GiftRecord.order_no == r.order_no,
+        ).first()
+        if gift and gift.status not in ("intercepted", "torn", "cancelled"):
+            gift.status = "returned"
     # 状态变更通知
     if r.progress != old_progress and r.created_by:
         try:

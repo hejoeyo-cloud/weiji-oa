@@ -39,6 +39,7 @@ const STATUSES = [
   { value: 'intercepted', label: '已拦截', color: 'bg-red-100 text-red-700' },
   { value: 'torn', label: '已撕单', color: 'bg-gray-100 text-gray-700' },
   { value: 'cancelled', label: '已取消', color: 'bg-stone-100 text-stone-600' },
+  { value: 'returned', label: '已退货', color: 'bg-purple-100 text-purple-700' },
 ]
 
 function StatusBadge({ status }: { status: string }) {

@@ -59,6 +59,8 @@ ALL_PERMISSIONS = [
     "approval_rules:view",
     # 预设选项管理
     "field_options:manage",
+    # 产品概览
+    "products:view", "products:create", "products:edit", "products:delete",
 ]
 
 # 模块分组（用于 UI 展示）
@@ -92,6 +94,7 @@ PERMISSION_GROUPS = [
     {"key": "messages", "label": "内部邮件", "perms": ["view", "send"]},
     {"key": "approval_rules", "label": "审批规则", "perms": ["view"]},
     {"key": "field_options", "label": "预设选项", "perms": ["manage"]},
+    {"key": "products", "label": "产品概览", "perms": ["view", "create", "edit", "delete"]},
 ]
 
 # 默认角色种子数据（仅 admin 为内置角色，不可删除；其他角色可自由编辑和删除）
@@ -121,6 +124,7 @@ DEFAULT_ROLES = [
             "attendance:view",
             "tasks:view", "tasks:create", "tasks:edit",
             "messages:view", "messages:send",
+            "products:view", "products:create", "products:edit",
         ],
     },
     {
@@ -143,6 +147,7 @@ DEFAULT_ROLES = [
             "attendance:view",
             "tasks:view",
             "messages:view", "messages:send",
+            "products:view",
         ],
     },
 ]

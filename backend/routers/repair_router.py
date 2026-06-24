@@ -79,7 +79,7 @@ def list_records(
     repair_status: str = Query("", description="Filter by repair status"),
     charge_status: str = Query("", description="Filter by charge status"),
     shop_name: str = Query("", description="Filter by shop_name"),
-    search: str = Query("", description="Search in order_no/model/customer_info"),
+    search: str = Query("", description="Search in order_no/return_tracking/model/customer_info"),
     start_date: str = Query("", description="Filter by apply_date >= start_date (YYYY-MM-DD)"),
     end_date: str = Query("", description="Filter by apply_date <= end_date (YYYY-MM-DD)"),
     all: bool = Query(False, description="Return all records (for export)"),
@@ -98,6 +98,7 @@ def list_records(
         pattern = f"%{search}%"
         query = query.filter(
             (RepairRecord.order_no.like(pattern))
+            | (RepairRecord.return_tracking.like(pattern))
             | (RepairRecord.model.like(pattern))
             | (RepairRecord.customer_info.like(pattern))
         )

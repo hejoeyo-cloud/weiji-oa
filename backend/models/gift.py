@@ -60,7 +60,7 @@ class GiftRecord(Base):
     gift_costs = Column(JSONType, default=list)           # 礼品成本 [{name, amount}]
     remark = Column(Text, default="")                    # 备注
     ship_date = Column(String(20), default="")           # 出货日期
-    status = Column(String(20), default="pending")       # pending/sent
+    status = Column(String(20), default="pending")       # pending/sent/intercepted/torn/cancelled/returned
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)

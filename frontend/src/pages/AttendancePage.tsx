@@ -436,9 +436,10 @@ export default function AttendancePage() {
                                   const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
                                   const rec = dailyRecs.find(r => r.date === dateStr)
                                   const isToday = dateStr === todayStr
+                                  const weekday = ['日', '一', '二', '三', '四', '五', '六'][new Date(year, month - 1, day).getDay()]
                                   return (
                                     <div key={day} className={`rounded-lg p-1.5 text-center ${isToday ? 'ring-1 ring-blue-300 bg-blue-50' : rec ? 'bg-white border border-gray-100' : 'bg-gray-50'}`}>
-                                      <div className={`text-xs font-medium ${isToday ? 'text-blue-600' : 'text-gray-400'}`}>{day}</div>
+                                      <div className={`text-xs font-medium ${isToday ? 'text-blue-600' : 'text-gray-400'}`}>{day} <span className="font-normal opacity-60">{weekday}</span></div>
                                       {rec ? (
                                         <>
                                           <div className={`w-2 h-2 rounded-full mx-auto my-0.5 ${STATUS_DOT[rec.status] || 'bg-gray-300'}`} />
