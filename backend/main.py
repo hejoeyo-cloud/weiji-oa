@@ -11,8 +11,15 @@ from contextlib import asynccontextmanager
 async def lifespan(app: FastAPI):
     from models.init_db import init_db
     from seed_data import seed_knowledge
+    from license import get_license_status
     init_db()
     seed_knowledge()
+
+    # 启动时检查授权状态
+    lic = get_license_status()
+    print(f"[license] 授权状态: {lic['status']} | 公司: {lic['company']} | 到期: {lic['expires_at'] or '无'}")
+    if lic["message"]:
+        print(f"[license] {lic['message']}")
 
     # 启动定时数据库备份（每天凌晨3点）
     from apscheduler.schedulers.background import BackgroundScheduler
@@ -30,6 +37,7 @@ async def lifespan(app: FastAPI):
 from middleware.rate_limit import RateLimitMiddleware
 from middleware.company_guard import company_guard
 from middleware.request_log import request_log_middleware
+from middleware.license_guard import LicenseGuardMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi import WebSocket, WebSocketDisconnect
@@ -68,11 +76,13 @@ from routers import field_option_router
 from routers import sidebar_badge_router
 from routers import product_router
 from routers import finance_router
+from routers import license_router
 from websocket.manager import manager
 
 app = FastAPI(title="微迹OA 内部系统", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(RateLimitMiddleware, max_requests=600, window_seconds=60, burst_max=30)
+app.add_middleware(LicenseGuardMiddleware)
 app.middleware("http")(request_log_middleware)
 app.middleware("http")(company_guard)
 
@@ -116,6 +126,7 @@ app.include_router(field_option_router.router)
 app.include_router(sidebar_badge_router.router)
 app.include_router(product_router.router)
 app.include_router(finance_router.router)
+app.include_router(license_router.router)
 
 
 @app.websocket("/ws/{user_id}")

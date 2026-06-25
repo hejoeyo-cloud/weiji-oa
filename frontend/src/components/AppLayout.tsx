@@ -16,6 +16,7 @@ import { getSidebarBadges, type SidebarBadges } from '../api/sidebarBadges'
 import type { Notification, Announcement } from '../types'
 import { getModuleConfigs } from '../api/moduleConfig'
 import { MODULE_REGISTRY, ICON_MAP } from '../config/moduleRegistry'
+import LicenseBanner from './LicenseBanner'
 
 const ROLE_LABELS: Record<string, string> = {
   admin: '管理员', technician: '技术员', customer: '客服',
@@ -602,6 +603,9 @@ export default function AppLayout() {
             )}
           </div>
         </header>
+
+        {/* 授权状态提示 */}
+        <LicenseBanner />
 
         {/* Page content - key 确保路由切换时内容区重新挂载，滚动位置自动归零 */}
         <main key={location.pathname} ref={mainRef} className="flex-1 p-4 lg:p-6 overflow-auto">

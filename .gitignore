@@ -44,3 +44,8 @@ uploads/
 .claude/
 .gstack/
 backend/.vite/
+
+# 授权系统
+backend/keys/private.pem
+license.lic
+backups/
