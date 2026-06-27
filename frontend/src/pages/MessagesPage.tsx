@@ -169,7 +169,7 @@ export default function MessagesPage() {
       `}</style>
       {/* Left Nav */}
       <div className="p-2 flex-shrink-0 border-r flex flex-col" style={{width:180, borderColor:'#e5e7eb'}}>
-        <button onClick={()=>openCompose('compose')} className="w-full px-3 py-2.5 bg-blue-600 text-white text-sm rounded-lg mb-3 flex items-center gap-2 justify-center hover:bg-blue-700">
+        <button onClick={()=>openCompose('compose')} className="w-full px-3 py-2.5 btn-primary text-sm mb-3 flex items-center gap-2 justify-center hover:bg-blue-700">
           <Edit2 size={15}/>写邮件</button>
         {folders.map(f => { const c = counts[f]||0; const I = folderIcons[f]; return (
           <div key={f} onClick={()=>{setFolder(f);setSelected(null);setMode('view')}} className={'flex items-center justify-between px-3 py-2.5 text-sm rounded-lg cursor-pointer mb-0.5 '+(folder===f?'bg-blue-50 text-blue-700 font-medium':'text-gray-600 hover:bg-gray-50')}>
@@ -189,7 +189,7 @@ export default function MessagesPage() {
             </div>
             <div className="flex items-center gap-2">
             <button onClick={handleSaveDraft} className="px-3 py-1.5 text-xs border rounded-lg text-gray-600 hover:bg-gray-50">存草稿</button>
-            <button onClick={handleSend} disabled={sending} className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-lg flex items-center gap-1.5 hover:bg-blue-700 disabled:opacity-50">
+            <button onClick={handleSend} disabled={sending} className="px-4 py-1.5 btn-primary text-sm flex items-center gap-1.5 hover:bg-blue-700 disabled:opacity-50">
               <Send size={14}/> {sending?'发送中...':'发送'}</button>
           </div>
           </div>

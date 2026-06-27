@@ -97,3 +97,16 @@ class ShopData(BaseModel):
     return_rate_rank: List[NameValue] = []
     amount_rank: List[NameValue] = []
     detail_table: List[ShopRankItem] = []
+
+
+class ProductIssueModelItem(BaseModel):
+    model: str
+    repair_count: int = 0
+    return_count: int = 0
+    exchange_count: int = 0
+    top_reasons: List[NameValue] = []
+
+
+class ProductIssueData(BaseModel):
+    models: List[ProductIssueModelItem] = []
+    reason_distribution: List[NameValue] = []

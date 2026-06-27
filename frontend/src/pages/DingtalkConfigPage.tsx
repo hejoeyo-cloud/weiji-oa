@@ -133,7 +133,7 @@ export default function DingtalkConfigPage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-5 py-2 bg-blue-600 text-white text-sm rounded-lg flex items-center gap-2 disabled:opacity-50"
+            className="btn-primary flex items-center gap-2 disabled:opacity-50"
           >
             <Save size={14} /> {saving ? '保存中...' : '保存配置'}
           </button>

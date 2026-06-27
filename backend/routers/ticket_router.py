@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from database import get_db, User, Ticket, TicketFeedback, Notification
 from schemas import (
@@ -14,16 +14,17 @@ from services import notification_service, audit_service
 router = APIRouter(prefix="/api/tickets", tags=["tickets"])
 
 
-def ticket_to_out(t: Ticket) -> TicketOut:
+def ticket_to_out(t: Ticket, include_feedbacks: bool = True) -> TicketOut:
     creator = t.creator
     assignee = t.assignee
     feedbacks_out = []
-    for f in (t.feedbacks or []):
-        feedbacks_out.append(TicketFeedbackOut(
-            id=f.id, ticket_id=f.ticket_id, user_id=f.user_id,
-            content=f.content, feedback_type=f.feedback_type,
-            created_at=f.created_at, user_name=f.user.name if f.user else "",
-        ))
+    if include_feedbacks:
+        for f in (t.feedbacks or []):
+            feedbacks_out.append(TicketFeedbackOut(
+                id=f.id, ticket_id=f.ticket_id, user_id=f.user_id,
+                content=f.content, feedback_type=f.feedback_type,
+                created_at=f.created_at, user_name=f.user.name if f.user else "",
+            ))
     return TicketOut(
         id=t.id, platform=t.platform, customer_id=t.customer_id,
         description=t.description, images=t.images or [],
@@ -96,7 +97,7 @@ def list_tickets(
         "total": total,
         "page": page,
         "page_size": page_size,
-        "items": [ticket_to_out(t) for t in tickets],
+        "items": [ticket_to_out(t, include_feedbacks=False) for t in tickets],
     }
 
 

@@ -343,13 +343,13 @@ export default function GiftList() {
         </div>
         {canCreate && (
           <button onClick={openCreate}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-colors">
+            className="inline-flex items-center gap-1.5 btn-primary">
             <Plus size={16} /> 新建登记
           </button>
         )}
       </div>
 
-      <div className="flex flex-wrap gap-3 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+      <div className="flex flex-wrap gap-3 card p-4">
         <div className="flex items-center gap-2 flex-1 min-w-48 border border-gray-200 rounded-lg px-3 py-2">
           <Search size={14} className="text-gray-400" />
           <input
@@ -381,7 +381,7 @@ export default function GiftList() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+      <div className="card overflow-x-auto">
         <table className="w-full text-sm min-w-[900px]">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
@@ -478,8 +478,8 @@ export default function GiftList() {
 
       {/* 新建/编辑弹窗 */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg font-semibold">{editRecord ? '编辑发货' : '新建发货'}</h3>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
@@ -490,7 +490,7 @@ export default function GiftList() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">日期</label>
                   <input type="date" value={form.date}
                     onChange={e => setForm({ ...form, date: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -506,7 +506,7 @@ export default function GiftList() {
                       const shop = shops.find(s => s.id === id)
                       setForm({ ...form, shop_id: id, shop_name: shop?.name || '' })
                     }}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100">
                     <option value="">请选择店铺</option>
                     {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
@@ -516,7 +516,7 @@ export default function GiftList() {
                   <input value={form.order_no}
                     onChange={e => setForm({ ...form, order_no: e.target.value })}
                     placeholder="请输入订单编号"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -584,7 +584,7 @@ export default function GiftList() {
                   <input type="number" min="1"
                     value={form.quantity}
                     onChange={e => setForm({ ...form, quantity: parseInt(e.target.value) || 1 })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">配件</label>
@@ -604,7 +604,7 @@ export default function GiftList() {
                   onChange={e => setForm({ ...form, customer_info: e.target.value })}
                   rows={2}
                   placeholder="姓名/电话/地址"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="col-span-2">
@@ -615,19 +615,19 @@ export default function GiftList() {
                       setForm({ ...form, send_tracking: tracking, status: tracking ? 'sent' : 'pending' })
                     }}
                     placeholder="请输入快递单号"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">运费</label>
                   <input type="number" step="0.01" min="0"
                     value={form.shipping_fee}
                     onChange={e => setForm({ ...form, shipping_fee: parseFloat(e.target.value) || 0 })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">状态</label>
                   <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100">
                     {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
                 </div>
@@ -643,14 +643,14 @@ export default function GiftList() {
                       <input type="number" step="0.01" min="0"
                         value={form.order_amount}
                         onChange={e => setForm({ ...form, order_amount: parseFloat(e.target.value) || 0 })}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">产品成本</label>
                       <input type="number" step="0.01" min="0"
                         value={form.cost}
                         onChange={e => setForm({ ...form, cost: parseFloat(e.target.value) || 0 })}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
                     </div>
                   </div>
                 </div>
@@ -746,7 +746,7 @@ export default function GiftList() {
                               setForm({ ...form, gift_costs: updated })
                             }}
                             placeholder="金额"
-                            className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                            className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
                         )}
                         <button type="button"
                           onClick={() => setForm({ ...form, gift_costs: form.gift_costs.filter((_, i) => i !== idx) })}
@@ -770,7 +770,7 @@ export default function GiftList() {
                   onChange={e => setForm({ ...form, remark: e.target.value })}
                   rows={2}
                   placeholder="备注信息"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-6">
@@ -779,7 +779,7 @@ export default function GiftList() {
                 取消
               </button>
               <button onClick={handleSave} disabled={saving}
-                className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 text-sm disabled:opacity-50">
+                className="btn-primary disabled:opacity-50">
                 {saving ? '保存中...' : '保存'}
               </button>
             </div>
@@ -789,8 +789,8 @@ export default function GiftList() {
 
       {/* 详情弹窗 */}
       {showDetail && detailRecord && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg font-semibold">发货详情 #{detailRecord.id}</h3>
               <button onClick={() => setShowDetail(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
@@ -851,15 +851,15 @@ export default function GiftList() {
                 {detailRecord.status === 'sent' && (
                   <>
                     <button onClick={handleIntercept}
-                      className="px-2.5 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700">
+                      className="btn-danger text-xs">
                       拦截快递
                     </button>
                     <button onClick={handleTorn}
-                      className="px-2.5 py-1 bg-gray-600 text-white rounded text-xs hover:bg-gray-700">
+                      className="btn-secondary text-xs">
                       撕单
                     </button>
                     <button onClick={handleCancel}
-                      className="px-2.5 py-1 bg-stone-500 text-white rounded text-xs hover:bg-stone-600">
+                      className="btn-secondary text-xs">
                       取消订单
                     </button>
                   </>
@@ -892,9 +892,9 @@ export default function GiftList() {
                   onChange={e => setFeedbackText(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleAddFeedback()}
                   placeholder="输入处理记录，回车发送..."
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
                 <button onClick={handleAddFeedback} disabled={addingFeedback || !feedbackText.trim()}
-                  className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 text-sm disabled:opacity-50">
+                  className="btn-primary disabled:opacity-50">
                   发送
                 </button>
               </div>
@@ -902,7 +902,7 @@ export default function GiftList() {
 
             <div className="flex justify-end gap-3 mt-4">
               <button onClick={() => { setShowDetail(false); openEdit(detailRecord) }}
-                className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 text-sm">
+                className="btn-primary">
                 编辑
               </button>
             </div>
@@ -912,8 +912,8 @@ export default function GiftList() {
 
       {/* 店铺管理弹窗 */}
       {showShopModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">管理店铺</h3>
               <button onClick={() => setShowShopModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
@@ -923,9 +923,9 @@ export default function GiftList() {
                 onChange={e => setNewShopName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAddShop()}
                 placeholder="输入新店铺名称"
-                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
               <button onClick={handleAddShop}
-                className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 text-sm">
+                className="btn-primary">
                 添加
               </button>
             </div>
@@ -948,8 +948,8 @@ export default function GiftList() {
 
       {/* 保存预设弹窗 */}
       {showSavePreset && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
             <h3 className="text-lg font-semibold mb-4">保存为预设组合</h3>
             <input value={presetName}
               onChange={e => setPresetName(e.target.value)}
@@ -962,7 +962,7 @@ export default function GiftList() {
                 }
               }}
               placeholder="输入组合名称，如：标准三件套"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 mb-4" />
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 mb-4" />
             <div className="text-xs text-gray-500 mb-4">
               将保存 {form.gift_costs.length} 项礼品：
               {form.gift_costs.map((g, i) => (
@@ -982,7 +982,7 @@ export default function GiftList() {
                 })
               }}
                 disabled={!presetName.trim()}
-                className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 text-sm disabled:opacity-40">
+                className="btn-primary disabled:opacity-40">
                 保存
               </button>
             </div>

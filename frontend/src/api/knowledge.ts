@@ -32,3 +32,20 @@ export function updateKnowledgeArticle(id: number, data: any) {
 export function deleteKnowledgeArticle(id: number) {
   return client.delete(`/knowledge/articles/${id}`)
 }
+
+export interface KnowledgeSuggestItem {
+  id: number
+  title: string
+  category_name: string
+  keywords: string
+  problem_desc: string
+  match_type: string
+}
+
+export function suggestArticles(q: string) {
+  return client.get<KnowledgeSuggestItem[]>('/knowledge/suggest', { params: { q } })
+}
+
+export function createArticleFromTicket(ticketId: number) {
+  return client.post<{ id: number; title: string }>('/knowledge/articles/from-ticket', null, { params: { ticket_id: ticketId } })
+}

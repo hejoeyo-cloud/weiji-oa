@@ -41,7 +41,7 @@ export default function ProductDetail() {
       images: [...product.images], cpu: product.cpu,
       ram: product.ram, ram_freq: product.ram_freq, storage: product.storage, display: product.display,
       gpu: product.gpu, ports: [...product.ports], battery: product.battery,
-      weight: product.weight, description: product.description,
+      charger: product.charger, weight: product.weight, description: product.description,
       status: product.status,
     })
     setPortInput('')
@@ -98,6 +98,7 @@ export default function ProductDetail() {
     { label: '存储', value: product.storage },
     { label: '屏幕', value: product.display },
     { label: '电池', value: product.battery },
+    { label: '充电器', value: product.charger },
     { label: '重量', value: product.weight },
   ].filter(s => s.value)
 
@@ -291,7 +292,7 @@ export default function ProductDetail() {
 
       {/* Edit Modal */}
       {showEdit && form && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[5vh] bg-black/40 overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[5vh] bg-black/30 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 mb-8" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#f0f0f0' }}>
               <h2 className="text-base font-semibold" style={{ color: '#1f1f1f' }}>编辑产品</h2>
@@ -365,6 +366,11 @@ export default function ProductDetail() {
                 <div>
                   <label className="text-xs font-medium mb-1 block" style={{ color: '#525252' }}>电池</label>
                   <input value={form.battery} onChange={e => setForm({ ...form, battery: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border rounded-lg outline-none" style={{ borderColor: '#e5e5e5' }} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium mb-1 block" style={{ color: '#525252' }}>充电器参数</label>
+                  <input value={form.charger} onChange={e => setForm({ ...form, charger: e.target.value })}
                     className="w-full px-3 py-2 text-sm border rounded-lg outline-none" style={{ borderColor: '#e5e5e5' }} />
                 </div>
                 <div>

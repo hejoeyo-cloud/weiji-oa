@@ -214,19 +214,19 @@ export default function UserManage() {
           <button onClick={load} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors"><RefreshCw size={15} /></button>
           {tab === 'users' && (
             <button onClick={openCreateUser}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+              className="btn-primary inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium">
               <Plus size={16} /> 新建用户
             </button>
           )}
           {tab === 'departments' && (
             <button onClick={openCreateDept}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors">
+              className="btn-primary inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium">
               <Plus size={16} /> 新建部门
             </button>
           )}
           {tab === 'roles' && (
             <button onClick={openCreateRole}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors">
+              className="btn-primary inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium">
               <Plus size={16} /> 新建角色
             </button>
           )}
@@ -251,7 +251,7 @@ export default function UserManage() {
 
       {/* 员工列表 */}
       {tab === 'users' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="card overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-600">
               <tr>
@@ -303,7 +303,7 @@ export default function UserManage() {
               <p>暂无部门，点击右上角添加</p>
             </div>
           ) : depts.map(d => (
-            <div key={d.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div key={d.id} className="card p-5">
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="font-semibold text-gray-800">{d.name}</h3>
@@ -328,7 +328,7 @@ export default function UserManage() {
               <p>暂无角色，点击右上角添加</p>
             </div>
           ) : roles.map(r => (
-            <div key={r.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div key={r.id} className="card p-5">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white text-xs font-bold"
@@ -381,24 +381,24 @@ export default function UserManage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">邮箱</label>
-                  <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                  <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                     type="email" value={userForm.email} onChange={e => setUserForm(f => ({ ...f, email: e.target.value }))} />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">{editUser ? '新密码（留空不修改）' : '密码'}</label>
-                  <input type="password" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                  <input type="password" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                     value={userForm.password} onChange={e => setUserForm(f => ({ ...f, password: e.target.value }))} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">姓名</label>
-                  <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                  <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                     value={userForm.name} onChange={e => setUserForm(f => ({ ...f, name: e.target.value }))} />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">角色</label>
-                  <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                  <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                     value={userForm.role} onChange={e => setUserForm(f => ({ ...f, role: e.target.value }))}>
                     {roles.map(r => (
                       <option key={r.id} value={r.name}>{r.label}</option>
@@ -409,7 +409,7 @@ export default function UserManage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">所属部门</label>
-                  <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                  <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                     value={userForm.department_id} onChange={e => setUserForm(f => ({ ...f, department_id: Number(e.target.value) }))}>
                     <option value={0}>无部门</option>
                     {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -417,7 +417,7 @@ export default function UserManage() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">备注</label>
-                  <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                  <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                     value={userForm.note} onChange={e => setUserForm(f => ({ ...f, note: e.target.value }))} />
                 </div>
               </div>
@@ -432,7 +432,7 @@ export default function UserManage() {
             <div className="flex justify-end gap-3 p-5 border-t border-gray-100">
               <button onClick={() => setShowUserModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
               <button onClick={handleSaveUser} disabled={saving}
-                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg disabled:opacity-60">
+                className="btn-primary px-5 py-2 text-sm font-medium disabled:opacity-60">
                 {saving ? '保存中...' : '保存'}
               </button>
             </div>
@@ -452,19 +452,19 @@ export default function UserManage() {
               {deptError && <div className="px-3 py-2 bg-red-50 text-red-600 text-sm rounded-lg">{deptError}</div>}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">部门名称</label>
-                <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-100"
+                <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                   value={deptForm.name} onChange={e => setDeptForm(f => ({ ...f, name: e.target.value }))} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">部门描述</label>
-                <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-100"
+                <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                   value={deptForm.description} onChange={e => setDeptForm(f => ({ ...f, description: e.target.value }))} />
               </div>
             </div>
             <div className="flex justify-end gap-3 p-5 border-t border-gray-100">
               <button onClick={() => setShowDeptModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
               <button onClick={handleSaveDept} disabled={saving}
-                className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg disabled:opacity-60">
+                className="btn-primary px-5 py-2 text-sm font-medium disabled:opacity-60">
                 {saving ? '创建中...' : '创建'}
               </button>
             </div>
@@ -485,13 +485,13 @@ export default function UserManage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">角色标识</label>
-                  <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-100 font-mono"
+                  <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 font-mono"
                     disabled={!!editRole} value={roleForm.name} onChange={e => setRoleForm(f => ({ ...f, name: e.target.value.replace(/\s/g, '') }))}
                     placeholder="如 warehouse_manager" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">显示名称</label>
-                  <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-100"
+                  <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                     value={roleForm.label} onChange={e => setRoleForm(f => ({ ...f, label: e.target.value }))} placeholder="如 仓库管理员" />
                 </div>
               </div>
@@ -500,7 +500,7 @@ export default function UserManage() {
                 <div className="flex items-center gap-2">
                   <input type="color" value={roleForm.color} onChange={e => setRoleForm(f => ({ ...f, color: e.target.value }))}
                     className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer" />
-                  <input className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-100 font-mono"
+                  <input className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 font-mono"
                     value={roleForm.color} onChange={e => setRoleForm(f => ({ ...f, color: e.target.value }))} />
                 </div>
               </div>
@@ -580,7 +580,7 @@ export default function UserManage() {
             <div className="flex justify-end gap-3 p-5 border-t border-gray-100 flex-shrink-0">
               <button onClick={() => setShowRoleModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
               <button onClick={handleSaveRole} disabled={saving}
-                className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg disabled:opacity-60">
+                className="btn-primary px-5 py-2 text-sm font-medium disabled:opacity-60">
                 {saving ? '保存中...' : '保存'}
               </button>
             </div>

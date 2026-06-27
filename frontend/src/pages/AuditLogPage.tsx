@@ -88,7 +88,7 @@ export default function AuditLogPage() {
       </div>
 
       {/* 筛选 */}
-      <div className="flex flex-wrap gap-3 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+      <div className="flex flex-wrap gap-3 card p-4">
         <div className="flex items-center gap-2 flex-1 min-w-48 border border-gray-200 rounded-lg px-3 py-2">
           <Search size={14} className="text-gray-400" />
           <input className="flex-1 text-sm outline-none bg-transparent"
@@ -115,7 +115,7 @@ export default function AuditLogPage() {
       </div>
 
       {/* 日志列表 */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="card overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-gray-600">
             <tr>

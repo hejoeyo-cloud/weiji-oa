@@ -2,6 +2,10 @@ import axios from 'axios'
 
 const API_BASE = '/api'
 
+// ── GET 请求缓存（减少重复请求） ──
+const _cache = new Map<string, { data: any; expires: number }>()
+const CACHE_TTL = 30_000 // 30 秒
+
 const client = axios.create({
   baseURL: API_BASE,
   timeout: 30000,
@@ -11,6 +15,23 @@ client.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+  }
+  // GET 请求：检查缓存
+  if (config.method === 'get' && (config as any).cache !== false) {
+    const key = `${config.url}?${JSON.stringify(config.params || {})}`
+    const cached = _cache.get(key)
+    if (cached && cached.expires > Date.now()) {
+      // 返回缓存的响应，axios 会正常处理
+      config.adapter = () => Promise.resolve({
+        data: cached.data,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config,
+      } as any)
+    }
+    // 存储 key 用于响应拦截器
+    ;(config as any)._cacheKey = key
   }
   return config
 })
@@ -26,7 +47,16 @@ function _redirectToLogin() {
 }
 
 client.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // GET 请求成功：写入缓存
+    if (response.config.method === 'get' && (response.config as any)._cacheKey) {
+      _cache.set((response.config as any)._cacheKey, {
+        data: response.data,
+        expires: Date.now() + CACHE_TTL,
+      })
+    }
+    return response
+  },
   (error) => {
     if (error.response?.status === 401) {
       // 如果是 /api/auth/me 返回 401，说明 token 确实无效，跳转登录

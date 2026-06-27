@@ -395,7 +395,7 @@ export default function ReturnExchangeList() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-800">退换登记</h1>
         {canCreate && (
-          <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 btn-primary">
             <Plus size={18} /> 新增登记
           </button>
         )}
@@ -522,7 +522,7 @@ export default function ReturnExchangeList() {
 
       {/* Create/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b">
               <h2 className="text-lg font-semibold">{editRecord ? '编辑退换登记' : '新增退换登记'}</h2>
@@ -621,7 +621,7 @@ export default function ReturnExchangeList() {
             <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 border rounded-lg hover:bg-gray-100">取消</button>
               <button onClick={handleSubmit} disabled={saving}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                className="px-4 py-2 btn-primary disabled:opacity-50">
                 {saving ? '保存中...' : '保存'}
               </button>
             </div>
@@ -631,7 +631,7 @@ export default function ReturnExchangeList() {
 
       {/* Detail Modal */}
       {showDetail && detailRecord && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b">
               <h2 className="text-lg font-semibold">退换登记详情 #{detailRecord.id}</h2>
@@ -649,11 +649,11 @@ export default function ReturnExchangeList() {
                 <div className="flex items-center gap-2"><span className="text-gray-500">处理进度：</span><ProgressBadge progress={detailRecord.progress} />
                   {canEdit && detailRecord.progress === 'pending' && (
                     <button onClick={() => handleProgressChange('processing')}
-                      className="px-2.5 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">处理中</button>
+                      className="px-2.5 py-1 btn-primary text-xs rounded">处理中</button>
                   )}
                   {canEdit && detailRecord.progress !== 'completed' && (
                     <button onClick={() => handleProgressChange('completed')}
-                      className="px-2.5 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700">已完成</button>
+                      className="px-2.5 py-1 btn-success text-xs rounded">已完成</button>
                   )}
                 </div>
                 <div className="col-span-2"><span className="text-gray-500">客户信息：</span>{detailRecord.customer_info || '-'}</div>
@@ -790,7 +790,7 @@ export default function ReturnExchangeList() {
                       </span>
                       {canEdit && (
                         <button onClick={openDamageEditor}
-                          className="px-2.5 py-1 bg-red-500 text-white rounded text-xs font-medium hover:bg-red-600">
+                          className="px-2.5 py-1 btn-danger text-xs rounded">
                           {detailRecord.has_damage ? '编辑货损' : '登记货损'}
                         </button>
                       )}
@@ -803,7 +803,7 @@ export default function ReturnExchangeList() {
                           </span>
                           {detailRecord.claim_status === 'pending' && canEdit && (
                             <button onClick={handleMarkClaimed}
-                              className="px-2.5 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700">
+                              className="px-2.5 py-1 btn-success text-xs rounded">
                               已追赔
                             </button>
                           )}
@@ -854,7 +854,7 @@ export default function ReturnExchangeList() {
                       onKeyDown={e => e.key === 'Enter' && handleAddFeedback()}
                       className="flex-1 border rounded-lg px-3 py-2 text-sm" />
                     <button onClick={handleAddFeedback} disabled={addingFeedback || !feedbackText.trim()}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50">
+                      className="px-4 py-2 btn-primary text-sm disabled:opacity-50">
                       {addingFeedback ? '添加中...' : '添加'}
                     </button>
                   </div>

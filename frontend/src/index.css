@@ -10,8 +10,8 @@
 
 body {
   font-family: 'Noto Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  background: #fafaf9;
-  color: #1f1f1f;
+  background: #f9fafb;
+  color: #111827;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -26,37 +26,72 @@ body {
 }
 
 @layer components {
+  /* ===== Buttons ===== */
   .btn-primary {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
-    background: #404040;
-    color: white;
+    @apply px-4 py-2 rounded-lg font-medium text-sm text-white transition-colors duration-150;
+    background: #2563eb;
   }
   .btn-primary:hover {
-    background: #262626;
+    background: #1d4ed8;
   }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
   .btn-secondary {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 border;
+    @apply px-4 py-2 rounded-lg font-medium text-sm border transition-colors duration-150;
     background: white;
-    color: #404040;
-    border-color: #e5e5e5;
+    color: #374151;
+    border-color: #e5e7eb;
   }
   .btn-secondary:hover {
-    background: #f5f5f4;
+    background: #f9fafb;
+    border-color: #d1d5db;
   }
+
+  .btn-danger {
+    @apply px-4 py-2 rounded-lg font-medium text-sm text-white transition-colors duration-150;
+    background: #dc2626;
+  }
+  .btn-danger:hover {
+    background: #b91c1c;
+  }
+
+  .btn-success {
+    @apply px-4 py-2 rounded-lg font-medium text-sm text-white transition-colors duration-150;
+    background: #16a34a;
+  }
+  .btn-success:hover {
+    background: #15803d;
+  }
+
+  .btn-ghost {
+    @apply px-3 py-1.5 rounded-lg text-sm text-gray-500 transition-colors duration-150;
+  }
+  .btn-ghost:hover {
+    background: #f3f4f6;
+    color: #111827;
+  }
+
+  /* ===== Cards ===== */
   .card {
-    @apply bg-white rounded-xl transition-all duration-200;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.04);
+    @apply bg-white rounded-xl border border-gray-200 transition-colors duration-150;
   }
+
+  /* ===== Inputs ===== */
   .input-field {
-    @apply w-full px-3 py-2 rounded-lg transition-all duration-200 text-sm;
-    background: #fafaf9;
-    border: 1.5px solid #e5e5e5;
-    color: #1f1f1f;
+    @apply w-full px-3 py-2 rounded-lg text-sm border border-gray-200 transition-all duration-150;
+    background: white;
   }
   .input-field:focus {
-    outline: none;
-    border-color: #404040;
+    @apply outline-none border-primary-500 ring-2 ring-primary-100;
   }
+  .input-field::placeholder {
+    @apply text-gray-400;
+  }
+
+  /* ===== Badge ===== */
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }

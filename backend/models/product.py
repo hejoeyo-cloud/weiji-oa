@@ -22,6 +22,7 @@ class Product(Base):
     gpu = Column(String(200), default="")
     ports = Column(JSONType, default=list)
     battery = Column(String(100), default="")
+    charger = Column(String(200), default="")
     weight = Column(String(100), default="")
     os = Column(String(100), default="")
     description = Column(Text, default="")

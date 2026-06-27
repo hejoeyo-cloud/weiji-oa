@@ -105,13 +105,13 @@ export default function ApprovalPage() {
           <p className="text-sm text-gray-500 mt-0.5">共 {total} 条记录</p>
         </div>
         <button onClick={() => { setForm(emptyForm); setShowCreate(true) }}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+          className="btn-primary inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium">
           <Plus size={16} /> 提交申请
         </button>
       </div>
 
       {/* 视图切换 + 筛选 */}
-      <div className="flex flex-wrap items-center gap-3 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+      <div className="flex flex-wrap items-center gap-3 card p-4">
         <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
           {([['mine', '我的申请'], ['pending_my', '待我审批'], ['all', '全部']] as const).map(([v, l]) => (
             <button key={v} onClick={() => setViewMode(v)}
@@ -141,7 +141,7 @@ export default function ApprovalPage() {
           const sc = STATUS_CONFIG[req.status] || STATUS_CONFIG.pending
           const isExpanded = expanded === req.id
           return (
-            <div key={req.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div key={req.id} className="card overflow-hidden">
               <div className="p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -231,21 +231,21 @@ export default function ApprovalPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">申请类型</label>
-                  <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                  <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                     value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
                     {Object.entries(TYPE_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">标题</label>
-                  <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                  <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                     placeholder="简短说明" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
                 </div>
               </div>
               {form.type !== 'leave' && (
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">金额（元）</label>
-                  <input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                  <input type="number" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                     placeholder="0.00" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
                 </div>
               )}
@@ -253,19 +253,19 @@ export default function ApprovalPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1.5">开始日期</label>
-                    <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                    <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                       value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1.5">结束日期</label>
-                    <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                    <input type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                       value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} />
                   </div>
                 </div>
               )}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">申请说明</label>
-                <textarea className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 resize-none"
+                <textarea className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 resize-none"
                   rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
               </div>
               <div>
@@ -291,7 +291,7 @@ export default function ApprovalPage() {
             <div className="flex justify-end gap-3 p-5 border-t border-gray-100">
               <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
               <button onClick={handleCreate} disabled={saving || !form.title || form.approver_ids.length === 0}
-                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg disabled:opacity-60">
+                className="btn-primary px-5 py-2 text-sm font-medium disabled:opacity-60">
                 {saving ? '提交中...' : '提交申请'}
               </button>
             </div>
@@ -311,13 +311,13 @@ export default function ApprovalPage() {
             </div>
             <div className="p-5">
               <label className="block text-xs font-medium text-gray-600 mb-1.5">审批意见（可选）</label>
-              <textarea className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 resize-none"
+              <textarea className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 resize-none"
                 rows={3} placeholder="填写审批意见..." value={comment} onChange={e => setComment(e.target.value)} />
             </div>
             <div className="flex justify-end gap-3 p-5 border-t border-gray-100">
               <button onClick={() => setActionModal(null)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
               <button onClick={handleAction} disabled={saving}
-                className={`px-5 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-60 ${actionModal.action === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-500 hover:bg-red-600'}`}>
+                className={`px-5 py-2 text-sm font-medium disabled:opacity-60 ${actionModal.action === 'approve' ? 'btn-success' : 'btn-danger'}`}>
                 {saving ? '处理中...' : actionModal.action === 'approve' ? '确认通过' : '确认拒绝'}
               </button>
             </div>

@@ -156,7 +156,7 @@ export default function AnnouncementPage() {
           )}
           {isAdmin && (
             <button onClick={openCreate}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors">
+              className="btn-primary inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium">
               <Plus size={16} /> 发布公告
             </button>
           )}
@@ -166,14 +166,14 @@ export default function AnnouncementPage() {
       {/* 公告列表 */}
       <div className="space-y-3">
         {loading ? (
-          <div className="bg-white rounded-xl p-10 text-center text-gray-400">加载中...</div>
+          <div className="card p-10 text-center text-gray-400">加载中...</div>
         ) : items.length === 0 ? (
-          <div className="bg-white rounded-xl p-16 text-center text-gray-400">
+          <div className="card p-16 text-center text-gray-400">
             <Megaphone size={32} className="mx-auto mb-2 opacity-30" />
             <p>暂无公告</p>
           </div>
         ) : items.map(a => (
-          <div key={a.id} ref={a.id.toString() === highlightId ? highlightRef : undefined} className={`bg-white rounded-xl shadow-sm border transition-all ${a.is_pinned ? 'border-orange-200 shadow-orange-50' : 'border-gray-100'} ${!a.is_active ? 'opacity-60' : ''} ${a.id.toString() === highlightId ? 'highlight-row-ann' : ''}`} style={a.id.toString() === highlightId ? { animation: 'highlight-flash-ann 3s ease-out' } : {}}>
+          <div key={a.id} ref={a.id.toString() === highlightId ? highlightRef : undefined} className={`card shadow-sm border transition-all ${a.is_pinned ? 'border-orange-200 shadow-orange-50' : 'border-gray-100'} ${!a.is_active ? 'opacity-60' : ''} ${a.id.toString() === highlightId ? 'highlight-row-ann' : ''}`} style={a.id.toString() === highlightId ? { animation: 'highlight-flash-ann 3s ease-out' } : {}}>
             <div className="p-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -253,12 +253,12 @@ export default function AnnouncementPage() {
             <div className="p-5 space-y-4">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">标题</label>
-                <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-100"
+                <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                   placeholder="公告标题" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">内容</label>
-                <textarea className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-100 resize-none"
+                <textarea className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 resize-none"
                   rows={5} placeholder="公告内容..." value={form.content}
                   onChange={e => setForm(f => ({ ...f, content: e.target.value }))} />
               </div>
@@ -295,7 +295,7 @@ export default function AnnouncementPage() {
             <div className="flex items-center justify-end gap-3 p-5 border-t border-gray-100">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
               <button onClick={handleSave} disabled={saving || !form.title}
-                className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg disabled:opacity-60">
+                className="btn-primary px-5 py-2 text-sm font-medium disabled:opacity-60">
                 {saving ? '发布中...' : '发布'}
               </button>
             </div>
@@ -325,7 +325,7 @@ export default function AnnouncementPage() {
             </div>
             <div className="flex items-center justify-end p-5 border-t border-gray-100">
               <button onClick={() => setViewingAnn(null)}
-                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                className="btn-primary px-5 py-2 text-sm font-medium">
                 关闭
               </button>
             </div>

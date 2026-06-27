@@ -21,6 +21,7 @@ export interface ProductCreateData {
   gpu?: string
   ports?: string[]
   battery?: string
+  charger?: string
   weight?: string
   description?: string
   status?: string

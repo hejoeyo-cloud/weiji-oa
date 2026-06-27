@@ -24,6 +24,7 @@ def _to_out(p: Product) -> dict:
         "gpu": p.gpu or "",
         "ports": p.ports or [],
         "battery": p.battery or "",
+        "charger": p.charger or "",
         "weight": p.weight or "",
         "description": p.description or "",
         "status": p.status or "在售",

@@ -91,7 +91,7 @@ export default function ApprovalRulesPage() {
     <div className="p-6 space-y-4 max-w-4xl">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-800">审批规则配置</h2>
-        <button onClick={openNew} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg flex items-center gap-1.5">
+        <button onClick={openNew} className="btn-primary flex items-center gap-1.5 text-sm">
           <Plus size={14} /> 新增规则
         </button>
       </div>
@@ -206,7 +206,7 @@ export default function ApprovalRulesPage() {
             <div className="px-5 py-3 border-t flex justify-end gap-2" style={{ borderColor:'#f0f0f0' }}>
               <button onClick={() => setShowForm(false)} className="px-4 py-2 border rounded-lg text-sm">取消</button>
               <button onClick={save} disabled={!name}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm disabled:opacity-50">
+                className="btn-primary disabled:opacity-50">
                 <Check size={14} className="inline mr-1" />{editing ? '更新' : '创建'}
               </button>
             </div>

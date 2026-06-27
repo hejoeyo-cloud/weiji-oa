@@ -109,7 +109,7 @@ export default function ProfilePage() {
                     setError(e.response?.data?.detail || '绑定失败')
                   }
                 }}
-                className="px-4 py-2.5 bg-blue-600 text-white text-sm rounded-xl whitespace-nowrap"
+                className="btn-primary px-4 py-2.5 text-sm whitespace-nowrap"
               >绑定</button>
             </div>
           </div>
@@ -128,7 +128,7 @@ export default function ProfilePage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-60 mt-2"
+            className="btn-primary w-full py-2.5 text-sm disabled:opacity-60 mt-2"
           >
             {saving ? '保存中...' : '保存修改'}
           </button>

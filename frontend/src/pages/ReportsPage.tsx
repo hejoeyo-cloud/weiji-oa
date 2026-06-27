@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { TrendingUp, RefreshCw, Package, RotateCcw, DollarSign, Store, BarChart3, ChevronUp, ChevronDown, Wrench } from 'lucide-react'
+import { TrendingUp, RefreshCw, Package, RotateCcw, DollarSign, Store, BarChart3, ChevronUp, ChevronDown, Wrench, AlertTriangle } from 'lucide-react'
 import {
   ComposedChart, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -7,9 +7,10 @@ import {
 import {
   getReportOverview, getReportShipping, getReportAftersales,
   getReportFinance, getReportShop, getReportRepairEfficiency,
+  getReportProductIssues,
 } from '../api/reports'
 import type {
-  OverviewData, ShippingData, AftersalesData, FinanceData, ShopData, RepairEfficiencyData,
+  OverviewData, ShippingData, AftersalesData, FinanceData, ShopData, RepairEfficiencyData, ProductIssueData,
 } from '../types'
 
 const COLORS = ['#2563eb', '#16a34a', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899']
@@ -35,7 +36,7 @@ function ChartTooltip({ active, payload, label }: any) {
 export default function ReportsPage() {
   const [year, setYear] = useState(currentYear)
   const [month, setMonth] = useState<number | undefined>(undefined)
-  const [tab, setTab] = useState<'overview' | 'shipping' | 'aftersales' | 'repair_efficiency' | 'finance' | 'shop'>('overview')
+  const [tab, setTab] = useState<'overview' | 'shipping' | 'aftersales' | 'repair_efficiency' | 'finance' | 'shop' | 'product_issues'>('overview')
   const [loading, setLoading] = useState(false)
 
   const [overview, setOverview] = useState<OverviewData | null>(null)
@@ -44,17 +45,19 @@ export default function ReportsPage() {
   const [repairEfficiency, setRepairEfficiency] = useState<RepairEfficiencyData | null>(null)
   const [finance, setFinance] = useState<FinanceData | null>(null)
   const [shop, setShop] = useState<ShopData | null>(null)
+  const [productIssues, setProductIssues] = useState<ProductIssueData | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [ov, sh, af, re, fi, sp] = await Promise.all([
+      const [ov, sh, af, re, fi, sp, pi] = await Promise.all([
         getReportOverview(year, month),
         getReportShipping(year, month),
         getReportAftersales(year, month),
         getReportRepairEfficiency(year, month),
         getReportFinance(year, month),
         getReportShop(year, month),
+        getReportProductIssues(year, month),
       ])
       setOverview(ov)
       setShipping(sh)
@@ -62,6 +65,7 @@ export default function ReportsPage() {
       setRepairEfficiency(re)
       setFinance(fi)
       setShop(sp)
+      setProductIssues(pi)
     } catch (e) {
       console.error(e)
     } finally {
@@ -78,6 +82,7 @@ export default function ReportsPage() {
     { key: 'repair_efficiency', label: '维修分析', icon: Wrench },
     { key: 'finance', label: '财务分析', icon: DollarSign },
     { key: 'shop', label: '店铺分析', icon: Store },
+    { key: 'product_issues', label: '产品故障', icon: AlertTriangle },
   ] as const
 
   return (
@@ -120,6 +125,7 @@ export default function ReportsPage() {
       {tab === 'repair_efficiency' && repairEfficiency && <RepairEfficiencyTab data={repairEfficiency} />}
       {tab === 'finance' && finance && <FinanceTab data={finance} />}
       {tab === 'shop' && shop && <ShopTab data={shop} />}
+      {tab === 'product_issues' && productIssues && <ProductIssuesTab data={productIssues} />}
     </div>
   )
 }
@@ -672,6 +678,114 @@ function ShopTab({ data }: { data: ShopData }) {
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function ProductIssuesTab({ data }: { data: ProductIssueData }) {
+  const top10 = data.models.slice(0, 10)
+  const chartData = top10.map(m => ({
+    name: m.model.length > 8 ? m.model.slice(0, 8) + '...' : m.model,
+    维修: m.repair_count,
+    退货: m.return_count,
+    换货: m.exchange_count,
+  }))
+
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Bar chart: top models */}
+        <div className={cardStyle}>
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">故障型号 Top 10</h3>
+          {chartData.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-10">暂无数据</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={chartH}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip content={<ChartTooltip />} />
+                <Legend />
+                <Bar dataKey="维修" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="退货" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="换货" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Pie chart: reason distribution */}
+        <div className={cardStyle}>
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">故障原因分布</h3>
+          {data.reason_distribution.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-10">暂无数据</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={chartH}>
+              <PieChart>
+                <Pie
+                  data={data.reason_distribution}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                  labelLine={{ strokeWidth: 1 }}
+                >
+                  {data.reason_distribution.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      {/* Detail table */}
+      <div className={cardStyle}>
+        <h3 className="text-sm font-semibold text-gray-700 mb-4">型号明细</h3>
+        {data.models.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-10">暂无数据</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-500 border-b border-gray-100">
+                  <th className="px-4 py-2 font-medium">型号</th>
+                  <th className="px-4 py-2 font-medium text-right">维修</th>
+                  <th className="px-4 py-2 font-medium text-right">退货</th>
+                  <th className="px-4 py-2 font-medium text-right">换货</th>
+                  <th className="px-4 py-2 font-medium text-right">合计</th>
+                  <th className="px-4 py-2 font-medium">主要故障</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.models.map((m, i) => (
+                  <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
+                    <td className="px-4 py-2 font-medium text-gray-800">{m.model}</td>
+                    <td className="px-4 py-2 text-right">{m.repair_count}</td>
+                    <td className="px-4 py-2 text-right">{m.return_count}</td>
+                    <td className="px-4 py-2 text-right">{m.exchange_count}</td>
+                    <td className="px-4 py-2 text-right font-medium">{m.repair_count + m.return_count + m.exchange_count}</td>
+                    <td className="px-4 py-2">
+                      <div className="flex flex-wrap gap-1">
+                        {m.top_reasons.map((r, j) => (
+                          <span key={j} className="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
+                            {r.name} ({r.value})
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -297,13 +297,13 @@ export default function GiftResendList() {
         </div>
         {canCreate && (
           <button onClick={openCreate}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors">
+            className="inline-flex items-center gap-1.5 btn-primary">
             <Plus size={16} /> 新建补发
           </button>
         )}
       </div>
 
-      <div className="flex flex-wrap gap-3 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+      <div className="flex flex-wrap gap-3 card p-4">
         <div className="flex items-center gap-2 flex-1 min-w-48 border border-gray-200 rounded-lg px-3 py-2">
           <Search size={14} className="text-gray-400" />
           <input className="flex-1 text-sm outline-none bg-transparent"
@@ -324,7 +324,7 @@ export default function GiftResendList() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-600">
@@ -499,7 +499,7 @@ export default function GiftResendList() {
                   <button
                     onClick={handleAddFeedback}
                     disabled={addingFeedback || !feedbackText.trim()}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50">
+                    className="btn-primary disabled:opacity-50">
                     {addingFeedback ? '...' : '记录'}
                   </button>
                 </div>
@@ -507,7 +507,7 @@ export default function GiftResendList() {
             </div>
             <div className="flex items-center justify-end gap-3 p-5 border-t border-gray-100">
               <button onClick={() => { setShowDetail(false); openEdit(detailRecord) }}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors">
+                className="btn-primary">
                 编辑
               </button>
               <button onClick={() => setShowDetail(false)}
@@ -621,7 +621,7 @@ export default function GiftResendList() {
                               setForm(f => ({ ...f, gift_items: updated }))
                             }}
                             placeholder="数量"
-                            className="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                            className="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm text-center focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
                         </div>
                         <div className="w-24">
                           <input type="number" min="0" step="0.01" value={item.amount}
@@ -631,7 +631,7 @@ export default function GiftResendList() {
                               setForm(f => ({ ...f, gift_items: updated }))
                             }}
                             placeholder="单价"
-                            className="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                            className="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm text-right focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
                         </div>
                         <span className="text-xs text-gray-400 w-16 text-right">
                           ¥{((item.amount || 0) * item.quantity).toFixed(2)}
@@ -665,7 +665,7 @@ export default function GiftResendList() {
             <div className="flex items-center justify-end gap-3 p-5 border-t border-gray-100">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
               <button onClick={handleSave} disabled={saving}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg disabled:opacity-60">
+                className="btn-primary disabled:opacity-60">
                 {saving ? '保存中...' : '保存'}
               </button>
             </div>
@@ -675,8 +675,8 @@ export default function GiftResendList() {
 
       {/* 保存预设弹窗 */}
       {showSavePreset && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
             <h3 className="text-lg font-semibold mb-4">保存为预设组合</h3>
             <input value={presetName}
               onChange={e => setPresetName(e.target.value)}
@@ -689,7 +689,7 @@ export default function GiftResendList() {
                 }
               }}
               placeholder="输入组合名称，如：标准三件套"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-4" />
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 mb-4" />
             <div className="text-xs text-gray-500 mb-4">
               将保存 {form.gift_items.length} 项礼品：
               {form.gift_items.map((g, i) => (
@@ -709,7 +709,7 @@ export default function GiftResendList() {
                 })
               }}
                 disabled={!presetName.trim()}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm disabled:opacity-40">
+                className="btn-primary disabled:opacity-40">
                 保存
               </button>
             </div>

@@ -139,7 +139,7 @@ export default function FieldSelect({
     setShowDropdown(false)
   }
 
-  const inputCls = `w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 ${className}`
+  const inputCls = `w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 ${className}`
 
   return (
     <div className="space-y-1">
@@ -193,7 +193,7 @@ export default function FieldSelect({
 
       {/* 选项管理弹窗 */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]" onClick={() => setShowModal(false)}>
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[60]" onClick={() => setShowModal(false)}>
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b">
               <h3 className="text-base font-semibold text-gray-800">管理{label}</h3>
@@ -211,7 +211,7 @@ export default function FieldSelect({
                   onChange={e => setNewName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAdd() } }}
                   placeholder={`输入新${label}`}
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                 />
                 {showPrice && (
                   <input
@@ -222,7 +222,7 @@ export default function FieldSelect({
                     onChange={e => setNewPrice(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAdd() } }}
                     placeholder="成本价"
-                    className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                   />
                 )}
                 {fieldName === 'color' && (
@@ -237,7 +237,7 @@ export default function FieldSelect({
                 <button
                   onClick={handleAdd}
                   disabled={loading || !newName.trim()}
-                  className="px-3 py-2 bg-violet-600 text-white rounded-lg text-sm hover:bg-violet-700 disabled:opacity-40 flex items-center gap-1"
+                  className="btn-primary px-3 py-2 text-sm disabled:opacity-40 flex items-center gap-1"
                 >
                   <Plus size={14} /> 添加
                 </button>
@@ -258,7 +258,7 @@ export default function FieldSelect({
                             value={editName}
                             onChange={e => setEditName(e.target.value)}
                             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleUpdate(o.id) } if (e.key === 'Escape') { setEditId(null) } }}
-                            className="flex-1 border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                            className="flex-1 border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                             autoFocus
                           />
                           {showPrice && (
@@ -269,7 +269,7 @@ export default function FieldSelect({
                               value={editPrice}
                               onChange={e => setEditPrice(e.target.value)}
                               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleUpdate(o.id) } }}
-                              className="w-24 border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                              className="w-24 border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                             />
                           )}
                           {fieldName === 'color' && (

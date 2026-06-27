@@ -75,7 +75,7 @@ export default function ShopSelect({ value, onChange, className = '', showGear =
     }
   }
 
-  const selectCls = `w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 ${className}`
+  const selectCls = `w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 ${className}`
   const allOptions = value && !shops.some(s => s.name === value)
     ? [{ id: -1, name: value, address: '', contact: '', created_by: 0 }, ...shops]
     : shops
@@ -107,7 +107,7 @@ export default function ShopSelect({ value, onChange, className = '', showGear =
 
       {/* 店铺管理弹窗 */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]" onClick={() => setShowModal(false)}>
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[60]" onClick={() => setShowModal(false)}>
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b">
               <h3 className="text-base font-semibold text-gray-800">管理店铺</h3>
@@ -125,12 +125,12 @@ export default function ShopSelect({ value, onChange, className = '', showGear =
                   onChange={e => setNewName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAdd() } }}
                   placeholder="输入新店铺名称"
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                 />
                 <button
                   onClick={handleAdd}
                   disabled={loading || !newName.trim()}
-                  className="px-3 py-2 bg-violet-600 text-white rounded-lg text-sm hover:bg-violet-700 disabled:opacity-40 flex items-center gap-1"
+                  className="btn-primary px-3 py-2 text-sm disabled:opacity-40 flex items-center gap-1"
                 >
                   <Plus size={14} /> 添加
                 </button>
@@ -151,7 +151,7 @@ export default function ShopSelect({ value, onChange, className = '', showGear =
                             value={editName}
                             onChange={e => setEditName(e.target.value)}
                             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleUpdate(s.id) } if (e.key === 'Escape') { setEditId(null) } }}
-                            className="flex-1 border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                            className="flex-1 border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                             autoFocus
                           />
                           <button onClick={() => handleUpdate(s.id)} disabled={loading} className="p-1 hover:bg-green-50 rounded text-green-600">

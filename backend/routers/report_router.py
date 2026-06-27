@@ -16,8 +16,10 @@ from schemas.report import (
     OverviewData, OverviewCard, ShippingData, ProfitItem,
     AftersalesData, FinanceData, ShopData, ShopRankItem,
     MonthValue, NameValue, RepairEfficiencyData,
+    ProductIssueModelItem, ProductIssueData,
 )
 from auth import get_current_user, require_permission
+from services.cache import cached, cache_clear, cache_get, cache_set
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
@@ -102,6 +104,10 @@ def get_report_overview(
     db: Session = Depends(get_db),
 ):
     cid = current_user.company_id
+    cache_key = f"report_overview:{cid}:{year}:{month}"
+    cached_result = cache_get(cache_key)
+    if cached_result is not None:
+        return cached_result
     start, end = _month_range(year, month) if month else _year_range(year)
 
     # 上一期
@@ -182,7 +188,9 @@ def get_report_overview(
     ]
     module_distribution = [m for m in module_distribution if m.value > 0]
 
-    return OverviewData(cards=cards, shipping_vs_return=shipping_vs_return, module_distribution=module_distribution)
+    result = OverviewData(cards=cards, shipping_vs_return=shipping_vs_return, module_distribution=module_distribution)
+    cache_set(cache_key, result)
+    return result
 
 
 # ── 发货分析 ─────────────────────────────────────────────────────
@@ -292,6 +300,10 @@ def get_report_repair_efficiency(
     db: Session = Depends(get_db),
 ):
     cid = current_user.company_id
+    cache_key = f"report_repair_eff:{cid}:{year}:{month}"
+    cached_result = cache_get(cache_key)
+    if cached_result is not None:
+        return cached_result
     start, end = _month_range(year, month) if month else _year_range(year)
 
     # 月度维修量趋势
@@ -328,11 +340,13 @@ def get_report_repair_efficiency(
     ).group_by(RepairRecord.repair_status).all()
     status_distribution = [NameValue(name=status_labels.get(r[0], r[0]), value=r[1]) for r in status_rows]
 
-    return RepairEfficiencyData(
+    result = RepairEfficiencyData(
         repair_trend=repair_trend,
         top_models=top_models, top_reasons=top_reasons,
         status_distribution=status_distribution,
     )
+    cache_set(cache_key, result)
+    return result
 
 
 # ── 售后分析 ─────────────────────────────────────────────────────
@@ -345,6 +359,10 @@ def get_report_aftersales(
     db: Session = Depends(get_db),
 ):
     cid = current_user.company_id
+    cache_key = f"report_aftersales:{cid}:{year}:{month}"
+    cached_result = cache_get(cache_key)
+    if cached_result is not None:
+        return cached_result
 
     # 退货 vs 换货月度趋势
     re_trend = []
@@ -449,7 +467,7 @@ def get_report_aftersales(
             pass
     avg_process_days = round(sum(process_days) / len(process_days), 1) if process_days else 0
 
-    return AftersalesData(
+    result = AftersalesData(
         return_exchange_trend=re_trend, return_reasons=return_reasons,
         repair_trend=repair_trend, repair_charge_rate=repair_charge_rate,
         damage_count=damage_count, damage_amount=round(damage_amount, 2),
@@ -457,6 +475,8 @@ def get_report_aftersales(
         return_rate_trend=return_rate_trend, top_return_models=top_return_models,
         avg_process_days=avg_process_days,
     )
+    cache_set(cache_key, result)
+    return result
 
 
 # ── 财务分析 ─────────────────────────────────────────────────────
@@ -601,3 +621,102 @@ def get_report_shop(
         shipping_rank=shipping_rank, return_rate_rank=return_rate_rank,
         amount_rank=amount_rank, detail_table=detail_table,
     )
+
+
+# ── 产品故障分析 ────────────────────────────────────────────────────
+
+@router.get("/product-issues", response_model=ProductIssueData)
+def get_report_product_issues(
+    year: int = Query(...),
+    month: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    cid = current_user.company_id
+    cache_key = f"report_product_issues:{cid}:{year}:{month}"
+    cached_result = cache_get(cache_key)
+    if cached_result is not None:
+        return cached_result
+    start, end = _month_range(year, month) if month else _year_range(year)
+
+    # 维修记录按型号分组
+    repair_q = db.query(
+        RepairRecord.model,
+        func.count(RepairRecord.id),
+    ).filter(
+        RepairRecord.company_id == cid,
+        RepairRecord.model != "",
+        RepairRecord.created_at >= start,
+        RepairRecord.created_at < end,
+    ).group_by(RepairRecord.model)
+
+    repair_map: dict[str, int] = {}
+    for model, cnt in repair_q.all():
+        repair_map[model or "未知"] = cnt
+
+    # 退换货记录按型号分组
+    ret_q = db.query(
+        ReturnExchangeRecord.model,
+        ReturnExchangeRecord.record_type,
+        func.count(ReturnExchangeRecord.id),
+    ).filter(
+        ReturnExchangeRecord.company_id == cid,
+        ReturnExchangeRecord.model != "",
+        ReturnExchangeRecord.created_at >= start,
+        ReturnExchangeRecord.created_at < end,
+    ).group_by(ReturnExchangeRecord.model, ReturnExchangeRecord.record_type)
+
+    return_map: dict[str, int] = {}
+    exchange_map: dict[str, int] = {}
+    for model, rtype, cnt in ret_q.all():
+        key = model or "未知"
+        if rtype == "return":
+            return_map[key] = cnt
+        else:
+            exchange_map[key] = cnt
+
+    # 故障原因分布
+    reason_q = db.query(
+        RepairRecord.return_reason,
+        func.count(RepairRecord.id),
+    ).filter(
+        RepairRecord.company_id == cid,
+        RepairRecord.return_reason != "",
+        RepairRecord.created_at >= start,
+        RepairRecord.created_at < end,
+    ).group_by(RepairRecord.return_reason).order_by(func.count(RepairRecord.id).desc()).limit(10)
+
+    reason_distribution = [NameValue(name=r or "未知", value=c) for r, c in reason_q.all()]
+
+    # 每个型号的 Top 故障原因
+    all_models = set(list(repair_map.keys()) + list(return_map.keys()) + list(exchange_map.keys()))
+    model_items = []
+    for model in all_models:
+        top_reasons_q = db.query(
+            RepairRecord.return_reason,
+            func.count(RepairRecord.id),
+        ).filter(
+            RepairRecord.company_id == cid,
+            RepairRecord.model == model,
+            RepairRecord.return_reason != "",
+            RepairRecord.created_at >= start,
+            RepairRecord.created_at < end,
+        ).group_by(RepairRecord.return_reason).order_by(func.count(RepairRecord.id).desc()).limit(3)
+
+        model_items.append(ProductIssueModelItem(
+            model=model,
+            repair_count=repair_map.get(model, 0),
+            return_count=return_map.get(model, 0),
+            exchange_count=exchange_map.get(model, 0),
+            top_reasons=[NameValue(name=r or "未知", value=c) for r, c in top_reasons_q.all()],
+        ))
+
+    # 按总故障数排序
+    model_items.sort(key=lambda x: x.repair_count + x.return_count + x.exchange_count, reverse=True)
+
+    result = ProductIssueData(
+        models=model_items[:20],
+        reason_distribution=reason_distribution,
+    )
+    cache_set(cache_key, result)
+    return result

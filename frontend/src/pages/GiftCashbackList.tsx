@@ -125,13 +125,13 @@ export default function GiftCashbackList() {
         </div>
         {canCreate && (
           <button onClick={openCreate}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-colors">
+            className="inline-flex items-center gap-1.5 btn-primary">
             <Plus size={16} /> 新建返现
           </button>
         )}
       </div>
 
-      <div className="flex flex-wrap gap-3 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+      <div className="flex flex-wrap gap-3 card p-4">
         <div className="flex items-center gap-2 flex-1 min-w-48 border border-gray-200 rounded-lg px-3 py-2">
           <Search size={14} className="text-gray-400" />
           <input
@@ -157,7 +157,7 @@ export default function GiftCashbackList() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="card overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
@@ -213,8 +213,8 @@ export default function GiftCashbackList() {
 
       {/* 新建/编辑弹窗 */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg font-semibold">{editRecord ? '编辑返现' : '新建返现'}</h3>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
@@ -225,14 +225,14 @@ export default function GiftCashbackList() {
                 <input value={form.order_no}
                   onChange={e => setForm({ ...form, order_no: e.target.value })}
                   placeholder="请输入关联的发货订单号"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">返现金额 <span className="text-red-500">*</span></label>
                 <input type="number" step="0.01" min="0"
                   value={form.cashback_amount}
                   onChange={e => setForm({ ...form, cashback_amount: parseFloat(e.target.value) || 0 })}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">返现原因</label>
@@ -240,14 +240,14 @@ export default function GiftCashbackList() {
                   onChange={e => setForm({ ...form, reason: e.target.value })}
                   rows={2}
                   placeholder="请输入返现原因"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">申请人</label>
                 <input value={form.applicant}
                   onChange={e => setForm({ ...form, applicant: e.target.value })}
                   placeholder="请输入申请人姓名"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">备注</label>
@@ -255,7 +255,7 @@ export default function GiftCashbackList() {
                   onChange={e => setForm({ ...form, remark: e.target.value })}
                   rows={2}
                   placeholder="备注信息"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-6">
@@ -264,7 +264,7 @@ export default function GiftCashbackList() {
                 取消
               </button>
               <button onClick={handleSave} disabled={saving}
-                className="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 text-sm disabled:opacity-50">
+                className="btn-primary disabled:opacity-50">
                 {saving ? '保存中...' : '保存'}
               </button>
             </div>

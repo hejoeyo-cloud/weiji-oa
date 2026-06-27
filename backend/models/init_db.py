@@ -686,6 +686,10 @@ def _migrate_db():
             with engine.connect() as conn:
                 conn.execute(text("ALTER TABLE products ADD COLUMN ram_freq VARCHAR(100) DEFAULT ''"))
                 conn.commit()
+        if 'charger' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE products ADD COLUMN charger VARCHAR(200) DEFAULT ''"))
+                conn.commit()
 
     # ── 操作日志增加 changes 字段 ──
     if "audit_logs" in existing_tables:
@@ -694,6 +698,41 @@ def _migrate_db():
             with engine.connect() as conn:
                 conn.execute(text("ALTER TABLE audit_logs ADD COLUMN changes TEXT DEFAULT '{}'"))
                 conn.commit()
+
+    # ── 性能优化：添加常用查询索引 ──
+    _ensure_indexes(engine, existing_tables)
+
+
+def _ensure_indexes(engine, existing_tables):
+    """为高频查询字段添加索引，提升并发查询性能"""
+    indexes = [
+        # tickets 表：customer_id、status、created_at 是列表页常用过滤/排序字段
+        ("idx_tickets_customer_id", "tickets", "customer_id"),
+        ("idx_tickets_status", "tickets", "status"),
+        ("idx_tickets_created_at", "tickets", "created_at"),
+        # repair_records 表：model、repair_status、created_at 用于报表和列表
+        ("idx_repair_model", "repair_records", "model"),
+        ("idx_repair_status", "repair_records", "repair_status"),
+        ("idx_repair_created_at", "repair_records", "created_at"),
+        # return_exchange_records 表：model、record_type、progress、created_at
+        ("idx_return_model", "return_exchange_records", "model"),
+        ("idx_return_record_type", "return_exchange_records", "record_type"),
+        ("idx_return_created_at", "return_exchange_records", "created_at"),
+        # ticket_feedbacks 表：ticket_id 已有索引，加 feedback_type
+        ("idx_feedback_type", "ticket_feedbacks", "feedback_type"),
+        # knowledge_articles 表：title、keywords 用于搜索
+        ("idx_knowledge_title", "knowledge_articles", "title"),
+        # products 表：model_number 用于搜索
+        ("idx_product_model_number", "products", "model_number"),
+    ]
+    with engine.connect() as conn:
+        for idx_name, table, column in indexes:
+            if table in existing_tables:
+                try:
+                    conn.execute(text(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table} ({column})"))
+                except Exception:
+                    pass  # 索引可能已存在
+        conn.commit()
 
 
 def _sync_user_role_ids():

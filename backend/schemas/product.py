@@ -15,6 +15,7 @@ class ProductCreate(BaseModel):
     gpu: str = ""
     ports: List[str] = []
     battery: str = ""
+    charger: str = ""
     weight: str = ""
     description: str = ""
     status: str = "在售"
@@ -32,6 +33,7 @@ class ProductUpdate(BaseModel):
     gpu: Optional[str] = None
     ports: Optional[List[str]] = None
     battery: Optional[str] = None
+    charger: Optional[str] = None
     weight: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
@@ -51,6 +53,7 @@ class ProductOut(BaseModel):
     gpu: str = ""
     ports: List[str] = []
     battery: str = ""
+    charger: str = ""
     weight: str = ""
     description: str = ""
     status: str = "在售"

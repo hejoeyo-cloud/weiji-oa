@@ -77,6 +77,7 @@ from routers import sidebar_badge_router
 from routers import product_router
 from routers import finance_router
 from routers import license_router
+from routers import customer_router
 from websocket.manager import manager
 
 app = FastAPI(title="微迹OA 内部系统", version="1.0.0", lifespan=lifespan)
@@ -127,6 +128,7 @@ app.include_router(sidebar_badge_router.router)
 app.include_router(product_router.router)
 app.include_router(finance_router.router)
 app.include_router(license_router.router)
+app.include_router(customer_router.router)
 
 
 @app.websocket("/ws/{user_id}")

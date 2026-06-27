@@ -832,6 +832,19 @@ export interface ShopData {
   detail_table: ShopRankItem[]
 }
 
+export interface ProductIssueModelItem {
+  model: string
+  repair_count: number
+  return_count: number
+  exchange_count: number
+  top_reasons: NameValue[]
+}
+
+export interface ProductIssueData {
+  models: ProductIssueModelItem[]
+  reason_distribution: NameValue[]
+}
+
 // ── 钉钉 ─────────────────────────────────────────────────────────
 export interface DingtalkConfig {
   id: number
@@ -915,6 +928,7 @@ export interface Product {
   gpu: string
   ports: string[]
   battery: string
+  charger: string
   weight: string
   description: string
   status: string

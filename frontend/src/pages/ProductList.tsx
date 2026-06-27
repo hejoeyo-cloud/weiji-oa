@@ -18,7 +18,7 @@ function imgUrl(url: string): string {
 const emptyForm: ProductCreateData = {
   name: '', model_number: '',
   images: [], cpu: '', ram: '', ram_freq: '', storage: '', display: '',
-  gpu: '', ports: [], battery: '', weight: '',
+  gpu: '', ports: [], battery: '', charger: '', weight: '',
   description: '', status: '在售',
 }
 
@@ -61,7 +61,7 @@ export default function ProductList() {
       name: p.name, model_number: p.model_number,
       images: [...p.images], cpu: p.cpu,
       ram: p.ram, ram_freq: p.ram_freq, storage: p.storage, display: p.display, gpu: p.gpu,
-      ports: [...p.ports], battery: p.battery, weight: p.weight,
+      ports: [...p.ports], battery: p.battery, charger: p.charger, weight: p.weight,
       description: p.description, status: p.status,
     })
     setPortInput('')
@@ -248,7 +248,7 @@ export default function ProductList() {
 
       {/* Create/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[5vh] bg-black/40 overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[5vh] bg-black/30 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 mb-8" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#f0f0f0' }}>
               <h2 className="text-base font-semibold" style={{ color: '#1f1f1f' }}>
@@ -337,6 +337,12 @@ export default function ProductList() {
                   <input value={form.battery} onChange={e => setForm({ ...form, battery: e.target.value })}
                     className="w-full px-3 py-2 text-sm border rounded-lg outline-none" style={{ borderColor: '#e5e5e5' }}
                     placeholder="如 57Wh" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium mb-1 block" style={{ color: '#525252' }}>充电器参数</label>
+                  <input value={form.charger} onChange={e => setForm({ ...form, charger: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border rounded-lg outline-none" style={{ borderColor: '#e5e5e5' }}
+                    placeholder="如 65W USB-C" />
                 </div>
                 <div>
                   <label className="text-xs font-medium mb-1 block" style={{ color: '#525252' }}>重量</label>

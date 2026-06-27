@@ -118,12 +118,12 @@ export default function SchedulePage() {
         <div className="flex items-center gap-2">
           {isAdmin && (
             <button onClick={() => setShowBatchModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+              className="btn-primary inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium">
               <Plus size={14} /> 批量排班
             </button>
           )}
           <button onClick={() => setShowSwapModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-colors">
+            className="btn-primary inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium">
             <ArrowLeftRight size={14} /> 换班申请
           </button>
         </div>
@@ -167,7 +167,7 @@ export default function SchedulePage() {
           </div>
 
           {/* 日历表格 */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse min-w-[800px]">
                 <thead>
@@ -260,13 +260,13 @@ export default function SchedulePage() {
         <div className="space-y-4">
           {isAdmin && (
             <button onClick={() => { setEditShift(null); setShowShiftModal(true) }}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+              className="btn-primary inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium">
               <Plus size={14} /> 新增班次
             </button>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {shifts.map(s => (
-              <div key={s.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center gap-4">
+              <div key={s.id} className="card p-4 flex items-center gap-4">
                 <span className="w-10 h-10 rounded-lg text-white font-bold flex items-center justify-center text-sm flex-shrink-0" style={{ backgroundColor: s.color }}>
                   {s.short_name || s.name[0]}
                 </span>
@@ -296,7 +296,7 @@ export default function SchedulePage() {
 
       {/* 换班记录 */}
       {tab === 'swaps' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="card overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
@@ -426,12 +426,12 @@ function ShiftFormModal({ shift, onSave, onClose }: {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1.5">班次名称</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                 value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="如：早班" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1.5">简称</label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+              <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                 value={form.short_name} onChange={e => setForm(f => ({ ...f, short_name: e.target.value }))} placeholder="如：早" />
             </div>
           </div>
@@ -469,7 +469,7 @@ function ShiftFormModal({ shift, onSave, onClose }: {
         <div className="flex items-center justify-end gap-3 p-5 border-t border-gray-100">
           <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
           <button onClick={() => onSave(form)}
-            className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+            className="btn-primary px-5 py-2 text-sm font-medium">
             保存
           </button>
         </div>
@@ -544,7 +544,7 @@ function BatchScheduleModal({ shifts, users, year, month, onSave, onClose }: {
         <div className="flex items-center justify-end gap-3 p-5 border-t border-gray-100">
           <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
           <button onClick={handleSave} disabled={saving}
-            className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-60">
+            className="btn-primary disabled:opacity-60">
             {saving ? '排班中...' : '确认排班'}
           </button>
         </div>
@@ -630,7 +630,7 @@ function SwapRequestModal({ shifts, slots, users, currentUserId, onSave, onClose
         <div className="flex items-center justify-end gap-3 p-5 border-t border-gray-100">
           <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">取消</button>
           <button onClick={handleSave} disabled={saving}
-            className="px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-60">
+            className="btn-primary px-5 py-2 text-sm font-medium disabled:opacity-60">
             {saving ? '提交中...' : '提交申请'}
           </button>
         </div>

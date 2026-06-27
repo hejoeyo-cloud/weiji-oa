@@ -304,7 +304,7 @@ export default function AttendancePage() {
 
       {/* Tab: 每日考勤 - 日历视图 */}
       {activeTab === 'daily' && (
-        <div className="bg-white border rounded-xl overflow-hidden" style={{ borderColor: '#f0f0f0' }}>
+        <div className="card overflow-hidden" style={{ borderColor: '#f0f0f0' }}>
           {/* 星期头 */}
           <div className="grid grid-cols-7 bg-gray-50 text-xs text-gray-400 text-center">
             {['日', '一', '二', '三', '四', '五', '六'].map(d => (
@@ -376,7 +376,7 @@ export default function AttendancePage() {
                 { label: '早退', value: stats.early_days, color: '#eab308' },
                 { label: '缺勤', value: stats.absent_days, color: '#ef4444' },
               ].map(item => (
-                <div key={item.label} className="bg-white border rounded-xl p-4 text-center" style={{ borderColor: '#f0f0f0' }}>
+                <div key={item.label} className="card rounded-xl p-4 text-center" style={{ borderColor: '#f0f0f0' }}>
                   <div className="text-2xl font-bold" style={{ color: item.color }}>{item.value}</div>
                   <div className="text-xs text-gray-400 mt-1">{item.label}</div>
                 </div>
@@ -385,7 +385,7 @@ export default function AttendancePage() {
           )}
 
           {/* 按人统计表格 */}
-          <div className="bg-white border rounded-xl overflow-hidden" style={{ borderColor: '#f0f0f0' }}>
+          <div className="card overflow-hidden" style={{ borderColor: '#f0f0f0' }}>
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500">
                 <tr>
@@ -471,7 +471,7 @@ export default function AttendancePage() {
 
       {/* Tab: 考勤记录 */}
       {activeTab === 'records' && (
-        <div className="bg-white border rounded-xl overflow-hidden" style={{ borderColor: '#f0f0f0' }}>
+        <div className="card overflow-hidden" style={{ borderColor: '#f0f0f0' }}>
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-500">
               <tr>
@@ -530,7 +530,7 @@ export default function AttendancePage() {
             )}
           </div>
 
-          <div className="bg-white border rounded-xl p-5 space-y-4" style={{ borderColor: '#f0f0f0' }}>
+          <div className="card rounded-xl p-5 space-y-4" style={{ borderColor: '#f0f0f0' }}>
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-sm font-medium text-gray-700">启用钉钉考勤同步</span>
@@ -559,7 +559,7 @@ export default function AttendancePage() {
 
             <div className="flex items-center gap-3">
               <button onClick={handleDtSave} disabled={dtSaving}
-                className="px-5 py-2 bg-blue-600 text-white text-sm rounded-lg flex items-center gap-2 disabled:opacity-50">
+                className="btn-primary px-5 py-2 text-sm rounded-lg flex items-center gap-2 disabled:opacity-50">
                 <Save size={14} /> {dtSaving ? '保存中...' : '保存配置'}
               </button>
               <button onClick={handleDtSync} disabled={dtSyncing || !dtEnabled}

@@ -417,7 +417,7 @@ export default function RepairList() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-800">维修登记</h1>
         {canCreate && (
-          <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 btn-primary">
             <Plus size={18} /> 新增登记
           </button>
         )}
@@ -547,7 +547,7 @@ export default function RepairList() {
 
       {/* Create/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b">
               <h2 className="text-lg font-semibold">{editRecord ? '编辑维修登记' : '新增维修登记'}</h2>
@@ -650,7 +650,7 @@ export default function RepairList() {
             <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 border rounded-lg hover:bg-gray-100">取消</button>
               <button onClick={handleSubmit} disabled={saving}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                className="px-4 py-2 btn-primary disabled:opacity-50">
                 {saving ? '保存中...' : '保存'}
               </button>
             </div>
@@ -660,7 +660,7 @@ export default function RepairList() {
 
       {/* Detail Modal */}
       {showDetail && detailRecord && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b">
               <h2 className="text-lg font-semibold">维修登记详情 #{detailRecord.id}</h2>
@@ -698,7 +698,7 @@ export default function RepairList() {
                   {/* 无 pending 时允许发起新收费（支持多次收费） */}
                   {!pendingChargeRequest && canCreateChargeRequest && !showChargeForm && (
                     <button onClick={() => { setChargeForm({ expected_amount: '', charge_note: '' }); setShowChargeForm(true) }}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+                      className="flex items-center gap-1 px-3 py-1.5 btn-primary text-sm">
                       <Wallet size={14} /> 发起{chargeRequests.length > 0 ? '新' : ''}收费
                     </button>
                   )}
@@ -726,7 +726,7 @@ export default function RepairList() {
                     {canMarkChargePaid && (
                       <>
                         <button onClick={() => { setPaidForm({ paid_amount: String(pendingChargeRequest.expected_amount), amount_change_note: '' }); setShowPaidForm(true) }}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700">
+                          className="flex items-center gap-1 px-3 py-1.5 btn-success text-sm">
                           <Wallet size={14} /> 确认收费
                         </button>
                         <button onClick={() => { setCancelReason(''); setShowCancelForm(true) }}
@@ -752,7 +752,7 @@ export default function RepairList() {
                         onChange={e => setChargeForm({ ...chargeForm, charge_note: e.target.value })}
                         className="flex-1 border rounded-lg px-3 py-1.5 text-sm" />
                       <button onClick={handleCreateCharge} disabled={chargeBusy}
-                        className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50">
+                        className="px-4 py-1.5 btn-primary text-sm disabled:opacity-50">
                         {chargeBusy ? '提交中...' : '提交'}
                       </button>
                       <button onClick={() => setShowChargeForm(false)}
@@ -774,7 +774,7 @@ export default function RepairList() {
                         onChange={e => setPaidForm({ ...paidForm, amount_change_note: e.target.value })}
                         className="flex-1 border rounded-lg px-3 py-1.5 text-sm" />
                       <button onClick={handleMarkPaid} disabled={chargeBusy}
-                        className="px-4 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-50">
+                        className="px-4 py-1.5 btn-success text-sm disabled:opacity-50">
                         {chargeBusy ? '提交中...' : '确认'}
                       </button>
                       <button onClick={() => setShowPaidForm(false)}
@@ -793,7 +793,7 @@ export default function RepairList() {
                         onChange={e => setCancelReason(e.target.value)}
                         className="flex-1 border rounded-lg px-3 py-1.5 text-sm" />
                       <button onClick={handleCancelCharge} disabled={chargeBusy || !cancelReason.trim()}
-                        className="px-4 py-1.5 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 disabled:opacity-50">
+                        className="px-4 py-1.5 btn-danger text-sm disabled:opacity-50">
                         {chargeBusy ? '提交中...' : '确认取消'}
                       </button>
                       <button onClick={() => setShowCancelForm(false)}
@@ -858,7 +858,7 @@ export default function RepairList() {
                       onKeyDown={e => e.key === 'Enter' && handleAddFeedback()}
                       className="flex-1 border rounded-lg px-3 py-2 text-sm" />
                     <button onClick={handleAddFeedback} disabled={addingFeedback || !feedbackText.trim()}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50">
+                      className="px-4 py-2 btn-primary text-sm disabled:opacity-50">
                       {addingFeedback ? '添加中...' : '添加'}
                     </button>
                   </div>

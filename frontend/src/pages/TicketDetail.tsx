@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, ZoomIn, Send } from 'lucide-react'
+import { ArrowLeft, ZoomIn, Send, MessageSquare, Lock, Clock, ChevronDown, BookOpen } from 'lucide-react'
 import { getTicket, updateTicket, addFeedback } from '../api/tickets'
+import { createArticleFromTicket } from '../api/knowledge'
 import { useAuth } from '../hooks/useAuth'
+import CustomerProfile from '../components/CustomerProfile'
 import type { Ticket } from '../types'
 
 const statusLabel: Record<string, string> = {
@@ -18,6 +20,12 @@ const priorityStyle: Record<string, string> = {
 }
 const remoteLabel: Record<string, string> = { netease: '网易远程', sunlogin: '向日葵远程', todesk: 'ToDesk', gotohttp: 'GotoHTTP' }
 
+const feedbackTypeConfig: Record<string, { label: string; color: string; dotColor: string; icon: typeof Clock }> = {
+  progress: { label: '进度更新', color: 'bg-blue-50 text-blue-600', dotColor: 'bg-primary-400', icon: Clock },
+  internal: { label: '内部备注', color: 'bg-gray-100 text-gray-500', dotColor: 'bg-gray-400', icon: Lock },
+  contact: { label: '客户沟通', color: 'bg-green-50 text-green-600', dotColor: 'bg-green-400', icon: MessageSquare },
+}
+
 export default function TicketDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -26,6 +34,8 @@ export default function TicketDetail() {
   const { hasPermission } = useAuth()
   const [ticket, setTicket] = useState<Ticket | null>(null)
   const [feedback, setFeedback] = useState('')
+  const [feedbackType, setFeedbackType] = useState<string>('progress')
+  const [timelineFilter, setTimelineFilter] = useState<string>('all')
   const [previewImg, setPreviewImg] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -62,7 +72,7 @@ export default function TicketDetail() {
     e.preventDefault()
     if (!id || !feedback.trim()) return
     try {
-      await addFeedback(Number(id), feedback, 'progress')
+      await addFeedback(Number(id), feedback, feedbackType)
       setFeedback('')
       fetchTicket()
     } catch (err) { console.error(err) }
@@ -92,6 +102,9 @@ export default function TicketDetail() {
           <div className="mt-3 text-sm"><span className="text-gray-400">客户ID：</span><span className="font-medium text-gray-800">{ticket.customer_id}</span></div>
         )}
       </div>
+
+      {/* Customer profile */}
+      {ticket.customer_id && <CustomerProfile customerId={ticket.customer_id} />}
 
       {/* Description & images */}
       <div className="card p-5">
@@ -191,41 +204,102 @@ export default function TicketDetail() {
               完结工单
             </button>
           </div>
-          <form onSubmit={handleSubmitFeedback} className="flex gap-2">
-            <input
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              placeholder="添加处理反馈..."
-              className="input-field flex-1"
-            />
-            <button type="submit" className="btn-primary flex items-center gap-1">
-              <Send className="w-4 h-4" />
+          {hasPermission('knowledge:create') && (
+            <button
+              onClick={async () => {
+                try {
+                  const res = await createArticleFromTicket(ticket.id)
+                  navigate(`/knowledge/${res.data.id}/edit`)
+                } catch (err: any) {
+                  alert(err.response?.data?.detail || '沉淀失败')
+                }
+              }}
+              className="btn-ghost flex items-center gap-1.5 text-xs mb-3"
+            >
+              <BookOpen className="w-3.5 h-3.5" /> 沉淀为知识库
             </button>
+          )}
+          <form onSubmit={handleSubmitFeedback} className="space-y-2">
+            <div className="flex items-center gap-2">
+              <select
+                value={feedbackType}
+                onChange={(e) => setFeedbackType(e.target.value)}
+                className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white"
+              >
+                <option value="progress">进度更新</option>
+                <option value="internal">内部备注</option>
+                <option value="contact">客户沟通</option>
+              </select>
+              {feedbackType === 'internal' && (
+                <span className="text-xs text-gray-400 flex items-center gap-1"><Lock className="w-3 h-3" />仅团队可见</span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                placeholder={feedbackType === 'internal' ? '添加内部备注...' : feedbackType === 'contact' ? '记录客户沟通内容...' : '添加处理反馈...'}
+                className="input-field flex-1"
+              />
+              <button type="submit" className="btn-primary flex items-center gap-1">
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
           </form>
         </div>
       )}
 
       {/* Feedback timeline */}
       <div className="card p-5">
-        <h3 className="text-sm font-semibold text-gray-600 mb-3">处理记录</h3>
-        {ticket.feedbacks.length === 0 ? (
-          <p className="text-sm text-gray-400">暂无处理记录</p>
-        ) : (
-          <div className="space-y-4">
-            {ticket.feedbacks.map((f) => (
-              <div key={f.id} className="flex gap-3">
-                <div className="w-2 h-2 rounded-full bg-primary-400 mt-2 flex-shrink-0" />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="font-medium text-gray-700">{f.user_name}</span>
-                    <span className="text-gray-400 text-xs">{f.created_at ? new Date(f.created_at).toLocaleString('zh-CN') : ''}</span>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-1">{f.content}</p>
-                </div>
-              </div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-gray-600">处理记录</h3>
+          <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
+            {[
+              { key: 'all', label: '全部' },
+              { key: 'progress', label: '进度' },
+              { key: 'internal', label: '内部' },
+              { key: 'contact', label: '沟通' },
+            ].map(t => (
+              <button
+                key={t.key}
+                onClick={() => setTimelineFilter(t.key)}
+                className={`px-2.5 py-1 text-xs rounded-md transition-colors ${timelineFilter === t.key ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                {t.label}
+              </button>
             ))}
           </div>
-        )}
+        </div>
+        {(() => {
+          const filtered = timelineFilter === 'all'
+            ? ticket.feedbacks
+            : ticket.feedbacks.filter(f => f.feedback_type === timelineFilter)
+          return filtered.length === 0 ? (
+            <p className="text-sm text-gray-400">暂无{timelineFilter === 'all' ? '' : feedbackTypeConfig[timelineFilter]?.label || ''}记录</p>
+          ) : (
+            <div className="space-y-4">
+              {filtered.map((f) => {
+                const cfg = feedbackTypeConfig[f.feedback_type] || feedbackTypeConfig.progress
+                const Icon = cfg.icon
+                return (
+                  <div key={f.id} className="flex gap-3">
+                    <div className={`w-2 h-2 rounded-full ${cfg.dotColor} mt-2 flex-shrink-0`} />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${cfg.color}`}>
+                          <Icon className="w-2.5 h-2.5" />{cfg.label}
+                        </span>
+                        <span className="font-medium text-gray-700">{f.user_name}</span>
+                        <span className="text-gray-400 text-xs">{f.created_at ? new Date(f.created_at).toLocaleString('zh-CN') : ''}</span>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">{f.content}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })()}
       </div>
 
       {/* Image preview */}

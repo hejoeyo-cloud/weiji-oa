@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from database import get_db, KnowledgeCategory, KnowledgeArticle, User
+from database import get_db, KnowledgeCategory, KnowledgeArticle, Ticket, User
 from schemas import (
     KnowledgeCategoryCreate, KnowledgeCategoryOut,
     KnowledgeArticleCreate, KnowledgeArticleUpdate, KnowledgeArticleOut,
@@ -188,3 +188,108 @@ def delete_article(
     db.delete(article)
     db.commit()
     return {"message": "Deleted"}
+
+
+@router.get("/suggest")
+def suggest_articles(
+    q: str = Query("", min_length=1),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """根据问题描述文本匹配知识库文章，返回 Top 5"""
+    pattern = f"%{q}%"
+    articles = db.query(KnowledgeArticle).filter(
+        KnowledgeArticle.company_id == current_user.company_id,
+        (
+            KnowledgeArticle.title.like(pattern)
+            | KnowledgeArticle.keywords.like(pattern)
+            | KnowledgeArticle.problem_desc.like(pattern)
+        ),
+    ).limit(10).all()
+
+    # 按匹配类型排序：标题 > 关键词 > 描述
+    results = []
+    for a in articles:
+        match_type = "desc"
+        if q.lower() in (a.title or "").lower():
+            match_type = "title"
+        elif q.lower() in (a.keywords or "").lower():
+            match_type = "keyword"
+        cat = db.query(KnowledgeCategory).filter(
+            KnowledgeCategory.id == a.category_id,
+            KnowledgeCategory.company_id == current_user.company_id,
+        ).first()
+        results.append({
+            "id": a.id,
+            "title": a.title,
+            "category_name": cat.name if cat else "",
+            "keywords": a.keywords or "",
+            "problem_desc": (a.problem_desc or "")[:200],
+            "match_type": match_type,
+        })
+
+    # 排序：title 匹配优先，然后 keyword，最后 desc
+    order = {"title": 0, "keyword": 1, "desc": 2}
+    results.sort(key=lambda x: order.get(x["match_type"], 9))
+    return results[:5]
+
+
+@router.post("/articles/from-ticket")
+def create_article_from_ticket(
+    ticket_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin_or_tech),
+):
+    """从工单沉淀为知识库文章"""
+    ticket = db.query(Ticket).filter(
+        Ticket.id == ticket_id,
+        Ticket.company_id == current_user.company_id,
+    ).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    # 找到默认分类（第一个）
+    default_cat = db.query(KnowledgeCategory).filter(
+        KnowledgeCategory.company_id == current_user.company_id,
+    ).order_by(KnowledgeCategory.sort_order).first()
+    if not default_cat:
+        raise HTTPException(status_code=400, detail="请先创建知识库分类")
+
+    # 从工单提取内容
+    title = (ticket.description or "")[:50] or f"工单#{ticket.id}问题"
+    problem_desc = ticket.description or ""
+
+    # 从诊断日志提取解决方案步骤
+    solution_steps = []
+    if ticket.diagnosis_log:
+        for step in ticket.diagnosis_log:
+            if isinstance(step, dict) and step.get("title"):
+                solution_steps.append({
+                    "title": step["title"],
+                    "content": step.get("answer", ""),
+                })
+
+    # 从反馈记录提取补充方案
+    for fb in ticket.feedbacks:
+        if fb.content and fb.feedback_type == "progress":
+            solution_steps.append({
+                "title": "处理记录",
+                "content": fb.content,
+            })
+
+    article = KnowledgeArticle(
+        company_id=current_user.company_id,
+        category_id=default_cat.id,
+        title=title,
+        problem_desc=problem_desc,
+        solution_steps=solution_steps,
+        keywords=ticket.customer_id or "",
+        images=ticket.images or [],
+        created_by=current_user.id,
+    )
+    db.add(article)
+    db.commit()
+    db.refresh(article)
+    audit_service.log(db, current_user, "create", "knowledge_article", article.id,
+                      f"从工单#{ticket_id}沉淀知识库文章: {article.title}")
+    return {"id": article.id, "title": article.title}

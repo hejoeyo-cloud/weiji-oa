@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { createTicket } from '../api/tickets'
 import ImageUpload from '../components/ImageUpload'
+import KnowledgeSuggest from '../components/KnowledgeSuggest'
 
 const remoteTools = [
   { value: 'netease', label: '网易远程' },
@@ -83,6 +84,14 @@ export default function TicketCreate() {
             placeholder="请详细描述客户遇到的问题..."
             rows={4}
             className="input-field resize-none"
+          />
+          <KnowledgeSuggest
+            query={form.description}
+            onSelect={(article) => {
+              if (article.problem_desc && !form.description) {
+                update('description', article.problem_desc)
+              }
+            }}
           />
         </div>
 

@@ -238,7 +238,7 @@ function InvoiceRequestTab() {
           <Download size={15} />导出
         </button>
         {canCreate && (
-          <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+          <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 btn-primary text-sm">
             <Plus size={15} />新建申请
           </button>
         )}
@@ -311,7 +311,7 @@ function InvoiceRequestTab() {
 
       {/* 新建/编辑弹窗 */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
               <h3 className="font-medium text-base">{editRecord ? '编辑开票申请' : '新建开票申请'}</h3>
@@ -387,7 +387,7 @@ function InvoiceRequestTab() {
             </div>
             <div className="flex justify-end gap-2 p-4 border-t">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">取消</button>
-              <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-60">{saving ? '保存中...' : '保存'}</button>
+              <button onClick={handleSave} disabled={saving} className="px-4 py-2 btn-primary text-sm disabled:opacity-60">{saving ? '保存中...' : '保存'}</button>
             </div>
           </div>
         </div>
@@ -395,12 +395,12 @@ function InvoiceRequestTab() {
 
       {/* 发票预览弹窗 */}
       {previewInvoice && (
-        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between p-4 border-b">
               <h3 className="font-medium text-base">发票预览 - {previewInvoice.filename}</h3>
               <div className="flex gap-2">
-                <a href={previewInvoice.url} download={previewInvoice.filename} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+                <a href={previewInvoice.url} download={previewInvoice.filename} className="flex items-center gap-1 px-3 py-1.5 btn-primary text-sm">
                   <Download size={14} />下载
                 </a>
                 <button onClick={() => setPreviewInvoice(null)} className="p-1.5 hover:bg-gray-100 rounded"><X size={18} /></button>
@@ -430,7 +430,7 @@ function InvoiceRequestTab() {
           )
         }
         return (
-          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
                 <h3 className="font-medium text-base">开票申请详情</h3>
@@ -501,7 +501,7 @@ function InvoiceRequestTab() {
                             </span>
                             <div className="flex gap-1.5 ml-auto">
                               <button onClick={() => setConfirmStatus(null)} className="px-2.5 py-1 text-xs border rounded-md hover:bg-gray-50">取消</button>
-                              <button onClick={async () => { await handleDetailStatusChange(confirmStatus); setConfirmStatus(null) }} className="px-2.5 py-1 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700">确认</button>
+                              <button onClick={async () => { await handleDetailStatusChange(confirmStatus); setConfirmStatus(null) }} className="px-2.5 py-1 text-xs btn-primary rounded-md">确认</button>
                             </div>
                           </div>
                         )}
@@ -554,7 +554,7 @@ function InvoiceRequestTab() {
                 </div>
               </div>
               <div className="flex justify-end gap-2 p-4 border-t">
-                <button onClick={() => handleCopyInfo(r)} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+                <button onClick={() => handleCopyInfo(r)} className="flex items-center gap-1.5 px-4 py-2 btn-primary text-sm">
                   <Copy size={14} />复制开票信息
                 </button>
                 <button onClick={() => setDetailRecord(null)} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">关闭</button>
@@ -653,7 +653,7 @@ function SalesInvoiceTab() {
         <span className="self-center text-gray-400 text-sm">至</span>
         <input type="date" className="border rounded-lg px-3 py-2 text-sm" value={endDate} onChange={e => { setEndDate(e.target.value); setPage(1) }} />
         <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-2 border rounded-lg text-sm hover:bg-gray-50"><Download size={15} />导出</button>
-        {canCreate && <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"><Plus size={15} />新建销项</button>}
+        {canCreate && <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 btn-success text-sm"><Plus size={15} />新建销项</button>}
       </div>
 
       <div className="overflow-x-auto">
@@ -708,7 +708,7 @@ function SalesInvoiceTab() {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
               <h3 className="font-medium text-base">{editRecord ? '编辑销项发票' : '新建销项发票'}</h3>
@@ -745,7 +745,7 @@ function SalesInvoiceTab() {
             </div>
             <div className="flex justify-end gap-2 p-4 border-t">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">取消</button>
-              <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-60">{saving ? '保存中...' : '保存'}</button>
+              <button onClick={handleSave} disabled={saving} className="px-4 py-2 btn-success text-sm disabled:opacity-60">{saving ? '保存中...' : '保存'}</button>
             </div>
           </div>
         </div>
@@ -851,7 +851,7 @@ function PurchaseInvoiceTab() {
         <span className="self-center text-gray-400 text-sm">至</span>
         <input type="date" className="border rounded-lg px-3 py-2 text-sm" value={endDate} onChange={e => { setEndDate(e.target.value); setPage(1) }} />
         <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-2 border rounded-lg text-sm hover:bg-gray-50"><Download size={15} />导出</button>
-        {canCreate && <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 text-white rounded-lg text-sm hover:bg-amber-700"><Plus size={15} />新建进项</button>}
+        {canCreate && <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 btn-primary text-sm"><Plus size={15} />新建进项</button>}
       </div>
 
       <div className="overflow-x-auto">
@@ -916,7 +916,7 @@ function PurchaseInvoiceTab() {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
               <h3 className="font-medium text-base">{editRecord ? '编辑进项发票' : '新建进项发票'}</h3>
@@ -971,7 +971,7 @@ function PurchaseInvoiceTab() {
             </div>
             <div className="flex justify-end gap-2 p-4 border-t">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">取消</button>
-              <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm hover:bg-amber-700 disabled:opacity-60">{saving ? '保存中...' : '保存'}</button>
+              <button onClick={handleSave} disabled={saving} className="px-4 py-2 btn-primary text-sm disabled:opacity-60">{saving ? '保存中...' : '保存'}</button>
             </div>
           </div>
         </div>
@@ -1079,7 +1079,7 @@ function ExpenseInvoiceTab() {
         <span className="self-center text-gray-400 text-sm">至</span>
         <input type="date" className="border rounded-lg px-3 py-2 text-sm" value={endDate} onChange={e => { setEndDate(e.target.value); setPage(1) }} />
         <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-2 border rounded-lg text-sm hover:bg-gray-50"><Download size={15} />导出</button>
-        {canCreate && <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700"><Plus size={15} />新建报销</button>}
+        {canCreate && <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 btn-primary text-sm"><Plus size={15} />新建报销</button>}
       </div>
 
       <div className="overflow-x-auto">
@@ -1146,7 +1146,7 @@ function ExpenseInvoiceTab() {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
               <h3 className="font-medium text-base">{editRecord ? '编辑报销发票' : '新建报销发票'}</h3>
@@ -1185,7 +1185,7 @@ function ExpenseInvoiceTab() {
             </div>
             <div className="flex justify-end gap-2 p-4 border-t">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">取消</button>
-              <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 disabled:opacity-60">{saving ? '保存中...' : '保存'}</button>
+              <button onClick={handleSave} disabled={saving} className="px-4 py-2 btn-primary text-sm disabled:opacity-60">{saving ? '保存中...' : '保存'}</button>
             </div>
           </div>
         </div>
