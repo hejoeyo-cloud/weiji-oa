@@ -26,6 +26,8 @@ class JSONType(TypeDecorator):
 
 _is_sqlite = "sqlite" in DATABASE_URL
 _engine_args = {"connect_args": {"check_same_thread": False}} if _is_sqlite else {}
+if not _is_sqlite:
+    _engine_args.update({"pool_size": 10, "max_overflow": 20})
 engine = create_engine(
     DATABASE_URL,
     **_engine_args,

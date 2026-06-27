@@ -21,11 +21,13 @@ async def lifespan(app: FastAPI):
     if lic["message"]:
         print(f"[license] {lic['message']}")
 
-    # 启动定时数据库备份（每天凌晨3点）
+    # 启动定时任务（每天凌晨3点备份，4点清理）
     from apscheduler.schedulers.background import BackgroundScheduler
     from backup import backup_database
+    from services.data_cleanup import run_all_cleanup
     scheduler = BackgroundScheduler()
     scheduler.add_job(backup_database, "cron", hour=3, minute=0, id="db_backup")
+    scheduler.add_job(run_all_cleanup, "cron", hour=4, minute=0, id="data_cleanup")
     scheduler.start()
     # 启动时立即执行一次备份
     backup_database()

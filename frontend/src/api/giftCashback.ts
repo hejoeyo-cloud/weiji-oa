@@ -12,11 +12,17 @@ export interface GiftCashbackListParams {
 }
 
 export interface GiftCashbackCreateData {
+  shop_name?: string
   order_no: string
   cashback_amount: number
   reason: string
   remark: string
   applicant: string
+  payment_method: string
+  payment_account: string
+  payment_qr_code: string
+  payee: string
+  status: string
 }
 
 export const getGiftCashbackList = (params: GiftCashbackListParams = {}) =>

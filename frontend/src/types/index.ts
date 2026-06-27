@@ -304,6 +304,11 @@ export interface GiftCashback {
   reason: string
   remark: string
   applicant: string
+  payment_method: string
+  payment_account: string
+  payment_qr_code: string
+  payee: string
+  status: string
   created_by?: number
   creator_name: string
   created_at?: string

@@ -9,6 +9,11 @@ class GiftCashbackCreate(BaseModel):
     reason: str = ""
     remark: str = ""
     applicant: str = ""
+    payment_method: str = ""
+    payment_account: str = ""
+    payment_qr_code: str = ""
+    payee: str = ""
+    status: str = "pending"
 
 class GiftCashbackUpdate(BaseModel):
     shop_name: Optional[str] = None
@@ -17,6 +22,11 @@ class GiftCashbackUpdate(BaseModel):
     reason: Optional[str] = None
     remark: Optional[str] = None
     applicant: Optional[str] = None
+    payment_method: Optional[str] = None
+    payment_account: Optional[str] = None
+    payment_qr_code: Optional[str] = None
+    payee: Optional[str] = None
+    status: Optional[str] = None
 
 class GiftCashbackOut(BaseModel):
     id: int
@@ -26,6 +36,11 @@ class GiftCashbackOut(BaseModel):
     reason: str = ""
     remark: str = ""
     applicant: str = ""
+    payment_method: str = ""
+    payment_account: str = ""
+    payment_qr_code: str = ""
+    payee: str = ""
+    status: str = "pending"
     created_by: Optional[int] = None
     creator_name: str = ""
     created_at: Optional[datetime] = None

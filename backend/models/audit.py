@@ -21,4 +21,22 @@ class AuditLog(Base):
     user = relationship("User", foreign_keys=[user_id])
 
 
+class AuditLogArchive(Base):
+    """归档表：存放超过 6 个月的操作日志"""
+    __tablename__ = "audit_logs_archive"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, nullable=True, index=True)
+    user_id = Column(Integer, nullable=True)
+    username = Column(String(50), default="")
+    action = Column(String(50), default="")
+    resource_type = Column(String(50), default="")
+    resource_id = Column(Integer, nullable=True)
+    detail = Column(Text, default="")
+    changes = Column(JSONType, default=dict)
+    ip_address = Column(String(50), default="")
+    created_at = Column(DateTime, default=datetime.now)
+    archived_at = Column(DateTime, default=datetime.now)
+
+
 # ── 公告 ─────────────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Plus, Pin, Edit2, Trash2, X, Megaphone, ChevronLeft, ChevronRight, Building2 } from 'lucide-react'
+import { Plus, Pin, Edit2, Trash2, X, Megaphone, Building2 } from 'lucide-react'
+import Pagination from '../components/Pagination'
 import { getAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement, markAnnouncementRead } from '../api/announcements'
 import { getDepartments } from '../api/departments'
 import { Announcement, Department } from '../types'
@@ -232,15 +233,7 @@ export default function AnnouncementPage() {
         ))}
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-            className="p-2 rounded-lg disabled:opacity-40 hover:bg-gray-100"><ChevronLeft size={16} /></button>
-          <span className="text-sm text-gray-500">第 {page} / {totalPages} 页</span>
-          <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}
-            className="p-2 rounded-lg disabled:opacity-40 hover:bg-gray-100"><ChevronRight size={16} /></button>
-        </div>
-      )}
+      <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
 
       {/* 弹窗：发布/编辑 */}
       {showModal && (

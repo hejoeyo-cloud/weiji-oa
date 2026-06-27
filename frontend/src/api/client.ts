@@ -55,6 +55,16 @@ client.interceptors.response.use(
         expires: Date.now() + CACHE_TTL,
       })
     }
+    // POST/PUT/DELETE 成功：清除相关缓存（确保后续 GET 获取最新数据）
+    if (['post', 'put', 'delete'].includes(response.config.method || '')) {
+      const url = response.config.url || ''
+      const prefix = url.split('/').slice(0, 3).join('/') // 如 /return-exchange/123 → /return-exchange
+      for (const key of _cache.keys()) {
+        if (key.startsWith(prefix)) {
+          _cache.delete(key)
+        }
+      }
+    }
     return response
   },
   (error) => {

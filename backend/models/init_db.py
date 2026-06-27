@@ -2,14 +2,28 @@
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-from .base import engine, SessionLocal
+from .base import engine, SessionLocal, _is_sqlite
 from . import *
 from .permissions import DEFAULT_ROLES
+
+
+def _pg():
+    """是否为 PostgreSQL"""
+    return not _is_sqlite
+
+
+def _col(sqlite_type: str, pg_type: str) -> str:
+    """根据数据库方言返回对应类型"""
+    return pg_type if _pg() else sqlite_type
+
 
 def _migrate_db():
     from sqlalchemy import inspect, text
     inspector = inspect(engine)
     existing_tables = inspector.get_table_names()
+
+    # PostgreSQL：create_all 已处理建表，跳过所有 CREATE TABLE 块
+    # 只需执行 ALTER TABLE 迁移（添加新列）
 
     tenant_tables = [
         "roles", "departments", "users", "tickets", "ticket_feedbacks",
@@ -343,8 +357,8 @@ def _migrate_db():
         after_sales_add_columns = {
             'charge_required': "ALTER TABLE after_sales_records ADD COLUMN charge_required INTEGER DEFAULT 0",
             'charge_status': "ALTER TABLE after_sales_records ADD COLUMN charge_status VARCHAR(30) DEFAULT 'none'",
-            'current_expected_amount': "ALTER TABLE after_sales_records ADD COLUMN current_expected_amount REAL DEFAULT 0",
-            'current_paid_amount': "ALTER TABLE after_sales_records ADD COLUMN current_paid_amount REAL DEFAULT 0",
+            'current_expected_amount': f"ALTER TABLE after_sales_records ADD COLUMN current_expected_amount {_col('REAL', 'NUMERIC(12,2)')} DEFAULT 0",
+            'current_paid_amount': f"ALTER TABLE after_sales_records ADD COLUMN current_paid_amount {_col('REAL', 'NUMERIC(12,2)')} DEFAULT 0",
             'last_charge_request_id': "ALTER TABLE after_sales_records ADD COLUMN last_charge_request_id INTEGER",
             'record_type': "ALTER TABLE after_sales_records ADD COLUMN record_type VARCHAR(20) DEFAULT ''",
         }
@@ -542,7 +556,7 @@ def _migrate_db():
         columns = [c['name'] for c in inspector.get_columns('shops')]
         if 'updated_at' not in columns:
             with engine.connect() as conn:
-                conn.execute(text("ALTER TABLE shops ADD COLUMN updated_at DATETIME"))
+                conn.execute(text(f"ALTER TABLE shops ADD COLUMN updated_at {_col('DATETIME', 'TIMESTAMP')}"))
                 conn.commit()
 
     # ── 迁移：return_exchange_records 新增 shop_name 列 ───────────────
@@ -558,7 +572,7 @@ def _migrate_db():
         columns = [c['name'] for c in inspector.get_columns('return_exchange_records')]
         with engine.connect() as conn:
             if 'has_damage' not in columns:
-                conn.execute(text("ALTER TABLE return_exchange_records ADD COLUMN has_damage BOOLEAN DEFAULT 0"))
+                conn.execute(text(f"ALTER TABLE return_exchange_records ADD COLUMN has_damage BOOLEAN DEFAULT {_col('0', 'FALSE')}"))
             if 'damage_items' not in columns:
                 conn.execute(text("ALTER TABLE return_exchange_records ADD COLUMN damage_items TEXT DEFAULT '[]'"))
             if 'claim_status' not in columns:
@@ -609,7 +623,7 @@ def _migrate_db():
         columns = [c['name'] for c in inspector.get_columns('field_options')]
         if 'price' not in columns:
             with engine.connect() as conn:
-                conn.execute(text("ALTER TABLE field_options ADD COLUMN price REAL DEFAULT 0"))
+                conn.execute(text(f"ALTER TABLE field_options ADD COLUMN price {_col('REAL', 'NUMERIC(12,2)')} DEFAULT 0"))
                 conn.commit()
 
     # ── 迁移：field_options 新增 color_code 列 ───────────────────
@@ -696,8 +710,23 @@ def _migrate_db():
         columns = {col["name"] for col in inspector.get_columns("audit_logs")}
         if "changes" not in columns:
             with engine.connect() as conn:
-                conn.execute(text("ALTER TABLE audit_logs ADD COLUMN changes TEXT DEFAULT '{}'"))
+                conn.execute(text(f"ALTER TABLE audit_logs ADD COLUMN changes {_col('TEXT', 'JSONB')} DEFAULT {_col(chr(39)+'{}'+chr(39), chr(39)+'{}'+chr(39)+'::jsonb')}"))
                 conn.commit()
+
+    # gift_cashbacks 表：新增收款方式、收款账户、收款码、状态字段
+    if 'gift_cashbacks' in existing_tables:
+        columns = [c['name'] for c in inspector.get_columns('gift_cashbacks')]
+        for col_name, col_def in [
+            ('payment_method', "VARCHAR(100) DEFAULT ''"),
+            ('payment_account', "VARCHAR(200) DEFAULT ''"),
+            ('payment_qr_code', "VARCHAR(500) DEFAULT ''"),
+            ('payee', "VARCHAR(100) DEFAULT ''"),
+            ('status', "VARCHAR(20) DEFAULT 'pending'"),
+        ]:
+            if col_name not in columns:
+                with engine.connect() as conn:
+                    conn.execute(text(f"ALTER TABLE gift_cashbacks ADD COLUMN {col_name} {col_def}"))
+                    conn.commit()
 
     # ── 性能优化：添加常用查询索引 ──
     _ensure_indexes(engine, existing_tables)

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Laptop, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Plus, Search, Laptop, X } from 'lucide-react'
+import Pagination from '../components/Pagination'
 import { useAuth } from '../hooks/useAuth'
 import { getProductList, createProduct, updateProduct, deleteProduct } from '../api/products'
 import type { ProductCreateData } from '../api/products'
@@ -225,24 +226,8 @@ export default function ProductList() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-6">
-          <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page <= 1}
-            className="p-2 rounded-lg border transition-colors disabled:opacity-30"
-            style={{ borderColor: '#e5e5e5' }}
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <span className="text-sm px-3" style={{ color: '#737373' }}>{page} / {totalPages}</span>
-          <button
-            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages}
-            className="p-2 rounded-lg border transition-colors disabled:opacity-30"
-            style={{ borderColor: '#e5e5e5' }}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
+        <div className="mt-6">
+          <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
         </div>
       )}
 

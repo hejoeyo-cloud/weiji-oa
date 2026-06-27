@@ -7,6 +7,14 @@ interface Props {
   onChange: (images: string[]) => void
 }
 
+function withToken(url: string): string {
+  if (!url) return url
+  const token = localStorage.getItem('token')
+  if (!token) return url
+  const sep = url.includes('?') ? '&' : '?'
+  return `${url}${sep}token=${token}`
+}
+
 export default function ImageUpload({ images, onChange }: Props) {
   const [uploading, setUploading] = useState(false)
   const [previewIdx, setPreviewIdx] = useState<number | null>(null)
@@ -82,7 +90,7 @@ export default function ImageUpload({ images, onChange }: Props) {
         <div className="flex flex-wrap gap-3 mt-3">
           {images.map((url, idx) => (
             <div key={url} className="relative group w-24 h-24 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
-              <img src={url} alt="" className="w-full h-full object-cover" />
+              <img src={withToken(url)} alt="" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center gap-2">
                 <button
                   onClick={(e) => { e.stopPropagation(); setPreviewIdx(idx) }}
@@ -110,7 +118,7 @@ export default function ImageUpload({ images, onChange }: Props) {
         >
           <div className="relative max-w-4xl max-h-full">
             <img
-              src={images[previewIdx]}
+              src={withToken(images[previewIdx])}
               alt=""
               className="max-w-full max-h-[80vh] object-contain rounded-lg"
             />

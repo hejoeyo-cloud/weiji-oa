@@ -42,12 +42,13 @@ def lookup_order(
 
 
 def get_total_cashback(db: Session, order_no: str, company_id: int) -> float:
-    """根据订单号汇总返现表中的返现总金额"""
+    """根据订单号汇总返现表中已返现的总金额"""
     if not order_no:
         return 0
     result = db.query(func.coalesce(func.sum(GiftCashback.cashback_amount), 0)).filter(
-        GiftCashback.order_no == order_no
-        , GiftCashback.company_id == company_id
+        GiftCashback.order_no == order_no,
+        GiftCashback.company_id == company_id,
+        GiftCashback.status == "completed",
     ).scalar()
     return float(result) if result else 0
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, ChevronDown, Eye, Download, Settings } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, X, ChevronDown, Eye, Download, Settings } from 'lucide-react'
+import Pagination from '../components/Pagination'
 import { useSearchParams } from 'react-router-dom'
 import { getGiftList, getGiftDetail, createGift, updateGift, deleteGift, addGiftFeedback, getGiftFeedbacks, getGiftPresets, createGiftPreset, deleteGiftPreset, GiftPreset } from '../api/gifts'
 import { getShops, createShop as apiCreateShop, deleteShop as apiDeleteShop, Shop } from '../api/shops'
@@ -462,19 +463,7 @@ export default function GiftList() {
         </table>
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-            className="p-2 border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50">
-            <ChevronLeft size={16} />
-          </button>
-          <span className="text-sm text-gray-600">第 {page} / {totalPages} 页</span>
-          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-            className="p-2 border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50">
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      )}
+      <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
 
       {/* 新建/编辑弹窗 */}
       {showModal && (

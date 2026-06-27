@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Filter, FilePlus, ChevronLeft, ChevronRight, Eye, Edit2, Trash2 } from 'lucide-react'
+import { Search, Filter, FilePlus, Eye, Edit2, Trash2, ChevronRight } from 'lucide-react'
+import Pagination from '../components/Pagination'
 import { getTickets, deleteTicket } from '../api/tickets'
 import { useAuth } from '../hooks/useAuth'
 import type { Ticket } from '../types'
@@ -169,26 +170,7 @@ export default function TicketList() {
         ))}
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1}
-            className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-40"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <span className="text-sm text-gray-500">{page} / {totalPages}</span>
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages}
-            className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-40"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+      <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
     </div>
   )
 }

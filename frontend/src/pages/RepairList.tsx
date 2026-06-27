@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, Eye, Download, Wallet, Ban, Wand2 } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, X, Eye, Download, Wallet, Ban, Wand2 } from 'lucide-react'
+import Pagination from '../components/Pagination'
+import EmptyState from '../components/EmptyState'
 import { useSearchParams } from 'react-router-dom'
 import {
   getRepairList,
@@ -475,6 +477,7 @@ export default function RepairList() {
             <tr>
               <th className="px-4 py-3 text-left text-gray-500 font-medium">序号</th>
               <th className="px-4 py-3 text-left text-gray-500 font-medium">申请日期</th>
+              <th className="px-4 py-3 text-left text-gray-500 font-medium">店铺名称</th>
               <th className="px-4 py-3 text-left text-gray-500 font-medium">订单编号</th>
               <th className="px-4 py-3 text-left text-gray-500 font-medium">型号</th>
               <th className="px-4 py-3 text-left text-gray-500 font-medium">寄回单号</th>
@@ -486,9 +489,9 @@ export default function RepairList() {
           </thead>
           <tbody className="divide-y">
             {loading ? (
-              <tr><td colSpan={9} className="text-center py-8 text-gray-400">加载中...</td></tr>
+              <tr><td colSpan={10} className="text-center py-8 text-gray-400">加载中...</td></tr>
             ) : records.length === 0 ? (
-              <tr><td colSpan={9} className="text-center py-8 text-gray-400">暂无数据</td></tr>
+              <tr><td colSpan={10}><EmptyState title="暂无维修记录" description="点击「新增登记」创建第一条记录" /></td></tr>
             ) : records.map((r, idx) => (
               <tr
                 key={r.id}
@@ -498,6 +501,7 @@ export default function RepairList() {
               >
                 <td className="px-4 py-3">{(page - 1) * pageSize + idx + 1}</td>
                 <td className="px-4 py-3">{r.apply_date || '-'}</td>
+                <td className="px-4 py-3">{r.shop_name || '-'}</td>
                 <td className="px-4 py-3">{r.order_no || '-'}{(r.duplicate_count ?? 0) > 1 && <span className="ml-1 text-xs text-orange-600 font-medium">重复</span>}</td>
                 <td className="px-4 py-3">{r.model || '-'}</td>
                 <td className="px-4 py-3 font-mono text-xs">{r.return_tracking || '-'}</td>
@@ -526,23 +530,9 @@ export default function RepairList() {
           </tbody>
         </table>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t">
-            <span className="text-sm text-gray-500">共 {total} 条，第 {page}/{totalPages} 页</span>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                className="p-2 border rounded-lg disabled:opacity-50 hover:bg-gray-50">
-                <ChevronLeft size={16} />
-              </button>
-              <span className="px-3 py-1 text-sm">{page} / {totalPages}</span>
-              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                className="p-2 border rounded-lg disabled:opacity-50 hover:bg-gray-50">
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </div>
-        )}
+        <div className="px-4 py-3 border-t">
+          <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
+        </div>
       </div>
 
       {/* Create/Edit Modal */}

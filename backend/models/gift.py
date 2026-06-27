@@ -82,7 +82,12 @@ class GiftCashback(Base):
     cashback_amount = Column(Float, default=0)              # 返现金额
     reason = Column(Text, default="")                        # 返现原因
     remark = Column(Text, default="")                       # 备注
-    applicant = Column(String(100), default="")             # 申请人
+    applicant = Column(String(100), default="")             # 申请人（兼容旧数据）
+    payment_method = Column(String(100), default="")        # 收款方式
+    payment_account = Column(String(200), default="")       # 收款账户
+    payment_qr_code = Column(String(500), default="")       # 收款码图片URL
+    payee = Column(String(100), default="")                 # 收款人
+    status = Column(String(20), default="pending")          # pending=待返现, completed=已返现
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight, ChevronDown, Eye, Gift, Download } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, X, ChevronDown, Eye, Gift, Download } from 'lucide-react'
+import Pagination from '../components/Pagination'
 import { useSearchParams } from 'react-router-dom'
 import { getGiftResendList, createGiftResend, updateGiftResend, deleteGiftResend, addGiftResendFeedback, getGiftResendFeedbacks, getGiftResendPresets, createGiftResendPreset, deleteGiftResendPreset, GiftResendPreset } from '../api/giftResend'
 import { GiftResendRecord, GiftResendFeedback } from '../types'
@@ -383,17 +384,9 @@ export default function GiftResendList() {
           </table>
         </div>
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-            <span className="text-sm text-gray-500">第 {page} / {totalPages} 页</span>
-            <div className="flex gap-1">
-              <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-                className="p-1.5 rounded-lg disabled:opacity-40 hover:bg-gray-100"><ChevronLeft size={16} /></button>
-              <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}
-                className="p-1.5 rounded-lg disabled:opacity-40 hover:bg-gray-100"><ChevronRight size={16} /></button>
-            </div>
-          </div>
-        )}
+        <div className="px-4 py-3 border-t border-gray-100">
+          <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
+        </div>
       </div>
 
       {/* 详情弹窗 */}
