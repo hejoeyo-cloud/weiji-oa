@@ -37,7 +37,6 @@ async def lifespan(app: FastAPI):
     scheduler.shutdown()
 
 from middleware.rate_limit import RateLimitMiddleware
-from middleware.company_guard import company_guard
 from middleware.request_log import request_log_middleware
 from middleware.license_guard import LicenseGuardMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -87,7 +86,6 @@ app = FastAPI(title="微迹OA 内部系统", version="1.0.0", lifespan=lifespan)
 app.add_middleware(RateLimitMiddleware, max_requests=600, window_seconds=60, burst_max=30)
 app.add_middleware(LicenseGuardMiddleware)
 app.middleware("http")(request_log_middleware)
-app.middleware("http")(company_guard)
 
 app.add_middleware(
     CORSMiddleware,

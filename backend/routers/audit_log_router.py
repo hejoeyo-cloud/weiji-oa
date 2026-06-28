@@ -26,8 +26,6 @@ def list_logs(
     current_user: User = Depends(require_admin),
 ):
     query = db.query(AuditLog).options(joinedload(AuditLog.user))
-    if not current_user.is_platform_admin:
-        query = query.filter(AuditLog.company_id == current_user.company_id)
 
     # 默认只返回最近3个月的记录
     retention_cutoff = datetime.now() - timedelta(days=RETENTION_MONTHS * 30)

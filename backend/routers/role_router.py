@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/roles", tags=["roles"])
 
 
 def _role_to_out(r: Role, db: Session) -> RoleOut:
-    user_count = db.query(func.count(User.id)).filter(User.role_id == r.id, User.company_id == r.company_id).scalar() or 0
+    user_count = db.query(func.count(User.id)).filter(User.role_id == r.id).scalar() or 0
     return RoleOut(
         id=r.id, name=r.name, label=r.label, color=r.color,
         permissions=r.permissions or [], bound_shops=r.bound_shops or [],
@@ -24,10 +24,7 @@ def list_roles(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    q = db.query(Role)
-    if not current_user.is_platform_admin:
-        q = q.filter(Role.company_id == current_user.company_id)
-    roles = q.order_by(Role.sort_order, Role.id).all()
+    roles = db.query(Role).order_by(Role.sort_order, Role.id).all()
     return [_role_to_out(r, db) for r in roles]
 
 
@@ -47,7 +44,7 @@ def create_role(
 ):
     if not req.name or not req.label:
         raise HTTPException(status_code=400, detail="角色标识和名称不能为空")
-    role_name = req.name if current_user.is_platform_admin else f"{req.name}_{current_user.company_id}"
+    role_name = req.name
     existing = db.query(Role).filter(Role.name == role_name).first()
     if existing:
         raise HTTPException(status_code=400, detail="角色标识已存在")
@@ -71,10 +68,7 @@ def update_role(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    q = db.query(Role).filter(Role.id == role_id)
-    if not current_user.is_platform_admin:
-        q = q.filter(Role.company_id == current_user.company_id)
-    role = q.first()
+    role = db.query(Role).filter(Role.id == role_id).first()
     if not role:
         raise HTTPException(status_code=404, detail="角色不存在")
     # 内置角色不可修改 name 标识（RoleUpdate 不包含 name 字段）
@@ -102,15 +96,12 @@ def delete_role(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    q = db.query(Role).filter(Role.id == role_id)
-    if not current_user.is_platform_admin:
-        q = q.filter(Role.company_id == current_user.company_id)
-    role = q.first()
+    role = db.query(Role).filter(Role.id == role_id).first()
     if not role:
         raise HTTPException(status_code=404, detail="角色不存在")
     if role.is_builtin:
         raise HTTPException(status_code=400, detail="内置角色不可删除")
-    user_count = db.query(func.count(User.id)).filter(User.role_id == role_id, User.company_id == role.company_id).scalar() or 0
+    user_count = db.query(func.count(User.id)).filter(User.role_id == role_id).scalar() or 0
     if user_count > 0:
         raise HTTPException(status_code=400, detail=f"该角色下还有 {user_count} 个用户，请先转移")
     audit_service.log(db, current_user, "delete", "role", role_id,

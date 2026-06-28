@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api/departments", tags=["departments"])
 
 
 def dept_to_out(d: Department, db: Session) -> DepartmentOut:
-    member_count = db.query(User).filter(User.department_id == d.id, User.company_id == d.company_id).count()
+    member_count = db.query(User).filter(User.department_id == d.id).count()
     return DepartmentOut(
         id=d.id, name=d.name, description=d.description,
         sort_order=d.sort_order, member_count=member_count,
@@ -22,10 +22,7 @@ def list_departments(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    q = db.query(Department)
-    if not current_user.is_platform_admin:
-        q = q.filter(Department.company_id == current_user.company_id)
-    depts = q.order_by(Department.sort_order, Department.id).all()
+    depts = db.query(Department).order_by(Department.sort_order, Department.id).all()
     return [dept_to_out(d, db) for d in depts]
 
 
@@ -35,7 +32,7 @@ def create_department(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    if db.query(Department).filter(Department.name == req.name, Department.company_id == current_user.company_id).first():
+    if db.query(Department).filter(Department.name == req.name).first():
         raise HTTPException(status_code=400, detail="Department name already exists")
     dept = Department(company_id=current_user.company_id, name=req.name, description=req.description, sort_order=req.sort_order)
     db.add(dept)
@@ -52,10 +49,7 @@ def update_department(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    q = db.query(Department).filter(Department.id == dept_id)
-    if not current_user.is_platform_admin:
-        q = q.filter(Department.company_id == current_user.company_id)
-    dept = q.first()
+    dept = db.query(Department).filter(Department.id == dept_id).first()
     if not dept:
         raise HTTPException(status_code=404, detail="Department not found")
     dept.name = req.name
@@ -73,14 +67,11 @@ def delete_department(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    q = db.query(Department).filter(Department.id == dept_id)
-    if not current_user.is_platform_admin:
-        q = q.filter(Department.company_id == current_user.company_id)
-    dept = q.first()
+    dept = db.query(Department).filter(Department.id == dept_id).first()
     if not dept:
         raise HTTPException(status_code=404, detail="Department not found")
     # 解除成员绑定
-    db.query(User).filter(User.department_id == dept_id, User.company_id == dept.company_id).update({"department_id": None})
+    db.query(User).filter(User.department_id == dept_id).update({"department_id": None})
     db.delete(dept)
     db.commit()
     audit_service.log(db, current_user, "delete", "department", dept_id, f"删除部门: {dept.name}")

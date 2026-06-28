@@ -16,8 +16,7 @@ def user_to_full(u: User) -> UserInfoFull:
         role_label = u.role_obj.label
         role_color = u.role_obj.color or "#1677FF"
     return UserInfoFull(
-        id=u.id, company_id=u.company_id, company_name=u.company.name if u.company else "",
-        is_platform_admin=u.is_platform_admin or False,
+        id=u.id,
         email=u.email or "",
         username=u.username, name=u.name,
         note=u.note or "", role=u.role,
@@ -40,30 +39,22 @@ def create_user(
         existing = db.query(User).filter(User.email == req.email).first()
         if existing:
             raise HTTPException(status_code=400, detail="邮箱已存在")
-    # 公司内用户名查重
-    if req.username and db.query(User).filter(User.username == req.username, User.company_id == current_user.company_id).first():
-        raise HTTPException(status_code=400, detail="公司内用户名已存在")
+    # 用户名查重
+    if req.username and db.query(User).filter(User.username == req.username).first():
+        raise HTTPException(status_code=400, detail="用户名已存在")
 
     # 查找角色
     role_id = None
     role_name = req.role or "customer"
-    role_obj = db.query(Role).filter(Role.name == role_name, Role.company_id == current_user.company_id).first()
-    if not role_obj:
-        role_obj = db.query(Role).filter(Role.name == role_name, Role.company_id.is_(None)).first()
-    if not role_obj and role_name == "customer":
-        role_obj = db.query(Role).filter(Role.company_id == current_user.company_id, Role.label == "客服").first()
+    role_obj = db.query(Role).filter(Role.name == role_name).first()
     if role_obj:
         role_name = role_obj.name
-    if role_obj:
         role_id = role_obj.id
-        # 用角色的 label 更新 role 字段（兼容）
-        if not req.role:
-            role_name = role_obj.name
 
     user = User(
+        company_id=current_user.company_id,
         email=req.email.strip() if req.email else None,
         username=req.username.strip() or (req.email.split("@")[0] if req.email else ""),
-        company_id=current_user.company_id,
         password_hash=get_password_hash(req.password),
         name=req.name,
         note=req.note,
@@ -85,10 +76,7 @@ def list_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    q = db.query(User)
-    if not current_user.is_platform_admin:
-        q = q.filter(User.company_id == current_user.company_id)
-    users = q.order_by(User.created_at.desc()).all()
+    users = db.query(User).order_by(User.created_at.desc()).all()
     return [user_to_full(u) for u in users]
 
 
@@ -99,10 +87,7 @@ def update_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    q = db.query(User).filter(User.id == user_id)
-    if not current_user.is_platform_admin:
-        q = q.filter(User.company_id == current_user.company_id)
-    user = q.first()
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     if req.username is not None:
@@ -124,9 +109,7 @@ def update_user(
             raise HTTPException(status_code=400, detail="Cannot change admin role")
         user.role = req.role
         # 同步 role_id
-        role_obj = db.query(Role).filter(Role.name == req.role, Role.company_id == current_user.company_id).first()
-        if not role_obj:
-            role_obj = db.query(Role).filter(Role.name == req.role, Role.company_id.is_(None)).first()
+        role_obj = db.query(Role).filter(Role.name == req.role).first()
         if role_obj:
             user.role_id = role_obj.id
         else:
@@ -152,10 +135,7 @@ def delete_user(
 ):
     if user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot delete yourself")
-    q = db.query(User).filter(User.id == user_id)
-    if not current_user.is_platform_admin:
-        q = q.filter(User.company_id == current_user.company_id)
-    user = q.first()
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     if user.username == "admin":
@@ -165,4 +145,3 @@ def delete_user(
     db.delete(user)
     db.commit()
     return {"message": "User deleted"}
-

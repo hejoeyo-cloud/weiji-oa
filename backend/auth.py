@@ -78,13 +78,8 @@ def get_current_user_flexible(
 
 
 def is_platform_admin(user: User) -> bool:
-    return bool(getattr(user, "is_platform_admin", False))
-
-
-def require_platform_admin(user: User = Depends(get_current_user)) -> User:
-    if not is_platform_admin(user):
-        raise HTTPException(status_code=403, detail="Platform admin access required")
-    return user
+    """保留字段以兼容数据库 schema，单机本地版始终返回 False。"""
+    return False
 
 
 def _get_user_permissions(user: User) -> List[str]:
@@ -100,7 +95,7 @@ def _get_user_permissions(user: User) -> List[str]:
 def require_admin(user: User = Depends(get_current_user)) -> User:
     """只有 admin 才能访问（用户管理、操作日志等超级权限接口）"""
     perms = user.role_obj.permissions if user.role_obj and user.role_obj.permissions else []
-    if user.role != "admin" and not is_platform_admin(user) and "users:edit" not in perms:
+    if user.role != "admin" and "users:edit" not in perms:
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
 
@@ -131,24 +126,13 @@ def require_permission(*permissions: str):
     return checker
 
 
-def owner_filter(user: User) -> bool:
-    """行级权限：管理员看全部，普通用户只看自己创建的"""
-    if user.is_platform_admin:
-        return True
-    # Check by role name
-    for perm in _get_user_permissions(user):
-        if perm.startswith("admin:") or perm == "*":
-            return True
-    # Check role name starts with admin
-    if hasattr(user, 'roles') and user.roles:
-        for role in user.roles:
-            if role.name and role.name.startswith("admin"):
-                return True
-    return False
-
-
 def apply_owner_filter(query, model, user: User):
-    """对查询应用行级权限过滤 — 根据角色绑定的店铺过滤数据"""
+    """对查询应用行级权限过滤 — 根据角色绑定的店铺过滤数据。
+
+    业务级的店铺数据隔离机制：运营等角色可绑定特定店铺，
+    只能查看绑定店铺范围内的数据；不绑定则可查看全部。
+    管理员不受限制。
+    """
     # 管理员不受限制
     if user.role == "admin" or (user.role_obj and user.role_obj.name and user.role_obj.name.startswith("admin")):
         return query

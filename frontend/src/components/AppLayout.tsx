@@ -24,7 +24,7 @@ const ROLE_LABELS: Record<string, string> = {
 
 type NavGroup = {
   label: string
-  items: { path: string; label: string; icon: React.ElementType; permission?: string[]; platformOnly?: boolean }[]
+  items: { path: string; label: string; icon: React.ElementType; permission?: string[] }[]
   permission?: string[]
 }
 
@@ -264,7 +264,7 @@ export default function AppLayout() {
           if (!ticketsEnabled && (item.path === '/tickets' || item.path === '/tickets/create')) {
             return false
           }
-          return (!item.platformOnly || user?.is_platform_admin) && (!item.permission || hasPermission(...item.permission))
+          return (!item.permission || hasPermission(...item.permission))
         }),
       }
     })
@@ -346,7 +346,7 @@ export default function AppLayout() {
               </div>
               <div className="ml-2.5 min-w-0">
                 <h1 className="text-[13px] font-semibold tracking-tight leading-tight truncate" style={{ color: 'var(--sb-accent)' }}>
-                  {user?.company_name || '微迹OA'}
+                  微迹OA
                 </h1>
                 <p className="text-[10px] tracking-wider" style={{ color: 'var(--sb-text-muted)' }}>INTERNAL SYSTEM</p>
               </div>

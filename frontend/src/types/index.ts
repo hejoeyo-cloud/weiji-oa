@@ -1,8 +1,5 @@
 export interface User {
   id: number
-  company_id?: number
-  company_name?: string
-  is_platform_admin?: boolean
   email: string
   username: string
   name: string
@@ -15,14 +12,6 @@ export interface User {
   department_name?: string
   is_manager?: boolean
   dingtalk_user_id?: string
-  created_at?: string
-}
-
-export interface Company {
-  id: number
-  name: string
-  status: string
-  user_count: number
   created_at?: string
 }
 
@@ -713,7 +702,6 @@ export interface DashboardResponse {
 // ── 考勤打卡 ─────────────────────────────────────────────────────────
 export interface AttendanceRecord {
   id: number
-  company_id?: number
   user_id: number
   user_name: string
   department_name: string
@@ -740,7 +728,6 @@ export interface MonthlyAttendanceStats {
 // ── 任务看板 ─────────────────────────────────────────────────────────
 export interface TaskItem {
   id: number
-  company_id?: number
   title: string
   description: string
   status: string  // todo / in_progress / done
@@ -853,7 +840,6 @@ export interface ProductIssueData {
 // ── 钉钉 ─────────────────────────────────────────────────────────
 export interface DingtalkConfig {
   id: number
-  company_id: number
   app_key: string
   app_secret_masked: string
   enabled: boolean
@@ -921,7 +907,6 @@ export interface ApprovalRule {
 // ── 产品概览 ─────────────────────────────────────────────────────────
 export interface Product {
   id: number
-  company_id?: number
   name: string
   model_number: string
   images: string[]

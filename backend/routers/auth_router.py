@@ -29,9 +29,6 @@ def _build_user_info(u: User, db: Optional[Session] = None) -> UserInfo:
 
     return UserInfo(
         id=u.id,
-        company_id=u.company_id,
-        company_name=u.company.name if u.company else "",
-        is_platform_admin=u.is_platform_admin or False,
         email=u.email or "",
         username=u.username,
         name=u.name,
@@ -51,8 +48,6 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == req.email).first()
     if not user or not verify_password(req.password, user.password_hash):
         raise HTTPException(status_code=401, detail="邮箱或密码错误")
-    if user.company and user.company.status == "disabled" and not user.is_platform_admin:
-        raise HTTPException(status_code=403, detail="公司账号已停用")
     expire = timedelta(days=30) if req.remember_me else None
     token = create_access_token({"user_id": user.id}, expires_delta=expire)
     return LoginResponse(token=token, user=_build_user_info(user, db))

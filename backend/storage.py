@@ -1,7 +1,6 @@
-"""文件存储抽象层 — 本地存储 / S3 存储"""
+"""文件存储抽象层 — 本地存储"""
 import os
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from config import UPLOAD_DIR
 
@@ -62,47 +61,6 @@ class LocalStorage(StorageBackend):
         return f"/api/files/{filepath}"
 
 
-class S3Storage(StorageBackend):
-    """S3 兼容存储（腾讯COS/AWS S3/MinIO）"""
-    def __init__(self):
-        try:
-            import boto3
-            self.client = boto3.client(
-                "s3",
-                aws_access_key_id=os.getenv("S3_ACCESS_KEY", ""),
-                aws_secret_access_key=os.getenv("S3_SECRET_KEY", ""),
-                endpoint_url=os.getenv("S3_ENDPOINT"),
-                region_name=os.getenv("S3_REGION", "ap-guangzhou"),
-            )
-            self.bucket = os.getenv("S3_BUCKET", "weiji-oa")
-        except ImportError:
-            raise RuntimeError("boto3 is required for S3 storage. Install: pip install boto3")
-
-    def save(self, content: bytes, filename: str, content_type: str = None) -> str:
-        kwargs = {"Bucket": self.bucket, "Key": filename, "Body": content}
-        if content_type:
-            kwargs["ContentType"] = content_type
-        self.client.put_object(**kwargs)
-        return filename
-
-    def read(self, filepath: str) -> bytes:
-        resp = self.client.get_object(Bucket=self.bucket, Key=filepath)
-        return resp["Body"].read()
-
-    def delete(self, filepath: str) -> bool:
-        self.client.delete_object(Bucket=self.bucket, Key=filepath)
-        return True
-
-    def get_url(self, filepath: str) -> str:
-        expire = int(os.getenv("S3_URL_EXPIRE", "3600"))
-        return self.client.generate_presigned_url(
-            "get_object", Params={"Bucket": self.bucket, "Key": filepath}, ExpiresIn=expire
-        )
-
-
 def get_storage() -> StorageBackend:
-    """根据环境变量选择存储后端"""
-    backend = os.getenv("STORAGE_BACKEND", "local")
-    if backend == "s3":
-        return S3Storage()
+    """返回本地存储后端"""
     return LocalStorage()

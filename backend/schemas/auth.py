@@ -7,22 +7,12 @@ class LoginRequest(BaseModel):
     password: str
     remember_me: bool = False
 
-class RegisterRequest(BaseModel):
-    company_name: str
-    email: str
-    username: str = ""
-    password: str
-    name: str
-
 class LoginResponse(BaseModel):
     token: str
     user: "UserInfo"
 
 class UserInfo(BaseModel):
     id: int
-    company_id: Optional[int] = None
-    company_name: str = ""
-    is_platform_admin: bool = False
     email: str = ""
     username: str
     name: str
@@ -63,9 +53,6 @@ class UpdateUserRequest(BaseModel):
 
 class UserInfoFull(BaseModel):
     id: int
-    company_id: Optional[int] = None
-    company_name: str = ""
-    is_platform_admin: bool = False
     email: str = ""
     username: str
     name: str
