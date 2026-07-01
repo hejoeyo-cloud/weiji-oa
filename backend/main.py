@@ -10,16 +10,31 @@ from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from models.init_db import init_db
-    from seed_data import seed_knowledge
+    from seed_data import seed
     from license import get_license_status
     init_db()
-    seed_knowledge()
+    seed()
 
     # 启动时检查授权状态
     lic = get_license_status()
-    print(f"[license] 授权状态: {lic['status']} | 公司: {lic['company']} | 到期: {lic['expires_at'] or '无'}")
-    if lic["message"]:
-        print(f"[license] {lic['message']}")
+    status_en = {
+        "valid": "ACTIVE",
+        "expiring": "EXPIRING",
+        "expired": "EXPIRED (read-only)",
+        "locked": "LOCKED",
+        "dev": "DEV MODE",
+    }.get(lic["status"], lic["status"])
+    company = lic["company"] if lic["company"] else "N/A"
+    expires = lic["expires_at"] if lic["expires_at"] else "N/A"
+    print(f"[license] Status: {status_en} | Company: {company} | Expires: {expires}")
+    if lic["status"] == "locked":
+        print("[license] No license file found — system is locked. Place license.lic in the application folder.")
+    elif lic["status"] == "expired":
+        print(f"[license] License expired {abs(lic['days_remaining'])} days ago — read-only mode. Contact your vendor for renewal.")
+    elif lic["status"] == "expiring":
+        print(f"[license] License expires in {lic['days_remaining']} days. Contact your vendor for renewal.")
+    elif lic["status"] == "dev":
+        print("[license] No license file found — running in development mode.")
 
     # 启动定时任务（每天凌晨3点备份，4点清理）
     from apscheduler.schedulers.background import BackgroundScheduler
@@ -43,12 +58,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi import WebSocket, WebSocketDisconnect
 
-from config import CORS_ORIGINS, SERVER_HOST, SERVER_PORT
+from config import CORS_ORIGINS, SERVER_HOST, SERVER_PORT, BUNDLE_DIR
 from storage import get_storage
 storage = get_storage()
 from database import SessionLocal, User
 from models.init_db import init_db
-from seed_data import seed_knowledge
+from seed_data import seed
 from auth import get_current_user, get_current_user_flexible
 from routers import (
     auth_router, ticket_router, user_router,
@@ -158,7 +173,7 @@ def serve_file(filepath: str, current_user: User = Depends(get_current_user_flex
         raise HTTPException(status_code=404, detail="File not found")
 
 
-frontend_dist = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frontend", "dist")
+frontend_dist = os.path.join(BUNDLE_DIR, "frontend", "dist")
 if os.path.exists(frontend_dist):
     app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")
 
@@ -175,7 +190,7 @@ if os.path.exists(frontend_dist):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        "main:app",
+        app,
         host=SERVER_HOST,
         port=SERVER_PORT,
     )

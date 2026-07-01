@@ -26,23 +26,32 @@ python main.py     # Uvicorn on :8000 (0.0.0.0), auto-reload via __main__
 
 No test framework is configured. Alembic config exists but is unused — database schema changes are handled by manual migration logic in `backend/models/init_db.py` (see Database Migrations below).
 
+**Client deployment build** (PyInstaller, protects source code):
+```bash
+cd frontend && npm run build          # Build frontend first
+pip install pyinstaller               # One-time
+pyinstaller build.spec --clean        # Output in dist/
+```
+The packaged executable loads `license.lic` from the same directory. The `build.spec` auto-collects backend modules, bundles `frontend/dist/` and `public.pem`, and excludes heavy packages (numpy, pandas, matplotlib, tkinter).
+
 ## Architecture
 
 ### Backend (Python / FastAPI)
 
 - **Entry point**: `backend/main.py` — mounts routers, middleware, static file serving. On startup (lifespan): `init_db()` creates tables and runs migrations, `seed_knowledge()` populates defaults, license status is checked and printed, APScheduler starts (3AM daily backup, 4AM daily data cleanup), and an immediate backup runs once.
-- **Middleware stack** (applied in order): `RateLimitMiddleware` (600 req/60s, burst 30, exempts localhost) → `LicenseGuardMiddleware` (blocks writes when expired, all requests when locked) → `request_log_middleware` (logs to `backend/logs/requests.log`) → `company_guard` → CORS
+- **Middleware stack** (applied in order): `RateLimitMiddleware` (600 req/60s, burst 30, exempts localhost) → `LicenseGuardMiddleware` (blocks writes when expired, all requests when locked) → `request_log_middleware` (logs to `backend/logs/requests.log`) → CORS
 - **Database**: SQLAlchemy 2.0 with `backend/models/base.py` providing `Engine`, `SessionLocal`, `Base`. SQLite by default (stored as `data.db` in project root); PostgreSQL via `DATABASE_URL` env var. Custom `JSONType` auto-selects JSONB on Postgres, TEXT on SQLite.
 - **Database proxy**: `backend/database.py` is a thin re-export layer over `models/` for backward compatibility — imports all model classes and exposes `get_db()`, `Base`, `SessionLocal`, `ALL_PERMISSIONS`, etc.
 - **Database migrations**: Alembic config exists but is stale/unused. Schema changes are managed via raw SQL in `backend/models/init_db.py`'s `_migrate_db()` function — add ALTER TABLE / CREATE TABLE statements there. This handles SQLite limitations (no DROP COLUMN, etc.) by rebuilding tables when needed.
 - **Auth**: `backend/auth.py` — JWT (python-jose) + bcrypt (direct, not passlib), 8-hour token expiry (configurable via `JWT_EXPIRE_MINUTES`). Role-based with fine-grained permissions (`tickets:view`, `tickets:edit`, etc.). Three built-in roles: `admin`, `technician`, `customer`. Admin role bypasses all permission checks. `get_current_user_flexible` supports both `Authorization` header and `?token=` query param (for iframe/img/a elements that can't carry headers). Platform admin (`is_platform_admin` flag) is a separate super-admin concept above regular roles.
-- **Multi-tenancy**: `backend/middleware/company_guard.py` — most models have `company_id` foreign keys; actual tenant isolation is enforced per-router via query scoping (the middleware is a pattern enforcer, not an active filter).
+- **Multi-tenancy**: Removed. `company_guard` middleware is deleted. `company_id` columns remain in the schema (SQLite can't drop columns easily) but are unused. New code should not reference `company_id` or `is_platform_admin`.
 - **Routers**: 35 FastAPI routers in `backend/routers/`, one per business domain (see full list in Routers section below)
 - **Schemas**: Pydantic v2 models in `backend/schemas/`
 - **Services**: Business logic in `backend/services/` — `audit_service.py`, `notification_service.py`, `dingtalk_sync.py`, `cache.py`, `charge_service.py`, `data_cleanup.py` (audit log archiving + notification cleanup)
 - **File storage**: `backend/storage.py` — abstract `StorageBackend` with Local and S3 (Tencent COS / AWS S3 / MinIO) implementations. Switch via `STORAGE_BACKEND=s3`. Local uploads stored in `uploads/` at project root. File serving via `/api/files/{path}` endpoint (auth required).
 - **WebSocket**: `backend/websocket/manager.py` — `ConnectionManager` singleton for per-user push notifications via `/ws/{user_id}`. Client sends `{"type":"ping"}`, server responds `{"type":"pong"}`.
 - **License system**: `backend/license.py` + `backend/middleware/license_guard.py` — RSA-signed license file (`license.lic`) verified against `backend/keys/public.pem`. States: `active` (full access), `expired` (read-only — GET/HEAD/OPTIONS allowed, writes blocked), `locked` (all API requests blocked). Login and license-status endpoints are always exempt. License generation tool: `tools/gen_license.py` (requires `backend/keys/private.pem`).
+  - **Deployment mode detection**: `license.py` detects whether it's running from source (dev) or a packaged build (deployment). In deployment mode, `LICENSE_REQUIRED` is **hardcoded to True** — no license file means system is locked, regardless of environment variables. This prevents customers from bypassing the license by deleting `license.lic` or setting env vars.
 - **Scheduled tasks**: APScheduler runs in lifespan background — 3AM daily DB backup (`backup.py`, supports SQLite file-copy and PostgreSQL `pg_dump`), 4AM daily data cleanup (`services/data_cleanup.py` archives audit logs older than 6 months, cleans stale notifications). Backups stored in `backups/`, retained 30 days.
 
 ### Frontend (React 18 / TypeScript / Vite)
@@ -74,6 +83,7 @@ No test framework is configured. Alembic config exists but is unused — databas
 | `frontend/tailwind.config.js` | Custom design tokens |
 | `tools/gen_license.py` | License file generator (requires private key) |
 | `tools/migrate_to_pg.py` | SQLite → PostgreSQL migration utility |
+| `build.spec` | PyInstaller 打包配置（客户交付用） |
 
 ## Branch Strategy
 
@@ -107,7 +117,7 @@ No test framework is configured. Alembic config exists but is unused — databas
 
 - Business modules follow a consistent pattern: model in `backend/models/`, router in `backend/routers/`, schema in `backend/schemas/`, API client in `frontend/src/api/`, page in `frontend/src/pages/`
 - Adding a new module requires updates in **both** the backend (`backend/models/module_registry.py`) and frontend (`frontend/src/config/moduleRegistry.ts`) module registries, plus a new model/router/schema/page
-- The `company_guard` middleware means most queries must be scoped to `company_id`
+- No multi-tenant filtering needed — queries are not scoped by `company_id`
 - Auth permissions are checked via `require_permission` dependency in backend routers and `useAuth().hasPermission()` hook in frontend. Admin role bypasses all checks. Permission constants are in `backend/models/permissions.py` — add new permissions to `ALL_PERMISSIONS` and `PERMISSION_GROUPS` there.
 - User model has `is_manager` boolean field — used for department-level access control (e.g., attendance records). This is separate from role permissions.
 - Row-level data filtering uses `owner_filter()` / `apply_owner_filter()` from `auth.py`. `apply_owner_filter` filters by **shop binding**: roles with `bound_shops` restrict queries to records whose `shop_name` matches a bound shop. Admins and roles with no shop binding see all data.
@@ -115,9 +125,9 @@ No test framework is configured. Alembic config exists but is unused — databas
 - File uploads go through `backend/storage.py` — don't write direct file I/O for uploads. File retrieval via `GET /api/files/{filepath}` (uses `get_current_user_flexible` to support `<img>`/`<iframe>` with `?token=`).
 - Schema changes: add raw SQL migration steps to `backend/models/init_db.py` `_migrate_db()`, not alembic
 - Navigation sidebar groups and their permission requirements are defined in `AppLayout.tsx`; dynamic module items are merged in at runtime from `/api/module-configs`
-- After editing frontend code, run `npm run build` (from `frontend/`) before restarting the backend — FastAPI serves from `frontend/dist/`, not the dev server
+- After editing frontend code, run `npm run build` (from `frontend/`) before restarting the backend — FastAPI serves from `frontend/dist/`, not the dev server. For customer deployment, run `pyinstaller build.spec --clean` after building frontend.
 - To restart the backend: kill the process on port 8000, then `cd backend && python main.py`
-- **Deployment package**: Build frontend (`npm run build`), copy `backend/` (excluding `__pycache__`, `.DS_Store`, `data.db`, `uploads/`, `logs/`, `.vite`) and `frontend/dist/` into `weijioa-deploy/`, add `install.bat`/`start.bat`/`README.txt` (pure ASCII, no special symbols), zip as `微迹OA系统-部署包.zip`
+- **Deployment package**: Build frontend (`npm run build`), run `pyinstaller build.spec --clean`, copy `dist/weiji-oa` directory + `install.bat` + `start.bat` + `README.txt` (pure ASCII, no special symbols) into `微迹OA系统-部署包/`. zip the directory for delivery. The customer places `license.lic` next to the exe.
 - WebSocket endpoint is `/ws/{user_id}` — used for real-time notifications (new tickets, status changes, etc.)
 - The `ReturnExchangeRecord` model uses JSON columns for `damage_items` (array of `{name, amount, desc}`) — follow this same pattern for any new array-type fields
 - **Field options system**: `backend/models/field_option.py` provides a generic per-company key-value store for dropdown presets. `field_name` distinguishes categories (e.g., `model`, `config`, `color`, `accessories`). The `FieldSelect` component (`frontend/src/components/FieldSelect.tsx`) is the frontend consumer — it auto-loads options for a given `fieldName` and renders a searchable dropdown with management modal. The `color` field_name additionally supports `color_code` for visual swatches.

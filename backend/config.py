@@ -1,7 +1,32 @@
 import os
+import sys
+
+
+def _get_project_dir():
+    """获取项目根目录（数据目录）。
+
+    开发模式：源码所在目录的上一级（config.py 在 backend/ 下）。
+    PyInstaller 打包后：可执行文件所在目录，数据文件与部署包放在一起。
+    """
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _get_bundle_dir():
+    """获取资源包目录。
+
+    PyInstaller 单文件模式将资源解压到临时目录（sys._MEIPASS），
+    前端静态文件、public.pem 等打包资源从此读取。开发模式返回项目根目录。
+    """
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        return sys._MEIPASS
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_DIR = os.path.dirname(BASE_DIR)
+PROJECT_DIR = _get_project_dir()
+BUNDLE_DIR = _get_bundle_dir()
 
 # 数据库：默认 SQLite，设 DATABASE_URL 环境变量可切换 PostgreSQL
 # 示例: export DATABASE_URL=postgresql://user:pass@host:5432/fries_oa

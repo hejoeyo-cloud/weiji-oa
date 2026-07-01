@@ -11,13 +11,23 @@ from typing import Optional
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
-from config import PROJECT_DIR
+import sys
+from config import PROJECT_DIR, BUNDLE_DIR
 
 LICENSE_FILE = os.path.join(PROJECT_DIR, "license.lic")
-PUBLIC_KEY_PATH = os.path.join(os.path.dirname(__file__), "keys", "public.pem")
+PUBLIC_KEY_PATH = os.path.join(BUNDLE_DIR, "backend", "keys", "public.pem")
 
-# 生产模式下必须有 license 文件（部署包里设置 LICENSE_REQUIRED=1）
-LICENSE_REQUIRED = os.getenv("LICENSE_REQUIRED", "0") == "1"
+# 检测是否为部署包（源码已编译，源码目录不存在）
+# 开发模式下 backend/routers/ 目录存在；PyInstaller 打包后不存在
+_SOURCE_DIR = os.path.join(os.path.dirname(__file__), "routers")
+_IS_DEPLOYMENT = not os.path.isdir(_SOURCE_DIR)
+
+if _IS_DEPLOYMENT:
+    # 部署包强制要求 license，忽略环境变量，无法绕过
+    LICENSE_REQUIRED = True
+else:
+    # 开发模式：可通过环境变量控制
+    LICENSE_REQUIRED = os.getenv("LICENSE_REQUIRED", "0") == "1"
 
 # Grace 期：过期后仍可只读访问的天数
 GRACE_DAYS = 7

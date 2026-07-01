@@ -351,34 +351,39 @@ export default function GiftList() {
       </div>
 
       <div className="flex flex-wrap gap-3 card p-4">
-        <div className="flex items-center gap-2 flex-1 min-w-48 border border-gray-200 rounded-lg px-3 py-2">
-          <Search size={14} className="text-gray-400" />
-          <input
-            value={search}
-            onChange={e => { setSearch(e.target.value); setPage(1) }}
-            placeholder="搜索订单号/型号/客户信息..."
-            className="flex-1 outline-none text-sm"
-          />
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">状态:</span>
+          <select value={statusFilter}
+            onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
+            className="border rounded-lg px-3 py-1.5 text-sm">
+            <option value="">全部</option>
+            {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
         </div>
-        <select value={statusFilter}
-          onChange={e => { setStatusFilter(e.target.value); setPage(1) }}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm">
-          <option value="">全部状态</option>
-          {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-        </select>
         <div className="min-w-[140px]">
           <ShopSelect value={shopFilter} onChange={v => { setShopFilter(v); setPage(1) }} showGear={false} placeholder="全部店铺" />
         </div>
-        <input type="date" value={startDate}
-          onChange={e => { setStartDate(e.target.value); setPage(1) }}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-        <span className="self-center text-gray-400">至</span>
-        <input type="date" value={endDate}
-          onChange={e => { setEndDate(e.target.value); setPage(1) }}
-          className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">日期:</span>
+          <input type="date" value={startDate}
+            onChange={e => { setStartDate(e.target.value); setPage(1) }}
+            className="border rounded-lg px-3 py-1.5 text-sm" />
+          <span className="text-gray-400">-</span>
+          <input type="date" value={endDate}
+            onChange={e => { setEndDate(e.target.value); setPage(1) }}
+            className="border rounded-lg px-3 py-1.5 text-sm" />
+        </div>
+        <div className="flex-1 min-w-[200px]">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input type="text" placeholder="搜索订单号/型号/客户信息..." value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1) }}
+              className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm" />
+          </div>
+        </div>
         <button onClick={handleExport}
-          className="inline-flex items-center gap-1.5 px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-600 text-sm rounded-lg transition-colors">
-          <Download size={14} /> 导出
+          className="flex items-center gap-2 px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">
+          <Download size={16} /> 导出
         </button>
       </div>
 

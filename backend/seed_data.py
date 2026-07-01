@@ -1,598 +1,691 @@
-import json as _json
-from database import (
-    SessionLocal, TroubleshootCategory, TroubleshootStep,
-    KnowledgeCategory, KnowledgeArticle, User, init_db
-)
+"""填充随机测试数据——覆盖所有业务模块"""
+import random, json
+from datetime import datetime, timedelta
+from models.base import SessionLocal
+from models import *
+from models.field_option import FieldOption
+from auth import get_password_hash
 
 
-def seed_troubleshoot():
+def seed():
     db = SessionLocal()
     try:
-        if db.query(TroubleshootCategory).count() > 0:
-            return
+        company = db.query(Company).filter(Company.name == "微迹OA").first()
 
-        categories_data = [
-            ("无法开机", "power", 0),
-            ("蓝屏故障", "bsod", 1),
-            ("网络问题", "wifi", 2),
-            ("系统卡顿", "slow", 3),
-            ("驱动问题", "driver", 4),
-            ("显示异常", "display", 5),
-            ("音频问题", "audio", 6),
-            ("外设问题", "usb", 7),
+        # ── 1. 部门 ─────────────────────────────────────────────
+        dept_names = ["技术部", "运营部", "客服部", "仓储部", "财务部"]
+        depts = {}
+        for name in dept_names:
+            d = db.query(Department).filter(Department.name == name).first()
+            if not d:
+                d = Department(company_id=company.id, name=name)
+                db.add(d)
+        db.commit()
+        for name in dept_names:
+            depts[name] = db.query(Department).filter(Department.name == name).first()
+
+        # ── 2. 店铺 ─────────────────────────────────────────────
+        shop_names = ["天猫旗舰店", "京东自营", "拼多多专营", "抖音小店", "线下门店"]
+        for sn in shop_names:
+            s = db.query(Shop).filter(Shop.name == sn).first()
+            if not s:
+                db.add(Shop(company_id=company.id, name=sn))
+        db.commit()
+        shops = db.query(Shop).all()
+
+        # ── 3. 角色 ─────────────────────────────────────────────
+        admin_role = db.query(Role).filter(Role.name == "admin").first()
+        tech_role = db.query(Role).filter(Role.name == "technician").first()
+        cust_role = db.query(Role).filter(Role.name == "customer").first()
+
+        # ── 4. 用户 ─────────────────────────────────────────────
+        user_data = [
+            ("张三", "zhangsan", "技术部", "technician", True),
+            ("李四", "lisi", "运营部", "technician", True),
+            ("王五", "wangwu", "客服部", "customer", False),
+            ("赵六", "zhaoliu", "仓储部", "customer", False),
+            ("钱七", "qianqi", "财务部", "customer", False),
+            ("孙八", "sunba", "运营部", "customer", False),
+            ("周九", "zhoujiu", "客服部", "customer", False),
+            ("吴十", "wushi", "技术部", "technician", False),
         ]
+        users_list = [db.query(User).filter(User.username == "admin").first()]
+        for name, uname, dept, role, is_mgr in user_data:
+            u = db.query(User).filter(User.username == uname).first()
+            if not u:
+                u = User(
+                    company_id=company.id, username=uname, name=name,
+                    email=f"{uname}@weiji.local",
+                    password_hash=get_password_hash("123456"),
+                    role=role,
+                    role_id=tech_role.id if role == "technician" else cust_role.id,
+                    department_id=depts[dept].id, is_manager=is_mgr,
+                )
+                db.add(u)
+            users_list.append(u)
+        db.commit()
+        users_list = db.query(User).all()
+        admin_user = users_list[0]
 
-        cat_map = {}
-        for name, icon, order in categories_data:
-            cat = TroubleshootCategory(name=name, icon=icon, sort_order=order)
-            db.add(cat)
-            db.flush()
-            cat_map[name] = cat.id
+        # ── 5. 工单 (60条) ───────────────────────────────────────
+        if db.query(Ticket).count() == 0:
+            platforms = ["天猫", "京东", "拼多多", "抖音", "小红书"]
+            descs = [
+                "电脑无法开机，按下电源键无反应",
+                "屏幕出现花屏/闪屏现象",
+                "键盘部分按键失灵",
+                "系统频繁蓝屏，错误代码0x0000001A",
+                "电池无法充电，插电后指示灯不亮",
+                "风扇噪音大，温度显示异常高",
+                "WiFi连接不稳定，频繁断线",
+                "触控板灵敏度异常",
+                "外接显示器无法识别",
+                "系统更新后部分软件无法运行",
+            ]
+            for i in range(60):
+                t = Ticket(
+                    company_id=company.id,
+                    platform=random.choice(platforms),
+                    customer_id=f"CUST{random.randint(1000, 9999)}",
+                    description=random.choice(descs),
+                    remote_code=f"RC{random.randint(100000, 999999)}",
+                    verify_code=f"VC{random.randint(1000, 9999)}",
+                    priority=random.choice(["low", "medium", "high", "urgent"]),
+                    status=random.choice(["pending", "processing", "completed", "cancelled"]),
+                    diagnosis_result=random.choice(["", "硬件故障", "软件问题", "操作不当"]),
+                    created_by=random.choice(users_list).id,
+                    assigned_to=random.choice(users_list).id,
+                    created_at=datetime.now() - timedelta(days=random.randint(0, 60)),
+                )
+                db.add(t)
+            db.commit()
 
-        steps_data = {
-            "无法开机": [
-                {
-                    "title": "按电源键无任何反应",
-                    "instruction": "请按住电源键至少3秒，观察电脑是否有任何指示灯亮起、风扇转动或屏幕闪烁。",
-                    "children": [
-                        {
-                            "title": "指示灯亮但屏幕黑",
-                            "instruction": "电脑有电源指示，但屏幕完全没有显示。请尝试连接外接显示器确认是否为屏幕问题。",
-                            "children": [
-                                {
-                                    "title": "外接显示器有画面",
-                                    "instruction": "外接显示器可以显示画面，说明笔记本屏幕或排线存在问题。",
-                                    "is_hardware": True,
-                                    "solution": "笔记本屏幕或屏幕排线损坏，需要寄回售后部更换屏幕组件。",
-                                },
-                                {
-                                    "title": "外接显示器也无画面",
-                                    "instruction": "外接显示器同样无画面，尝试按以下步骤排查：1) 长按电源键15秒强制关机，等待30秒后重新开机 2) 开机时反复按F2或Del进入BIOS",
-                                    "children": [
-                                        {
-                                            "title": "能进入BIOS",
-                                            "instruction": "可以进入BIOS界面，说明硬件基本正常，问题可能在操作系统层面。",
-                                            "children": [
-                                                {
-                                                    "title": "安全模式可进入",
-                                                    "instruction": "重启电脑，在开机时反复按F8进入高级启动选项，选择「安全模式」。",
-                                                    "solution": "能进入安全模式说明是驱动或软件冲突导致无法正常启动。建议在安全模式下卸载最近安装的驱动或软件，或使用系统还原。",
-                                                },
-                                                {
-                                                    "title": "安全模式也无法进入",
-                                                    "instruction": "安全模式也无法进入，可能需要重装系统。",
-                                                    "solution": "建议使用U盘启动盘重装操作系统。如果客户有重要数据，先引导进入PE系统备份后再重装。",
-                                                },
-                                            ],
-                                        },
-                                        {
-                                            "title": "无法进入BIOS",
-                                            "instruction": "无法进入BIOS，可能存在主板或内存硬件故障。",
-                                            "is_hardware": True,
-                                            "solution": "无法进入BIOS通常表示主板或内存存在硬件故障，需要寄回售后部检测维修。",
-                                        },
-                                    ],
-                                },
-                            ],
-                        },
-                        {
-                            "title": "指示灯完全不亮",
-                            "instruction": "电脑完全没有任何反应，指示灯不亮、风扇不转。请确认：1) 电源适配器已正确连接 2) 墙壁插座有电 3) 尝试更换电源适配器",
-                            "children": [
-                                {
-                                    "title": "更换适配器后可以开机",
-                                    "instruction": "更换电源适配器后电脑可以正常开机。",
-                                    "is_hardware": True,
-                                    "solution": "原电源适配器损坏，需要更换电源适配器。建议使用原装或同规格适配器。",
-                                },
-                                {
-                                    "title": "更换适配器仍无法开机",
-                                    "instruction": "更换适配器后仍然无法开机。",
-                                    "is_hardware": True,
-                                    "solution": "主板或电源接口可能存在故障，需要寄回售后部检测维修。",
-                                },
-                            ],
-                        },
-                    ],
-                },
-                {
-                    "title": "能开机但反复自动重启",
-                    "instruction": "电脑可以开机，但会在启动过程中反复重启。请尝试进入安全模式确认是否可以稳定运行。",
-                    "children": [
-                        {
-                            "title": "安全模式稳定运行",
-                            "instruction": "在安全模式下电脑不会自动重启，说明是驱动或软件问题。",
-                            "solution": "在安全模式下卸载最近更新的显卡驱动，或在「系统属性→高级→启动和故障恢复」中关闭自动重启，查看蓝屏错误代码进一步排查。",
-                        },
-                        {
-                            "title": "安全模式也自动重启",
-                            "instruction": "安全模式下也会自动重启，可能是散热或硬件问题。",
-                            "children": [
-                                {
-                                    "title": "电脑底部非常烫",
-                                    "instruction": "触摸电脑底部和散热口区域，感觉明显过热。",
-                                    "is_hardware": True,
-                                    "solution": "散热系统故障（风扇损坏或散热硅脂干涸），需要寄回售后部清理散热并重新涂抹硅脂。",
-                                },
-                                {
-                                    "title": "温度正常也重启",
-                                    "instruction": "电脑温度正常但仍然反复重启。",
-                                    "is_hardware": True,
-                                    "solution": "可能是内存条或主板故障，需要寄回售后部使用专业设备检测。",
-                                },
-                            ],
-                        },
-                    ],
-                },
-            ],
-            "蓝屏故障": [
-                {
-                    "title": "蓝屏后可以正常重启",
-                    "instruction": "电脑出现蓝屏后，可以正常重启使用，但可能会再次蓝屏。请查看蓝屏错误代码（通常显示在屏幕下方，如：IRQL_NOT_LESS_OR_EQUAL）。",
-                    "children": [
-                        {
-                            "title": "错误代码与驱动相关",
-                            "instruction": "错误代码提示与驱动程序有关，如 DRIVER_IRQL_NOT_LESS_OR_EQUAL、VIDEO_TDR_FAILURE 等。",
-                            "solution": "1) 使用「蓝屏查看器」分析dump文件确定具体驱动\n2) 到设备管理器更新或回滚对应驱动\n3) 如为显卡驱动，建议到官网下载对应型号的稳定版驱动重新安装",
-                        },
-                        {
-                            "title": "错误代码与内存相关",
-                            "instruction": "错误代码提示内存问题，如 MEMORY_MANAGEMENT、BAD_POOL_HEADER 等。",
-                            "solution": "1) 按Win+R输入mdsched.exe运行Windows内存诊断\n2) 如果诊断发现内存问题，可能是内存条故障\n3) 也可能是软件引起的内存冲突，先尝试在安全模式下使用观察",
-                        },
-                        {
-                            "title": "不确定错误代码",
-                            "instruction": "无法确定具体的错误代码含义。",
-                            "solution": "1) 按 Win+R 输入 eventvwr.msc 打开事件查看器\n2) 在「Windows日志→系统」中查找红色错误事件\n3) 查看最近安装的软件和驱动更新\n4) 尝试使用系统还原点到最近的正常时间点",
-                        },
-                    ],
-                },
-                {
-                    "title": "蓝屏后无法启动系统",
-                    "instruction": "蓝屏后电脑无法正常进入Windows，可能进入自动修复循环。",
-                    "children": [
-                        {
-                            "title": "自动修复可以修复",
-                            "instruction": "Windows自动修复成功，可以正常进入系统。",
-                            "solution": "进入系统后立即备份重要数据，然后检查最近的系统更新和驱动变更，建议运行sfc /scannow修复系统文件。",
-                        },
-                        {
-                            "title": "自动修复无法修复",
-                            "instruction": "Windows自动修复失败，仍然无法进入系统。",
-                            "solution": "1) 尝试进入安全模式\n2) 使用系统还原恢复到正常时间点\n3) 如果以上都失败，建议使用U盘启动盘重装系统\n4) 重装前引导进入PE系统备份客户数据",
-                        },
-                    ],
-                },
-            ],
-            "网络问题": [
-                {
-                    "title": "完全无法连接WiFi",
-                    "instruction": "电脑找不到任何WiFi网络或无法连接。请检查：1) WiFi开关是否打开（部分笔记本有物理开关或Fn快捷键）2) 设备管理器中无线网卡是否有黄色感叹号",
-                    "children": [
-                        {
-                            "title": "WiFi开关未打开",
-                            "instruction": "WiFi功能被关闭了。",
-                            "solution": "1) 检查笔记本侧面是否有物理WiFi开关\n2) 按Fn+WiFi快捷键（不同品牌不同，通常是Fn+F2/F3/F5等）\n3) 在Windows设置→网络和Internet中确认WiFi已开启",
-                        },
-                        {
-                            "title": "无线网卡有感叹号",
-                            "instruction": "设备管理器中无线网卡驱动有问题。",
-                            "solution": "1) 右键无线网卡→卸载设备→勾选删除驱动→重启电脑（Windows会自动重装）\n2) 如果问题依旧，到笔记本品牌官网下载对应型号的无线网卡驱动安装",
-                        },
-                        {
-                            "title": "开关和驱动都正常",
-                            "instruction": "WiFi开关开启、驱动正常但仍无法连接。",
-                            "children": [
-                                {
-                                    "title": "其他设备可以连接",
-                                    "instruction": "手机和其他电脑可以连接同一个WiFi。",
-                                    "solution": "1) 在命令提示符（管理员）运行：netsh winsock reset\n2) 运行：netsh int ip reset\n3) 重启电脑\n4) 如果问题依旧，尝试「网络适配器」疑难解答",
-                                },
-                                {
-                                    "title": "其他设备也无法连接",
-                                    "instruction": "所有设备都无法连接这个WiFi，是路由器问题。",
-                                    "solution": "这是路由器/网络环境问题，建议客户重启路由器或联系网络运营商。非电脑故障。",
-                                },
-                            ],
-                        },
-                    ],
-                },
-                {
-                    "title": "连接WiFi但无法上网",
-                    "instruction": "WiFi显示已连接，但浏览器无法打开网页。",
-                    "children": [
-                        {
-                            "title": "显示「无Internet」",
-                            "instruction": "WiFi连接状态显示「无Internet，安全连接」。",
-                            "solution": "1) 尝试断开WiFi重新连接\n2) 在命令提示符运行：ipconfig /flushdns\n3) 运行：ipconfig /release 然后 ipconfig /renew\n4) 检查DHCP是否正常获取到IP地址（ipconfig查看）\n5) 尝试忘记该WiFi网络后重新输入密码连接",
-                        },
-                        {
-                            "title": "显示已连接但打不开网页",
-                            "instruction": "WiFi状态显示已连接且有Internet，但实际无法上网。",
-                            "solution": "1) 尝试ping 8.8.8.8（命令提示符输入ping 8.8.8.8）\n2) 如果ping通但打不开网页，是DNS问题：改为使用 114.114.114.114 或 223.5.5.5\n3) 如果ping不通，可能是IP冲突或路由器问题\n4) 检查是否开启了代理或VPN软件",
-                        },
-                    ],
-                },
-            ],
-            "系统卡顿": [
-                {
-                    "title": "开机很慢",
-                    "instruction": "电脑从按下电源到进入桌面需要很长时间。",
-                    "children": [
-                        {
-                            "title": "开机后桌面响应正常",
-                            "instruction": "虽然开机慢，但进入桌面后使用正常。",
-                            "solution": "1) 按 Win+R 输入 msconfig → 启动选项卡，禁用不必要的启动项\n2) 任务管理器→启动选项卡，禁用不需要的启动程序\n3) 开启Windows快速启动：控制面板→电源选项→选择电源按钮的功能→勾选启用快速启动\n4) 如果使用机械硬盘(HDD)，建议升级为固态硬盘(SSD)可大幅提升开机速度",
-                        },
-                        {
-                            "title": "开机后也很卡",
-                            "instruction": "开机慢，进入桌面后也持续卡顿。",
-                            "solution": "1) 打开任务管理器（Ctrl+Shift+Esc）查看CPU/内存/磁盘使用率\n2) 如果磁盘使用率持续100%，可能是硬盘故障或即将损坏\n3) 检查C盘剩余空间，至少保留10GB以上\n4) 运行sfc /scannow修复系统文件\n5) 考虑重装系统",
-                        },
-                    ],
-                },
-                {
-                    "title": "运行时突然变卡",
-                    "instruction": "电脑使用过程中突然变得很卡，之前是正常的。",
-                    "children": [
-                        {
-                            "title": "任务管理器显示CPU占用高",
-                            "instruction": "打开任务管理器，发现某个进程CPU占用率很高。",
-                            "solution": "1) 找到CPU占用高的进程，如果是未知进程，可能是恶意软件\n2) 使用Windows安全中心进行全盘扫描\n3) 如果是系统进程（如System Interrupts），可能是驱动冲突\n4) 如果是某个软件，尝试关闭或卸载后观察",
-                        },
-                        {
-                            "title": "任务管理器显示内存占用高",
-                            "instruction": "内存使用率接近或达到100%。",
-                            "solution": "1) 查看哪个程序占用了大量内存\n2) 关闭不需要的程序和浏览器标签页\n3) 如果物理内存较小（4GB以下），建议增加内存条\n4) 检查是否有内存泄漏的程序（重启后观察内存是否正常）",
-                        },
-                        {
-                            "title": "磁盘使用率持续100%",
-                            "instruction": "磁盘使用率持续在100%，系统响应很慢。",
-                            "solution": "1) 如果是机械硬盘(HDD)，这是正常现象但影响体验，建议升级SSD\n2) 关闭Windows搜索服务：服务→Windows Search→禁用\n3) 关闭磁盘碎片整理计划任务\n4) 检查硬盘健康状态：命令提示符运行 wmic diskdrive get status\n5) 如果显示非OK状态，硬盘可能即将损坏，建议立即备份数据",
-                        },
-                    ],
-                },
-            ],
-            "驱动问题": [
-                {
-                    "title": "设备管理器有黄色感叹号",
-                    "instruction": "打开设备管理器（右键开始→设备管理器），发现有设备显示黄色感叹号。",
-                    "children": [
-                        {
-                            "title": "未知设备",
-                            "instruction": "显示为「未知设备」，通常是缺少驱动程序。",
-                            "solution": "1) 右键未知设备→属性→详细信息→硬件ID\n2) 记录硬件ID信息\n3) 到笔记本品牌官网的驱动下载页面\n4) 输入笔记本型号，下载对应驱动安装\n5) 也可以安装驱动管理工具辅助安装",
-                        },
-                        {
-                            "title": "已知设备驱动异常",
-                            "instruction": "知道是哪个设备的驱动有问题（如显卡、声卡、网卡等）。",
-                            "solution": "1) 右键该设备→更新驱动程序→自动搜索\n2) 如果自动搜索失败，到品牌官网下载手动安装\n3) 也可以右键→卸载设备→勾选删除驱动→重启电脑让Windows重装\n4) 如果是显卡问题，到NVIDIA/AMD官网下载对应显卡驱动",
-                        },
-                    ],
-                },
-                {
-                    "title": "外设无法识别",
-                    "instruction": "USB设备、打印机等外设插上后电脑没有反应或提示无法识别。",
-                    "children": [
-                        {
-                            "title": "该USB口其他设备正常",
-                            "instruction": "同一个USB口插其他设备可以正常使用。",
-                            "solution": "该外设本身可能有问题。尝试：1) 换一个USB口\n2) 如果是打印机，到品牌官网下载最新驱动\n3) 如果是U盘，在其他电脑上测试是否可以识别\n4) 设备管理器中查看是否有通用串行总线控制器异常",
-                        },
-                        {
-                            "title": "所有USB口都有问题",
-                            "instruction": "所有USB口都无法正常识别外设。",
-                            "children": [
-                                {
-                                    "title": "鼠标键盘USB口可以用",
-                                    "instruction": "USB键盘和鼠标可以正常使用，但其他USB设备不行。",
-                                    "solution": "可能是USB驱动问题。尝试：1) 设备管理器→通用串行总线控制器→右键全部卸载→重启\n2) 检查BIOS中USB 3.0设置是否正常\n3) 更新芯片组驱动",
-                                },
-                                {
-                                    "title": "所有USB设备都不行",
-                                    "instruction": "包括键盘鼠标在内的所有USB设备都无法使用。",
-                                    "is_hardware": True,
-                                    "solution": "USB控制器硬件可能存在故障，需要寄回售后部检测维修。",
-                                },
-                            ],
-                        },
-                    ],
-                },
-            ],
-            "显示异常": [
-                {
-                    "title": "屏幕花屏或闪屏",
-                    "instruction": "屏幕出现花屏（乱码色块）、闪屏（画面闪烁）或横线竖线。",
-                    "children": [
-                        {
-                            "title": "外接显示器正常",
-                            "instruction": "连接外接显示器后，外接显示器显示正常，笔记本屏幕有问题。",
-                            "children": [
-                                {
-                                    "title": "轻轻按压屏幕边框会变化",
-                                    "instruction": "用手轻轻按压屏幕边框时花屏会变化或暂时恢复。",
-                                    "is_hardware": True,
-                                    "solution": "屏幕排线松动或损坏，需要寄回售后部重新安装排线或更换屏幕。",
-                                },
-                                {
-                                    "title": "按压无变化，一直花屏",
-                                    "instruction": "按压屏幕边框不影响花屏表现。",
-                                    "is_hardware": True,
-                                    "solution": "可能是液晶面板或显卡硬件问题，需要寄回售后部进一步检测确认是屏幕面板还是显卡问题。",
-                                },
-                            ],
-                        },
-                        {
-                            "title": "外接显示器也花屏",
-                            "instruction": "外接显示器同样出现花屏现象。",
-                            "children": [
-                                {
-                                    "title": "安全模式下正常",
-                                    "instruction": "进入安全模式后花屏消失，显示正常。",
-                                    "solution": "这是显卡驱动问题。1) 在安全模式下卸载显卡驱动\n2) 到官网下载最新稳定版驱动重新安装\n3) 如果是独立显卡，检查独显是否正常切换",
-                                },
-                                {
-                                    "title": "安全模式下也花屏",
-                                    "instruction": "安全模式下屏幕同样花屏。",
-                                    "is_hardware": True,
-                                    "solution": "显卡硬件存在故障（可能是显存或GPU芯片问题），需要寄回售后部维修。",
-                                },
-                            ],
-                        },
-                    ],
-                },
-                {
-                    "title": "分辨率异常或显示不全",
-                    "instruction": "屏幕显示模糊、分辨率不是推荐值、或显示区域不完整。",
-                    "solution": "1) 右键桌面→显示设置→将分辨率设为推荐值\n2) 如果推荐值不在列表中，显卡驱动可能未安装\n3) 检查显示缩放比例是否为100%或125%\n4) 右键应用→属性→兼容性→更改高DPI设置→勾选替代高DPI缩放\n5) 更新显卡驱动到最新版本",
-                },
-            ],
-            "音频问题": [
-                {
-                    "title": "完全没有声音",
-                    "instruction": "电脑播放音频时扬声器或耳机没有声音输出。请检查：1) 音量是否静音 2) 音频输出设备是否选对",
-                    "children": [
-                        {
-                            "title": "音量静音或输出设备选错",
-                            "instruction": "检查发现音量被静音了，或者输出设备选择了错误的选项。",
-                            "solution": "1) 点击右下角音量图标取消静音\n2) 右键音量图标→声音设置→输出设备选择正确的扬声器/耳机\n3) 如果使用蓝牙耳机，确认蓝牙已连接并选为输出设备",
-                        },
-                        {
-                            "title": "音量和设备都正常仍无声音",
-                            "instruction": "音量未静音，输出设备正确，但仍然没有声音。",
-                            "solution": "1) 右键音量图标→声音设置→输出设备→找到当前设备→设备属性\n2) 在「级别」选项卡确认音量\n3) 在「增强功能」选项卡禁用所有音效\n4) 设备管理器中卸载声卡驱动→重启重装\n5) 检查声音控制面板：播放选项卡中默认设备是否正确\n6) 运行Windows声音疑难解答",
-                        },
-                        {
-                            "title": "耳机有声音但扬声器没有",
-                            "instruction": "插入耳机有声音，拔出耳机扬声器无声。",
-                            "children": [
-                                {
-                                    "title": "重装驱动后解决",
-                                    "instruction": "尝试卸载并重装声卡驱动。",
-                                    "solution": "1) 设备管理器→声音、视频和游戏控制器→右键卸载所有声卡设备（勾选删除驱动）\n2) 重启电脑\n3) 到品牌官网下载声卡驱动安装\n4) 检查音频插口是否有灰尘或异物",
-                                },
-                                {
-                                    "title": "重装驱动仍无法解决",
-                                    "instruction": "重装驱动后扬声器仍然没有声音。",
-                                    "is_hardware": True,
-                                    "solution": "笔记本扬声器或音频功放硬件可能损坏，需要寄回售后部检测维修。",
-                                },
-                            ],
-                        },
-                    ],
-                },
-                {
-                    "title": "声音有杂音或断断续续",
-                    "instruction": "有声音但伴随杂音、电流声、或声音断断续续。",
-                    "children": [
-                        {
-                            "title": "所有音频都有杂音",
-                            "instruction": "不管是播放音乐、视频还是系统音都有杂音。",
-                            "children": [
-                                {
-                                    "title": "插耳机也有杂音",
-                                    "instruction": "使用耳机同样有杂音。",
-                                    "children": [
-                                        {
-                                            "title": "外接USB声卡正常",
-                                            "instruction": "使用USB声卡或蓝牙音频输出声音正常。",
-                                            "is_hardware": True,
-                                            "solution": "笔记本内置声卡硬件故障，需要寄回售后部维修。",
-                                        },
-                                        {
-                                            "title": "外接声卡也有杂音",
-                                            "instruction": "即使使用USB声卡也有杂音。",
-                                            "solution": "可能是系统或软件层面的干扰。1) 检查是否有电磁干扰（远离手机等设备）\n2) 在电源管理中禁用USB选择性挂起\n3) 更新主板芯片组驱动\n4) 在BIOS中禁用内置音频再启用试试",
-                                        },
-                                    ],
-                                },
-                                {
-                                    "title": "只有扬声器有杂音",
-                                    "instruction": "使用耳机时声音正常，只有扬声器有杂音。",
-                                    "is_hardware": True,
-                                    "solution": "扬声器硬件可能损坏或存在接触不良，需要寄回售后部检测维修。",
-                                },
-                            ],
-                        },
-                        {
-                            "title": "只有特定软件有杂音",
-                            "instruction": "某些软件播放有杂音，其他软件正常。",
-                            "solution": "1) 检查该软件的音频设置（采样率、输出设备）\n2) 更新该软件到最新版本\n3) 在软件设置中更换音频输出方式（如从WASAPI改为DirectSound）\n4) 检查是否有音频增强插件冲突",
-                        },
-                    ],
-                },
-            ],
-            "外设问题": [
-                {
-                    "title": "触控板失灵或不灵敏",
-                    "instruction": "笔记本触控板无法使用、光标不动、或触控操作不灵敏。",
-                    "children": [
-                        {
-                            "title": "USB鼠标可以使用",
-                            "instruction": "外接USB鼠标工作正常，只是触控板有问题。",
-                            "children": [
-                                {
-                                    "title": "触控板被禁用了",
-                                    "instruction": "可能是触控板被关闭了。检查：1) Fn+触控板快捷键（不同品牌不同） 2) 设置→蓝牙和其他设备→触控板",
-                                    "solution": "1) 按Fn+F5/F6/F8等快捷键开启触控板\n2) Windows设置→蓝牙和其他设备→触控板→确认未禁用\n3) 某些笔记本有物理触控板开关，检查侧面",
-                                },
-                                {
-                                    "title": "触控板未禁用但仍失灵",
-                                    "instruction": "触控板未禁用但仍然无法使用。",
-                                    "solution": "1) 设备管理器→找到触控板设备→卸载驱动→重启\n2) 到品牌官网下载触控板驱动安装\n3) 控制面板→鼠标→触控板设置卡→重置默认\n4) 检查触控板表面是否有污渍影响灵敏度",
-                                },
-                            ],
-                        },
-                        {
-                            "title": "USB鼠标也不行",
-                            "instruction": "USB鼠标也无法正常使用。",
-                            "solution": "1) 尝试不同的USB口\n2) 检查设备管理器中USB控制器是否有异常\n3) 运行Windows更新\n4) 在BIOS中检查USB设置是否正常",
-                        },
-                    ],
-                },
-                {
-                    "title": "键盘失灵或按键错乱",
-                    "instruction": "部分按键无反应、按键输入错误字符、或键盘卡键。",
-                    "children": [
-                        {
-                            "title": "外接USB键盘正常",
-                            "instruction": "外接USB键盘可以正常使用，笔记本键盘有问题。",
-                            "children": [
-                                {
-                                    "title": "部分按键不灵",
-                                    "instruction": "只有个别或部分按键没有反应。",
-                                    "is_hardware": True,
-                                    "solution": "可能是键盘膜/按键排线问题。如果是少量按键，可暂时使用外接键盘。需要寄回售后部更换键盘组件。",
-                                },
-                                {
-                                    "title": "输入字符全部错误",
-                                    "instruction": "按键输入的字符和实际不符，如输入a出现q。",
-                                    "solution": "1) 检查输入法是否正确（切换到英文输入法测试）\n2) 检查键盘布局设置：设置→时间和语言→语言→选项→键盘\n3) 确认键盘布局为「中文(简体) - 美式键盘」\n4) 如果还是错误，可能是键盘硬件故障",
-                                },
-                            ],
-                        },
-                        {
-                            "title": "外接USB键盘也不正常",
-                            "instruction": "外接USB键盘同样有按键异常。",
-                            "solution": "这是软件/系统层面的问题。1) 检查是否有键盘过滤驱动\n2) 设备管理器→键盘→卸载所有键盘设备→重启\n3) 检查是否有恶意软件劫持键盘输入\n4) 尝试在安全模式下测试",
-                        },
-                    ],
-                },
-            ],
+        # ── 6. 工单反馈 ───────────────────────────────────────────
+        if db.query(TicketFeedback).count() == 0:
+            tickets = db.query(Ticket).all()
+            for tkt in random.sample(tickets, min(30, len(tickets))):
+                for _ in range(random.randint(1, 3)):
+                    db.add(TicketFeedback(
+                        company_id=company.id, ticket_id=tkt.id,
+                        user_id=random.choice(users_list).id,
+                        content=random.choice([
+                            "已联系客户，正在排查问题。",
+                            "客户反馈是软件冲突导致，已远程修复。",
+                            "需要更换配件，已通知客户寄回。",
+                            "客户已确认问题解决，工单关闭。",
+                        ]),
+                        feedback_type=random.choice(["progress", "diagnosis", "resolution"]),
+                        created_at=datetime.now() - timedelta(days=random.randint(0, 30)),
+                    ))
+            db.commit()
+
+        # ── 7. 发货登记 (80条) ─────────────────────────────────────
+        if db.query(GiftRecord).count() == 0:
+            models_list = ["ThinkPad X1 Carbon", "MacBook Pro 14", "MateBook X Pro", "Yoga Pro 14s", "XPS 15", "暗影精灵9"]
+            configs_list = ["i5-13500H/16G/512G", "i7-13700H/32G/1TB", "R7-7840H/16G/512G", "i9-13900H/32G/2TB", "M2 Pro/16G/512G"]
+            colors_list = ["深空灰", "银色", "星空黑", "云杉绿", "皓月银"]
+            sizes_list = ["13.3寸", "14寸", "14.5寸", "15.6寸", "16寸"]
+            accessories_pool = ["鼠标", "键盘", "电脑包", "贴膜", "U盘", "扩展坞", "散热支架", "屏幕清洁套装"]
+            for i in range(80):
+                qty = random.randint(1, 3)
+                acc = random.sample(accessories_pool, random.randint(1, 3))
+                order_amt = round(random.uniform(3000, 15000), 2)
+                cost = round(order_amt * random.uniform(0.5, 0.85), 2)
+                g = GiftRecord(
+                    company_id=company.id,
+                    date=(datetime.now() - timedelta(days=random.randint(0, 90))).strftime("%Y-%m-%d"),
+                    shop_name=random.choice(shop_names),
+                    order_no=f"DD{datetime.now().strftime('%Y%m%d')}{random.randint(1000, 9999)}",
+                    product=random.choice(["笔记本电脑", "平板电脑", "一体机", "显示器"]),
+                    size=random.choice(sizes_list), model=random.choice(models_list),
+                    config=random.choice(configs_list), color=random.choice(colors_list),
+                    quantity=qty, accessories=", ".join(acc),
+                    customer_info=f"{random.choice(['张先生','李女士','王先生','赵女士'])} 1{random.randint(30,99)}{random.randint(10000000,99999999)}",
+                    send_tracking=f"SF{random.randint(1000000000, 9999999999)}" if random.random() > 0.2 else "",
+                    shipping_fee=round(random.uniform(18, 80), 2),
+                    order_amount=order_amt, cost=cost,
+                    gift_costs=[{"name": a, "amount": round(random.uniform(5, 50), 2)} for a in acc],
+                    remark=random.choice(["", "请仔细包装", "加急发货", "客户要求周末送达"]),
+                    ship_date=(datetime.now() - timedelta(days=random.randint(0, 60))).strftime("%Y-%m-%d") if random.random() > 0.3 else "",
+                    status=random.choice(["pending", "sent", "intercepted", "torn", "cancelled", "returned"]),
+                    created_by=random.choice(users_list).id,
+                    created_at=datetime.now() - timedelta(days=random.randint(0, 90)),
+                )
+                db.add(g)
+            db.commit()
+
+        # ── 8. 返现登记 (25条) ─────────────────────────────────────
+        if db.query(GiftCashback).count() == 0:
+            gift_records = db.query(GiftRecord).filter(GiftRecord.order_amount > 0).all()
+            for gr in random.sample(gift_records, min(25, len(gift_records))):
+                db.add(GiftCashback(
+                    company_id=company.id, shop_name=gr.shop_name, order_no=gr.order_no,
+                    cashback_amount=round(random.uniform(50, 500), 2),
+                    reason=random.choice(["好评返现", "活动返现", "补偿运费", "老客户回馈"]),
+                    applicant=random.choice(users_list).name,
+                    payment_method=random.choice(["微信", "支付宝", "银行卡"]),
+                    payment_account=f"1{random.randint(30,99)}{random.randint(10000000,99999999)}",
+                    payee=random.choice(users_list).name,
+                    status=random.choice(["pending", "completed"]),
+                    created_by=random.choice(users_list).id,
+                    created_at=datetime.now() - timedelta(days=random.randint(0, 60)),
+                ))
+            db.commit()
+
+        # ── 9. 礼品补发 (20条) ─────────────────────────────────────
+        if db.query(GiftResendRecord).count() == 0:
+            for i in range(20):
+                items = [{"name": n, "quantity": random.randint(1, 3)} for n in
+                         random.sample(["鼠标", "键盘膜", "电脑包", "适配器", "数据线", "说明书"], random.randint(1, 3))]
+                db.add(GiftResendRecord(
+                    company_id=company.id,
+                    apply_date=(datetime.now() - timedelta(days=random.randint(0, 60))).strftime("%Y-%m-%d"),
+                    order_no=f"DD{datetime.now().strftime('%Y%m%d')}{random.randint(1000, 9999)}",
+                    shop_name=random.choice(shop_names),
+                    type=random.choice(["漏发补发", "破损补发", "赠品补发"]),
+                    gift_items=items,
+                    customer_info=f"{random.choice(['张先生','李女士'])} 1{random.randint(30,99)}{random.randint(10000000,99999999)} 广东省深圳市南山区",
+                    express_company=random.choice(["顺丰", "中通", "圆通", "韵达"]),
+                    tracking_no=f"SF{random.randint(1000000000, 9999999999)}" if random.random() > 0.2 else "",
+                    status=random.choice(["pending", "sent", "cancelled"]),
+                    created_by=random.choice(users_list).id,
+                    created_at=datetime.now() - timedelta(days=random.randint(0, 60)),
+                ))
+            db.commit()
+
+        # ── 10. 退换登记 (50条) ────────────────────────────────────
+        if db.query(ReturnExchangeRecord).count() == 0:
+            models_list = ["ThinkPad X1 Carbon", "MacBook Pro 14", "MateBook X Pro", "Yoga Pro 14s", "XPS 15", "暗影精灵9"]
+            configs_list = ["i5-13500H/16G/512G", "i7-13700H/32G/1TB", "R7-7840H/16G/512G", "i9-13900H/32G/2TB", "M2 Pro/16G/512G"]
+            sizes_list = ["13.3寸", "14寸", "14.5寸", "15.6寸", "16寸"]
+            accessories_pool = ["鼠标", "键盘", "电脑包", "贴膜", "U盘", "扩展坞", "散热支架"]
+            for i in range(50):
+                has_dmg = random.random() > 0.7
+                dmg_items = []
+                if has_dmg:
+                    dmg_items = [{"name": n, "amount": round(random.uniform(50, 300), 2), "desc": d}
+                                 for n, d in random.sample([("屏幕", "碎裂"), ("外壳", "划痕"), ("键盘", "按键脱落"), ("充电器", "损坏")], random.randint(1, 2))]
+                db.add(ReturnExchangeRecord(
+                    company_id=company.id,
+                    apply_date=(datetime.now() - timedelta(days=random.randint(0, 90))).strftime("%Y-%m-%d"),
+                    shop_name=random.choice(shop_names),
+                    order_no=f"DD{datetime.now().strftime('%Y%m%d')}{random.randint(1000, 9999)}",
+                    return_reason=random.choice(["商品与描述不符", "质量问题", "发错型号", "客户不想要了", "屏幕有坏点", "无法开机", "尺寸不合适"]),
+                    size=random.choice(sizes_list), model=random.choice(models_list),
+                    config=random.choice(configs_list),
+                    computer_price=round(random.uniform(3000, 12000), 2),
+                    quantity=random.randint(1, 2),
+                    accessories=", ".join(random.sample(accessories_pool, random.randint(0, 3))),
+                    accessories_price=round(random.uniform(0, 300), 2),
+                    customer_info=f"{random.choice(['张先生','李女士','王先生','赵女士'])} 1{random.randint(30,99)}{random.randint(10000000,99999999)} 杭州市余杭区",
+                    return_tracking=f"YT{random.randint(1000000000, 9999999999)}" if random.random() > 0.3 else "",
+                    send_tracking=f"SF{random.randint(1000000000, 9999999999)}" if random.random() > 0.5 else "",
+                    progress=random.choice(["pending", "processing", "completed"]),
+                    shipping_fee=round(random.uniform(15, 60), 2),
+                    record_type=random.choice(["return", "exchange"]),
+                    has_damage=has_dmg, damage_items=dmg_items,
+                    claim_status=random.choice(["none", "pending", "claimed"]) if has_dmg else "none",
+                    created_by=random.choice(users_list).id,
+                    created_at=datetime.now() - timedelta(days=random.randint(0, 90)),
+                ))
+            db.commit()
+
+        # ── 11. 维修登记 (30条) ────────────────────────────────────
+        if db.query(RepairRecord).count() == 0:
+            models_list = ["ThinkPad X1 Carbon", "MacBook Pro 14", "MateBook X Pro", "Yoga Pro 14s", "XPS 15", "暗影精灵9"]
+            configs_list = ["i5-13500H/16G/512G", "i7-13700H/32G/1TB", "R7-7840H/16G/512G", "i9-13900H/32G/2TB", "M2 Pro/16G/512G"]
+            for i in range(30):
+                db.add(RepairRecord(
+                    company_id=company.id,
+                    apply_date=(datetime.now() - timedelta(days=random.randint(0, 120))).strftime("%Y-%m-%d"),
+                    shop_name=random.choice(shop_names),
+                    order_no=f"DD{datetime.now().strftime('%Y%m%d')}{random.randint(1000, 9999)}",
+                    return_reason=random.choice(["无法开机", "屏幕碎裂", "进水", "键盘失灵", "风扇异响", "电池鼓包", "接口接触不良", "系统崩溃"]),
+                    model=random.choice(models_list), config=random.choice(configs_list),
+                    quantity=1, accessories="适配器",
+                    customer_info=f"{random.choice(['张先生','李女士'])} 1{random.randint(30,99)}{random.randint(10000000,99999999)}",
+                    return_tracking=f"YT{random.randint(1000000000, 9999999999)}" if random.random() > 0.2 else "",
+                    send_tracking=f"SF{random.randint(1000000000, 9999999999)}" if random.random() > 0.6 else "",
+                    repair_status=random.choice(["pending_repair", "processing_repair", "completed_repair"]),
+                    charge_required=random.random() > 0.4,
+                    charge_status=random.choice(["none", "pending_charge", "paid"]),
+                    current_expected_amount=round(random.uniform(100, 2000), 2),
+                    current_paid_amount=round(random.uniform(0, 2000), 2),
+                    handle_result=random.choice(["已修复", "无法修复建议换新", "等待配件", ""]),
+                    shipping_fee=round(random.uniform(15, 50), 2),
+                    created_by=random.choice(users_list).id,
+                    created_at=datetime.now() - timedelta(days=random.randint(0, 120)),
+                ))
+            db.commit()
+
+        # ── 12. 仓库产品 ─────────────────────────────────────────
+        if db.query(WarehouseProduct).count() == 0:
+            wp_data = [
+                ("CP001", "笔记本电脑", "ThinkPad X1 Carbon", "i7-13700H/32G/1TB", "A-01"),
+                ("CP002", "笔记本电脑", "MacBook Pro 14", "M2 Pro/16G/512G", "A-02"),
+                ("PJ001", "配件", "无线鼠标", "蓝牙5.0", "B-01"),
+                ("PJ002", "配件", "机械键盘", "87键青轴", "B-02"),
+                ("PJ003", "配件", "电脑包", "14寸防水", "B-03"),
+                ("PJ004", "配件", "USB扩展坞", "7合1 Type-C", "B-04"),
+                ("XS001", "显示器", "27寸4K显示器", "IPS面板", "C-01"),
+                ("XS002", "显示器", "24寸便携屏", "1080P", "C-02"),
+                ("QT001", "其他", "散热支架", "铝合金", "D-01"),
+                ("QT002", "其他", "电源适配器", "65W GaN", "D-02"),
+                ("RJ001", "软件", "正版Office授权", "Office 2021", "E-01"),
+            ]
+            for code, cat, name, spec, loc in wp_data:
+                db.add(WarehouseProduct(
+                    company_id=company.id, code=code, category=cat, name=name,
+                    spec=spec, location=loc, initial_qty=random.randint(10, 100),
+                    unit="个" if cat != "软件" else "套", created_by=admin_user.id,
+                ))
+            db.commit()
+
+        # ── 13. 入库记录 (40条) ────────────────────────────────────
+        if db.query(WarehouseInbound).count() == 0:
+            products = db.query(WarehouseProduct).all()
+            for _ in range(40):
+                p = random.choice(products)
+                qty = random.randint(5, 50)
+                db.add(WarehouseInbound(
+                    company_id=company.id,
+                    date=(datetime.now() - timedelta(days=random.randint(0, 90))).strftime("%Y-%m-%d"),
+                    product_id=p.id, product_code=p.code, category=p.category,
+                    product_name=p.name, spec=p.spec, location=p.location,
+                    quantity=qty,
+                    operator=random.choice(["仓库管理员-刘", "采购员-陈"]),
+                    remark="供应商到货" if random.random() > 0.5 else "调拨入库",
+                    created_by=random.choice(users_list).id,
+                    created_at=datetime.now() - timedelta(days=random.randint(0, 90)),
+                ))
+            db.commit()
+
+        # ── 14. 出库记录 (50条) ────────────────────────────────────
+        if db.query(WarehouseOutbound).count() == 0:
+            products = db.query(WarehouseProduct).all()
+            for _ in range(50):
+                p = random.choice(products)
+                qty = random.randint(1, 10)
+                db.add(WarehouseOutbound(
+                    company_id=company.id,
+                    date=(datetime.now() - timedelta(days=random.randint(0, 90))).strftime("%Y-%m-%d"),
+                    product_id=p.id, product_code=p.code, category=p.category,
+                    product_name=p.name, spec=p.spec, location=p.location,
+                    quantity=qty,
+                    operator=random.choice(["仓库管理员-刘", "发货员-周"]),
+                    remark=random.choice(["订单出库", "备件出库", "调拨出库", "售后换新"]),
+                    created_by=random.choice(users_list).id,
+                    created_at=datetime.now() - timedelta(days=random.randint(0, 90)),
+                ))
+            db.commit()
+
+        # ── 15. 返厂出库 (10条) ────────────────────────────────────
+        if db.query(WarehouseReturnToFactory).count() == 0:
+            products = db.query(WarehouseProduct).filter(WarehouseProduct.category == "笔记本电脑").all()
+            for _ in range(10):
+                p = random.choice(products)
+                db.add(WarehouseReturnToFactory(
+                    company_id=company.id,
+                    date=(datetime.now() - timedelta(days=random.randint(0, 60))).strftime("%Y-%m-%d"),
+                    product_id=p.id, product_code=p.code, category=p.category,
+                    product_name=p.name, spec=p.spec, location=p.location,
+                    quantity=random.randint(1, 3),
+                    reason=random.choice(["屏幕坏点", "主板故障", "电池问题", "外壳损坏"]),
+                    status=random.choice(["repairing", "repaired"]),
+                    operator="仓库管理员-刘",
+                    repaired_at=datetime.now() if random.random() > 0.5 else None,
+                    created_by=random.choice(users_list).id,
+                    created_at=datetime.now() - timedelta(days=random.randint(0, 60)),
+                ))
+            db.commit()
+
+        # ── 16. 产品目录 ────────────────────────────────────────
+        if db.query(Product).count() == 0:
+            product_list = [
+                {"name": "ThinkPad X1 Carbon Gen11", "brand": "联想", "model_number": "X1C-G11", "category": "笔记本电脑",
+                 "cpu": "i7-13700H", "ram": "32GB", "ram_freq": "LPDDR5 5200MHz", "storage": "1TB NVMe SSD",
+                 "display": "14寸 2.8K OLED", "gpu": "Intel Iris Xe", "battery": "57Wh", "weight": "1.12kg", "os": "Windows 11 Pro"},
+                {"name": "MacBook Pro 14 M2", "brand": "Apple", "model_number": "A2779", "category": "笔记本电脑",
+                 "cpu": "M2 Pro", "ram": "16GB", "ram_freq": "统一内存", "storage": "512GB SSD",
+                 "display": "14.2寸 Liquid Retina XDR", "gpu": "M2 Pro 16核GPU", "battery": "70Wh", "weight": "1.6kg", "os": "macOS Ventura"},
+                {"name": "MateBook X Pro 2024", "brand": "华为", "model_number": "MXP-2024", "category": "笔记本电脑",
+                 "cpu": "Ultra 9 185H", "ram": "32GB", "ram_freq": "LPDDR5X 6400MHz", "storage": "2TB NVMe SSD",
+                 "display": "14.2寸 3.1K OLED", "gpu": "Intel Arc", "battery": "70Wh", "weight": "980g", "os": "Windows 11 Home"},
+            ]
+            for p in product_list:
+                db.add(Product(
+                    company_id=company.id, name=p["name"], brand=p["brand"],
+                    model_number=p["model_number"], category=p["category"],
+                    cpu=p["cpu"], ram=p["ram"], ram_freq=p["ram_freq"],
+                    storage=p["storage"], display=p["display"], gpu=p["gpu"],
+                    battery=p["battery"], weight=p["weight"], os=p["os"],
+                    description=f'{p["brand"]} {p["name"]}，{p["cpu"]}，{p["display"]}',
+                    ports=json.dumps(["USB-C x2", "HDMI", "3.5mm"]),
+                    status=random.choice(["在售", "在售", "在售", "停产"]),
+                    created_by=admin_user.id,
+                ))
+            db.commit()
+
+        # ── 17. 公告 (5条) ────────────────────────────────────────
+        if db.query(Announcement).count() == 0:
+            announcements_data = [
+                ("关于规范售后处理流程的通知", "各位同事：为提升售后服务质量，现规范售后处理流程：1. 收到退换货需48小时内处理；2. 维修需要在3个工作日内给出诊断结果；3. 所有操作必须在系统中留痕。请各部门严格执行。"),
+                ("端午节放假通知", "根据国家法定节假日安排，端午节放假时间为6月22日至6月24日，共3天。放假期间仓库暂停发货，客服值班安排详见排班表。"),
+                ("新员工入职培训通知", "本周五下午2点在会议室A举行新员工入职培训，内容包括OA系统使用、售后服务流程、财务报销制度。"),
+                ("仓库盘点通知", "定于本月底进行仓库全面盘点，盘点期间暂停出库操作。请仓储部做好准备工作。"),
+                ("关于启用新版返现流程的通知", "即日起，返现申请统一通过OA系统提交，需填写收款方式、收款账户信息。财务部审核通过后方可支付。"),
+            ]
+            for title, content in announcements_data:
+                db.add(Announcement(
+                    company_id=company.id, title=title, content=content,
+                    is_pinned=random.random() > 0.7, created_by=admin_user.id,
+                    created_at=datetime.now() - timedelta(days=random.randint(0, 30)),
+                ))
+            db.commit()
+
+        # ── 18. 内部消息 (30条) ───────────────────────────────────
+        if db.query(Message).count() == 0:
+            for _ in range(30):
+                snd = random.choice(users_list)
+                rcp = random.choice([u for u in users_list if u.id != snd.id])
+                db.add(Message(
+                    company_id=company.id, sender_id=snd.id, recipient_id=rcp.id,
+                    subject=random.choice(["请查收维修报告", "发货单号确认", "客户问题跟进", "月底总结", "请假申请", "配件申请", "会议通知"]),
+                    content=random.choice(["请查收附件中的维修报告。", "订单发货单号已更新，请注意跟进。", "客户反馈问题已解决，请归档。", "麻烦处理一下这个售后申请。"]),
+                    is_read=random.random() > 0.3, is_starred=random.random() > 0.8,
+                    created_at=datetime.now() - timedelta(days=random.randint(0, 30)),
+                ))
+            db.commit()
+
+        # ── 19. 任务看板 (12条) ───────────────────────────────────
+        if db.query(TaskBoard).count() == 0:
+            task_titles = [
+                "优化售后处理流程", "更新产品目录数据", "整理仓库库存", "跟进客户满意度调查",
+                "完善知识库文档", "修复系统bug", "准备月底报表", "新人培训材料",
+                "处理积压退货单", "联系供应商确认配件", "审核返现申请", "测试新功能",
+            ]
+            for title in random.sample(task_titles, 12):
+                db.add(TaskBoard(
+                    company_id=company.id, title=title, description=f"详细内容待补充。",
+                    status=random.choice(["todo", "in_progress", "done"]),
+                    priority=random.choice(["low", "normal", "high", "urgent"]),
+                    assignee_id=random.choice(users_list).id,
+                    due_date=(datetime.now() + timedelta(days=random.randint(1, 30))).strftime("%Y-%m-%d"),
+                    created_by=admin_user.id,
+                    created_at=datetime.now() - timedelta(days=random.randint(0, 30)),
+                ))
+            db.commit()
+
+        # ── 20. 知识库 ──────────────────────────────────────────
+        if db.query(KnowledgeCategory).count() == 0:
+            for name, icon in [("常见问题", "HelpCircle"), ("维修指南", "Wrench"), ("售后流程", "RefreshCw"), ("系统操作", "Monitor")]:
+                db.add(KnowledgeCategory(company_id=company.id, name=name, icon=icon))
+            db.commit()
+
+        cats = db.query(KnowledgeCategory).all()
+        if db.query(KnowledgeArticle).count() == 0:
+            kb_articles = [
+                ("如何判断电脑是否进水", "常见问题",
+                 "客户反馈电脑无法开机，怀疑进水。判断步骤：\n1. 检查外壳是否有水渍\n2. 观察主板是否有腐蚀痕迹\n3. 闻是否有烧焦味道\n4. 使用湿度检测卡测试",
+                 "外观检查, 主板检查, 进水, 腐蚀"),
+                ("屏幕更换标准流程", "维修指南",
+                 "屏幕更换操作步骤：\n1. 断电并拆下电池\n2. 使用热风枪加热屏幕边框\n3. 用吸盘小心取下旧屏幕\n4. 清理边框残胶\n5. 安装新屏幕并固定\n6. 连接排线并通电测试",
+                 "屏幕, 更换, 拆机, 排线"),
+                ("退换货处理时效要求", "售后流程",
+                 "根据公司售后政策：\n- 收到退换货申请后24小时内响应\n- 签收退货后48小时内质检\n- 质检完成后24小时内确定处理方案\n- 换货发出后及时更新快递单号",
+                 "退换货, 时效, 流程, 质检"),
+                ("OA系统快速上手", "系统操作",
+                 "OA系统主要功能模块：\n1. 工单处理：创建、跟进、关闭工单\n2. 售后管理：退货、换货、维修登记\n3. 发货管理：发货登记、成本跟踪\n4. 仓储管理：入库、出库、库存查询\n5. 财务管理：发票管理、返现审批",
+                 "OA, 上手, 教程, 功能"),
+            ]
+            for title, cat_name, desc, keywords in kb_articles:
+                cat = next((c for c in cats if c.name == cat_name), cats[0])
+                db.add(KnowledgeArticle(
+                    company_id=company.id, category_id=cat.id,
+                    title=title, problem_desc=desc,
+                    solution_steps=json.dumps([{"step": i+1, "content": s.strip()} for i, s in enumerate(desc.split("\n"))]),
+                    keywords=keywords, created_by=admin_user.id,
+                    created_at=datetime.now() - timedelta(days=random.randint(0, 60)),
+                ))
+            db.commit()
+
+        # ── 21. 排班记录 ─────────────────────────────────────────
+        if db.query(ScheduleSlot).count() == 0:
+            shifts = db.query(ScheduleShift).all()
+            non_admin = [u for u in users_list if u.username != "admin"]
+            for u in non_admin:
+                for day_offset in range(7):
+                    if random.random() > 0.15:
+                        shift = random.choice([s for s in shifts if not s.is_rest]) if random.random() > 0.1 else next(s for s in shifts if s.is_rest)
+                        date_str = (datetime.now() - timedelta(days=day_offset)).strftime("%Y-%m-%d")
+                        existing = db.query(ScheduleSlot).filter(
+                            ScheduleSlot.user_id == u.id, ScheduleSlot.date == date_str).first()
+                        if not existing:
+                            db.add(ScheduleSlot(
+                                company_id=company.id, user_id=u.id, date=date_str,
+                                shift_id=shift.id, created_by=admin_user.id,
+                                created_at=datetime.now() - timedelta(days=day_offset),
+                            ))
+            db.commit()
+
+        # ── 22. 考勤记录 (30天) ──────────────────────────────────
+        if db.query(AttendanceRecord).count() == 0:
+            non_admin = [u for u in users_list if u.username != "admin"]
+            for u in non_admin:
+                for day_offset in range(30):
+                    if random.random() > 0.1:
+                        date_str = (datetime.now() - timedelta(days=day_offset)).strftime("%Y-%m-%d")
+                        existing = db.query(AttendanceRecord).filter(
+                            AttendanceRecord.user_id == u.id, AttendanceRecord.date == date_str).first()
+                        if not existing:
+                            base_date = datetime.now() - timedelta(days=day_offset)
+                            check_in_h = random.randint(8, 9)
+                            check_in_m = random.randint(0, 59)
+                            check_out_h = random.randint(17, 19)
+                            check_out_m = random.randint(0, 59)
+                            status = "normal"
+                            if check_in_h > 9 or (check_in_h == 9 and check_in_m > 0):
+                                status = "late"
+                            if check_out_h < 18:
+                                status = "early" if status == "normal" else status
+                            db.add(AttendanceRecord(
+                                company_id=company.id, user_id=u.id, date=date_str,
+                                check_in=base_date.replace(hour=check_in_h, minute=check_in_m),
+                                check_out=base_date.replace(hour=check_out_h, minute=check_out_m),
+                                status=status, source="manual",
+                                scheduled_start="09:00", scheduled_end="18:00",
+                                location="公司",
+                                created_at=datetime.now() - timedelta(days=day_offset),
+                            ))
+            db.commit()
+
+        # ── 23. 审批申请 (20条) ──────────────────────────────────
+        if db.query(ApprovalRequest).count() == 0:
+            for _ in range(20):
+                app_type = random.choice(["leave", "reimbursement", "purchase"])
+                applicant = random.choice(users_list)
+                title = {
+                    "leave": random.choice(["年假申请", "事假申请", "病假申请", "调休申请"]),
+                    "reimbursement": random.choice(["差旅费报销", "办公用品报销", "客户招待费报销"]),
+                    "purchase": random.choice(["配件采购申请", "检测设备采购", "包装材料采购"]),
+                }[app_type]
+                status = random.choice(["pending", "pending", "approved", "rejected"])
+                ar = ApprovalRequest(
+                    company_id=company.id, type=app_type, title=title,
+                    description=f"{applicant.name}提交的{title}" if app_type == "leave" else "详情见附件",
+                    amount=round(random.uniform(100, 5000), 2) if app_type in ("reimbursement", "purchase") else None,
+                    start_date=(datetime.now() + timedelta(days=random.randint(1, 14))).strftime("%Y-%m-%d"),
+                    end_date=(datetime.now() + timedelta(days=random.randint(15, 20))).strftime("%Y-%m-%d") if app_type == "leave" else "",
+                    status=status, applicant_id=applicant.id,
+                    created_at=datetime.now() - timedelta(days=random.randint(0, 30)),
+                )
+                db.add(ar)
+                db.flush()
+                db.add(ApprovalStep(
+                    company_id=company.id, request_id=ar.id, step_order=1,
+                    approver_id=admin_user.id, status=status if status != "pending" else "pending",
+                    comment="同意" if status == "approved" else "",
+                    approved_at=datetime.now() if status != "pending" else None,
+                ))
+            db.commit()
+
+        # ── 24. 客户开票申请 (25条) ───────────────────────────────
+        if db.query(CustomerInvoiceRequest).count() == 0:
+            for _ in range(25):
+                amt = round(random.uniform(2000, 20000), 2)
+                tax_rate = random.choice([0.03, 0.06, 0.13])
+                db.add(CustomerInvoiceRequest(
+                    company_id=company.id,
+                    apply_date=(datetime.now() - timedelta(days=random.randint(0, 60))).strftime("%Y-%m-%d"),
+                    order_no=f"DD{datetime.now().strftime('%Y%m%d')}{random.randint(1000, 9999)}",
+                    shop_name=random.choice(shop_names),
+                    customer_name=random.choice(["深圳科技有限公司", "北京创新有限公司", "杭州网络科技", "上海贸易公司"]),
+                    tax_id=f"91440300{random.randint(100000, 999999)}",
+                    invoice_type=random.choice(["普通发票", "专用发票", "电子发票"]),
+                    invoice_content=random.choice(["笔记本电脑", "电脑配件", "维修服务费"]),
+                    amount=amt, tax_rate=tax_rate,
+                    tax_amount=round(amt * tax_rate, 2),
+                    email=f"finance{random.randint(100, 999)}@example.com",
+                    status=random.choice(["pending", "processing", "issued", "mailed", "signed"]),
+                    handler=random.choice(users_list).name,
+                    created_by=random.choice(users_list).id,
+                    created_at=datetime.now() - timedelta(days=random.randint(0, 60)),
+                ))
+            db.commit()
+
+        # ── 25. 销项发票 (20条) ──────────────────────────────────
+        if db.query(SalesInvoice).count() == 0:
+            for _ in range(20):
+                amt = round(random.uniform(2000, 15000), 2)
+                tax = round(amt * 0.13, 2)
+                db.add(SalesInvoice(
+                    company_id=company.id,
+                    invoice_date=(datetime.now() - timedelta(days=random.randint(0, 90))).strftime("%Y-%m-%d"),
+                    invoice_code=f"{random.randint(1000000000, 9999999999)}",
+                    invoice_no=f"{random.randint(10000000, 99999999)}",
+                    invoice_type=random.choice(["普通发票", "专用发票", "电子发票"]),
+                    buyer_name=random.choice(["深圳科技有限公司", "北京创新有限公司"]),
+                    buyer_tax_id=f"91440300{random.randint(100000, 999999)}",
+                    invoice_content=random.choice(["笔记本电脑", "电脑配件"]),
+                    amount=amt, tax_rate=0.13, tax_amount=tax,
+                    total_amount=round(amt + tax, 2),
+                    order_no=f"DD{datetime.now().strftime('%Y%m%d')}{random.randint(1000, 9999)}",
+                    shop_name=random.choice(shop_names),
+                    handler=random.choice(users_list).name,
+                    created_by=random.choice(users_list).id,
+                ))
+            db.commit()
+
+        # ── 26. 进项发票 (15条) ──────────────────────────────────
+        if db.query(PurchaseInvoice).count() == 0:
+            for _ in range(15):
+                amt = round(random.uniform(5000, 50000), 2)
+                tax = round(amt * 0.13, 2)
+                db.add(PurchaseInvoice(
+                    company_id=company.id,
+                    receive_date=(datetime.now() - timedelta(days=random.randint(0, 90))).strftime("%Y-%m-%d"),
+                    invoice_date=(datetime.now() - timedelta(days=random.randint(0, 120))).strftime("%Y-%m-%d"),
+                    invoice_code=f"{random.randint(1000000000, 9999999999)}",
+                    invoice_no=f"{random.randint(10000000, 99999999)}",
+                    invoice_type="专用发票",
+                    seller_name=random.choice(["联想集团", "华为技术", "京东供应链", "顺丰速运"]),
+                    seller_tax_id=f"91110108{random.randint(100000, 999999)}",
+                    invoice_content=random.choice(["笔记本电脑", "电脑配件", "物流服务", "办公用品"]),
+                    amount=amt, tax_rate=0.13, tax_amount=tax,
+                    total_amount=round(amt + tax, 2),
+                    is_certified=random.random() > 0.3,
+                    certified_date=(datetime.now() - timedelta(days=random.randint(0, 60))).strftime("%Y-%m-%d") if random.random() > 0.5 else "",
+                    related_contract=f"HT-{datetime.now().strftime('%Y')}-{random.randint(100, 999)}",
+                    receiver=random.choice(users_list).name,
+                    created_by=random.choice(users_list).id,
+                ))
+            db.commit()
+
+        # ── 27. 费用报销发票 (20条) ───────────────────────────────
+        if db.query(ExpenseInvoice).count() == 0:
+            for _ in range(20):
+                amt = round(random.uniform(50, 3000), 2)
+                tax = round(amt * 0.03, 2)
+                db.add(ExpenseInvoice(
+                    company_id=company.id,
+                    invoice_no=f"{random.randint(10000000, 99999999)}",
+                    invoice_date=(datetime.now() - timedelta(days=random.randint(0, 60))).strftime("%Y-%m-%d"),
+                    invoice_type=random.choice(["普通发票", "电子发票"]),
+                    seller_name=random.choice(["顺丰速运", "京东物流", "瑞幸咖啡", "如家酒店", "中国石化"]),
+                    summary=random.choice(["快递费", "差旅住宿", "客户招待", "加油费", "高速通行费"]),
+                    amount=amt, tax_rate=0.03, tax_amount=tax,
+                    reimbursement_amount=round(amt + tax, 2),
+                    reimbursement_date=(datetime.now() - timedelta(days=random.randint(0, 30))).strftime("%Y-%m-%d"),
+                    reimburser=random.choice(users_list).name,
+                    department=random.choice(dept_names),
+                    is_paid=random.random() > 0.4,
+                    created_by=random.choice(users_list).id,
+                ))
+            db.commit()
+
+        # ── 28. Field Options ─────────────────────────────────────
+        if db.query(FieldOption).count() == 0:
+            field_data = {
+                "model": ["ThinkPad X1 Carbon", "MacBook Pro 14", "MateBook X Pro", "Yoga Pro 14s", "XPS 15", "暗影精灵9"],
+                "config": ["i5-13500H/16G/512G", "i7-13700H/32G/1TB", "R7-7840H/16G/512G", "i9-13900H/32G/2TB", "M2 Pro/16G/512G"],
+                "color": ["深空灰", "银色", "星空黑", "云杉绿", "皓月银"],
+                "size": ["13.3寸", "14寸", "14.5寸", "15.6寸", "16寸"],
+                "accessories": ["鼠标", "键盘", "电脑包", "贴膜", "扩展坞", "散热支架"],
+            }
+            color_codes = {"深空灰": "#4A4A4A", "银色": "#C0C0C0", "星空黑": "#1A1A2E", "云杉绿": "#2D5A27", "皓月银": "#E8E8E8"}
+            for field_name, options in field_data.items():
+                for value in options:
+                    db.add(FieldOption(
+                        company_id=company.id, field_name=field_name, value=value,
+                        price=round(random.uniform(10, 200), 2) if field_name == "accessories" else 0,
+                        color_code=color_codes.get(value, "") if field_name == "color" else "",
+                    ))
+            db.commit()
+
+        # ── 统计输出 ────────────────────────────────────────────
+        counts = {
+            "用户": db.query(User).count(),
+            "部门": db.query(Department).count(),
+            "店铺": db.query(Shop).count(),
+            "工单": db.query(Ticket).count(),
+            "工单反馈": db.query(TicketFeedback).count(),
+            "发货登记": db.query(GiftRecord).count(),
+            "返现登记": db.query(GiftCashback).count(),
+            "礼品补发": db.query(GiftResendRecord).count(),
+            "退换登记": db.query(ReturnExchangeRecord).count(),
+            "维修登记": db.query(RepairRecord).count(),
+            "仓库产品": db.query(WarehouseProduct).count(),
+            "入库记录": db.query(WarehouseInbound).count(),
+            "出库记录": db.query(WarehouseOutbound).count(),
+            "返厂出库": db.query(WarehouseReturnToFactory).count(),
+            "产品目录": db.query(Product).count(),
+            "公告": db.query(Announcement).count(),
+            "内部消息": db.query(Message).count(),
+            "任务看板": db.query(TaskBoard).count(),
+            "知识库分类": db.query(KnowledgeCategory).count(),
+            "知识库文章": db.query(KnowledgeArticle).count(),
+            "排班记录": db.query(ScheduleSlot).count(),
+            "考勤记录": db.query(AttendanceRecord).count(),
+            "审批申请": db.query(ApprovalRequest).count(),
+            "客户开票": db.query(CustomerInvoiceRequest).count(),
+            "销项发票": db.query(SalesInvoice).count(),
+            "进项发票": db.query(PurchaseInvoice).count(),
+            "费用报销": db.query(ExpenseInvoice).count(),
+            "字段选项": db.query(FieldOption).count(),
         }
+        print(f"\n{'='*55}")
+        print("  随机测试数据填充完成！")
+        print(f"{'='*55}")
+        for k, v in counts.items():
+            print(f"  {k}: {v}")
+        print(f"{'='*55}")
+        print(f"  管理员: admin@weiji.local / admin")
+        print(f"  其他账号: zhangsan~wushi / 123456")
+        print(f"{'='*55}\n")
 
-        for cat_name, steps_list in steps_data.items():
-            cat_id = cat_map[cat_name]
-            _create_steps(db, None, cat_id, steps_list)
-
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        raise e
     finally:
         db.close()
 
 
-def _create_steps(db, parent_id, cat_id, steps_data):
-    for i, step_data in enumerate(steps_data):
-        step = TroubleshootStep(
-            parent_id=parent_id,
-            category_id=cat_id,
-            title=step_data["title"],
-            instruction=step_data.get("instruction", ""),
-            is_hardware=step_data.get("is_hardware", False),
-            solution=step_data.get("solution", ""),
-            sort_order=i,
-        )
-        db.add(step)
-        db.flush()
-        if "children" in step_data:
-            _create_steps(db, step.id, cat_id, step_data["children"])
-
-
-def seed_knowledge():
-    db = SessionLocal()
-    try:
-        if db.query(KnowledgeCategory).count() > 0:
-            return
-
-        cats = [
-            ("基础操作", "basic", 0),
-            ("系统维护", "maintenance", 1),
-            ("网络配置", "network", 2),
-            ("数据备份", "backup", 3),
-        ]
-
-        cat_map = {}
-        for name, icon, order in cats:
-            cat = KnowledgeCategory(name=name, icon=icon, sort_order=order)
-            db.add(cat)
-            db.flush()
-            cat_map[icon] = cat.id
-
-        admin = db.query(User).filter(User.username == "admin").first()
-        admin_id = admin.id if admin else 1
-
-        articles = [
-            ("Windows常见快捷键", "basic", "Windows系统中常用的快捷键操作汇总，帮助用户提高操作效率。",
-             ["Ctrl+C 复制", "Ctrl+V 粘贴", "Ctrl+Z 撤销", "Ctrl+A 全选", "Ctrl+S 保存",
-              "Alt+F4 关闭当前窗口", "Alt+Tab 切换窗口", "Win+E 打开文件资源管理器",
-              "Win+D 显示桌面", "Win+L 锁定电脑", "Ctrl+Shift+Esc 打开任务管理器",
-              "Win+R 运行对话框", "Win+I 打开设置", "Win+截图工具 快速截图"], "快捷键 操作效率"),
-            ("如何进入安全模式", "basic", "安全模式是Windows的诊断模式，只加载最基本的驱动和程序，用于排查系统问题。",
-             ["方法一：在Windows中设置：设置→更新和安全→恢复→高级启动→立即重启→疑难解答→高级选项→启动设置→重启→按F4",
-              "方法二：开机时反复按F8（部分旧版本Windows适用）",
-              "方法三：使用Windows安装U盘启动→修复计算机→疑难解答→高级选项→启动设置",
-              "进入安全模式后，屏幕四角会显示「安全模式」字样"], "安全模式 排查 诊断"),
-            ("如何使用系统还原", "maintenance", "系统还原可以将电脑恢复到之前的正常状态，不会影响个人文件。",
-             ["按Win+R输入 rstrui 打开系统还原",
-              "选择「选择另一个还原点」可以查看更多还原点",
-              "建议勾选「显示更多还原点」查看完整列表",
-              "如果无法进入Windows，可以在安全模式或恢复环境中运行系统还原",
-              "还原操作可以撤销，如果还原后问题更严重可以撤销还原"],
-             "系统还原 恢复 回滚"),
-            ("如何使用磁盘清理释放空间", "maintenance", "Windows内置的磁盘清理工具可以安全地清理不需要的文件释放磁盘空间。",
-             ["双击「此电脑」→右键C盘→属性→磁盘清理",
-              "点击「清理系统文件」可以清理更多内容（包括Windows更新缓存）",
-              "可以清理的内容：临时文件、回收站、Windows更新清理、系统错误内存转储文件等",
-              "建议定期清理，尤其是C盘空间不足时",
-              "如果C盘长期空间不足，考虑将大文件转移到D盘或外接存储"],
-             ["磁盘清理 空间 C盘"]),
-            ("如何重置网络设置", "network", "当网络出现异常时，重置网络设置可以解决大部分软件层面的网络问题。",
-             ["以管理员身份打开命令提示符（Win+X→Windows PowerShell(管理员)）",
-              "运行：netsh winsock reset（重置网络套接字）",
-              "运行：netsh int ip reset（重置IP设置）",
-              "运行：ipconfig /flushdns（清除DNS缓存）",
-              "运行：netsh advfirewall reset（重置防火墙设置）",
-              "运行以上命令后重启电脑生效"],
-             ["网络 重置 Winsock DNS"]),
-            ("如何备份数据到U盘", "backup", "在重装系统或送修前，建议备份重要数据到U盘或移动硬盘。",
-             ["插入U盘，打开「此电脑」确认U盘已识别",
-              "重要数据通常在这些位置：\n  - 桌面：C:\\Users\\用户名\\Desktop\n  - 文档：C:\\Users\\用户名\\Documents\n  - 图片：C:\\Users\\用户名\\Pictures\n  - 下载：C:\\Users\\用户名\\Downloads",
-              "微信聊天记录默认在：C:\\Users\\用户名\\Documents\\WeChat Files",
-              "QQ文件默认在：C:\\Users\\用户名\\Documents\\Tencent Files",
-              "浏览器书签建议先登录账号同步，或在浏览器设置中导出书签HTML文件",
-              "选中文件→右键复制→到U盘目录中→右键粘贴"],
-             ["备份 U盘 数据 微信 QQ"]),
-        ]
-
-        for title, cat_key, desc, steps, keywords in articles:
-            if isinstance(keywords, list):
-                keywords = " ".join(keywords)
-            article = KnowledgeArticle(
-                category_id=cat_map[cat_key],
-                title=title,
-                problem_desc=desc,
-                solution_steps=steps,
-                keywords=keywords,
-                created_by=admin_id,
-            )
-            db.add(article)
-            db.flush()
-
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        raise e
-    finally:
-        db.close()
+if __name__ == "__main__":
+    seed()

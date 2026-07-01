@@ -37,6 +37,7 @@ def list_cashbacks(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1),
     shop_name: str = Query("", description="Filter by shop_name"),
+    status: str = Query("", description="Filter by status"),
     search: str = Query("", description="Search in order_no/applicant"),
     start_date: str = Query("", description="Filter by created_at >= start_date (YYYY-MM-DD)"),
     end_date: str = Query("", description="Filter by created_at <= end_date (YYYY-MM-DD)"),
@@ -48,6 +49,8 @@ def list_cashbacks(
     query = apply_owner_filter(query, GiftCashback, current_user)
     if shop_name:
         query = query.filter(GiftCashback.shop_name == shop_name)
+    if status:
+        query = query.filter(GiftCashback.status == status)
     if search:
         pattern = f"%{search}%"
         query = query.filter(

@@ -5,6 +5,7 @@ export interface GiftCashbackListParams {
   page?: number
   page_size?: number
   shop_name?: string
+  status?: string
   search?: string
   start_date?: string
   end_date?: string

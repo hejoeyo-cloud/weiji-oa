@@ -71,6 +71,7 @@ export default function GiftResendList() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [shopFilter, setShopFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [loading, setLoading] = useState(false)
@@ -106,11 +107,11 @@ export default function GiftResendList() {
 
   const load = useCallback(() => {
     setLoading(true)
-    getGiftResendList({ page, page_size: pageSize, search, shop_name: shopFilter, start_date: startDate, end_date: endDate })
+    getGiftResendList({ page, page_size: pageSize, search, shop_name: shopFilter, status: statusFilter, start_date: startDate, end_date: endDate })
       .then(data => { setRecords(data.items); setTotal(data.total) })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [page, search, shopFilter, startDate, endDate])
+  }, [page, search, shopFilter, statusFilter, startDate, endDate])
 
   useEffect(() => { load() }, [load])
   useEffect(() => { getGiftResendPresets().then(setPresets).catch(console.error) }, [])
@@ -128,7 +129,7 @@ export default function GiftResendList() {
   }, [records, highlightId])
 
   const handleExport = () => {
-    getGiftResendList({ page: 1, page_size: 100000, search, shop_name: shopFilter, start_date: startDate, end_date: endDate })
+    getGiftResendList({ page: 1, page_size: 100000, search, shop_name: shopFilter, status: statusFilter, start_date: startDate, end_date: endDate })
       .then(data => {
         const rows = data.items.map((r: GiftResendRecord, idx: number) => ({
           '序号': idx + 1,
@@ -305,23 +306,38 @@ export default function GiftResendList() {
       </div>
 
       <div className="flex flex-wrap gap-3 card p-4">
-        <div className="flex items-center gap-2 flex-1 min-w-48 border border-gray-200 rounded-lg px-3 py-2">
-          <Search size={14} className="text-gray-400" />
-          <input className="flex-1 text-sm outline-none bg-transparent"
-            placeholder="搜索订单号、店铺、客户信息..."
-            value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} />
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">状态:</span>
+          <select className="border rounded-lg px-3 py-1.5 text-sm"
+            value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }}>
+            <option value="">全部</option>
+            {STATUSES.map(s => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
         </div>
         <div className="min-w-[140px]">
           <ShopSelect value={shopFilter} onChange={v => { setShopFilter(v); setPage(1) }} showGear={false} placeholder="全部店铺" />
         </div>
-        <input type="date" className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none"
-          value={startDate} onChange={e => { setStartDate(e.target.value); setPage(1) }} />
-        <span className="text-gray-400 self-center">-</span>
-        <input type="date" className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none"
-          value={endDate} onChange={e => { setEndDate(e.target.value); setPage(1) }} />
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">日期:</span>
+          <input type="date" className="border rounded-lg px-3 py-1.5 text-sm"
+            value={startDate} onChange={e => { setStartDate(e.target.value); setPage(1) }} />
+          <span className="text-gray-400">-</span>
+          <input type="date" className="border rounded-lg px-3 py-1.5 text-sm"
+            value={endDate} onChange={e => { setEndDate(e.target.value); setPage(1) }} />
+        </div>
+        <div className="flex-1 min-w-[200px]">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input type="text" placeholder="搜索订单号/店铺/客户信息..." value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1) }}
+              className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm" />
+          </div>
+        </div>
         <button onClick={handleExport}
-          className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-sm font-medium rounded-lg border border-emerald-200 transition-colors">
-          <Download size={14} /> 导出
+          className="flex items-center gap-2 px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">
+          <Download size={16} /> 导出
         </button>
       </div>
 

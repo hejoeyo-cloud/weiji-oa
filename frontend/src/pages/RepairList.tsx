@@ -429,7 +429,7 @@ export default function RepairList() {
       <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
         <div className="flex flex-wrap gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">维修状态:</span>
+            <span className="text-sm text-gray-500">状态:</span>
             <select value={repairStatusFilter} onChange={e => { setRepairStatusFilter(e.target.value); setPage(1) }}
               className="border rounded-lg px-3 py-1.5 text-sm">
               <option value="">全部</option>
