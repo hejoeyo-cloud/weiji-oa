@@ -78,7 +78,7 @@ export const MODULE_REGISTRY: Record<string, ModuleDefinition> = {
       { name: 'return_tracking', label: '寄回单号', type: 'text', required: false, sortOrder: 7 },
       { name: 'send_tracking', label: '寄出单号', type: 'text', required: false, sortOrder: 8 },
       { name: 'shipping_fee', label: '运费', type: 'number', required: false, sortOrder: 9 },
-      { name: 'record_type', label: '类型', type: 'select', options: ['退货', '换货'], required: false, sortOrder: 10 },
+      { name: 'record_type', label: '类型', type: 'select', options: ['退货', '换货', '升级配置'], required: false, sortOrder: 10 },
     ],
   },
   repair: {

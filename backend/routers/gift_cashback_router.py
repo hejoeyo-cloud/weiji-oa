@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from database import get_db, GiftCashback, GiftRecord, User
-from schemas import GiftCashbackCreate, GiftCashbackUpdate, GiftCashbackOut
+from database import get_db, GiftCashback, GiftCashbackFeedback, GiftRecord, User
+from schemas import GiftCashbackCreate, GiftCashbackUpdate, GiftCashbackOut, GiftCashbackFeedbackCreate, GiftCashbackFeedbackOut
 from auth import get_current_user, require_permission, apply_owner_filter
 from services import audit_service
 
@@ -105,11 +105,24 @@ def create_cashback(
         reason=req.reason,
         remark=req.remark,
         applicant=req.applicant,
+        payment_method=req.payment_method,
+        payment_account=req.payment_account,
+        payment_qr_code=req.payment_qr_code,
+        payee=req.payee,
+        status=req.status or "pending",
         created_by=current_user.id,
     )
     db.add(c)
     db.commit()
     db.refresh(c)
+    # 自动记录处理日志
+    db.add(GiftCashbackFeedback(
+        company_id=current_user.company_id,
+        record_id=c.id,
+        user_id=current_user.id,
+        content=f"创建返现登记 #{c.id}，订单号:{c.order_no}，金额:¥{c.cashback_amount:.2f}",
+    ))
+    db.commit()
     audit_service.log(db, current_user, "create", "gift_cashback", c.id,
                       f"创建返现登记: #{c.id} 订单号:{c.order_no} 金额:{c.cashback_amount}")
     return cashback_to_out(c)
@@ -125,10 +138,23 @@ def update_cashback(
     c = db.query(GiftCashback).filter(GiftCashback.id == cashback_id, GiftCashback.company_id == current_user.company_id).first()
     if not c:
         raise HTTPException(status_code=404, detail="Cashback not found")
+    old_status = c.status
     for field, value in req.model_dump(exclude_none=True).items():
         setattr(c, field, value)
     db.commit()
     db.refresh(c)
+    # 状态变更自动留痕
+    if req.status and req.status != old_status:
+        labels = {"pending": "待返现", "completed": "已返现"}
+        old_label = labels.get(old_status, old_status)
+        new_label = labels.get(req.status, req.status)
+        db.add(GiftCashbackFeedback(
+            company_id=current_user.company_id,
+            record_id=cashback_id,
+            user_id=current_user.id,
+            content=f"状态变更: {old_label} → {new_label}",
+        ))
+        db.commit()
     audit_service.log(db, current_user, "update", "gift_cashback", cashback_id,
                       f"更新返现登记: #{cashback_id}")
     return cashback_to_out(c)
@@ -148,6 +174,54 @@ def delete_cashback(
     db.delete(c)
     db.commit()
     return {"message": "OK"}
+
+
+# ── 处理记录（工作留痕） ──────────────────────────────────────────
+
+@router.post("/{cashback_id}/feedback", response_model=GiftCashbackFeedbackOut)
+def add_feedback(
+    cashback_id: int,
+    req: GiftCashbackFeedbackCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    c = db.query(GiftCashback).filter(GiftCashback.id == cashback_id, GiftCashback.company_id == current_user.company_id).first()
+    if not c:
+        raise HTTPException(status_code=404, detail="Cashback not found")
+    fb = GiftCashbackFeedback(
+        company_id=current_user.company_id,
+        record_id=cashback_id,
+        user_id=current_user.id,
+        content=req.content,
+    )
+    db.add(fb)
+    db.commit()
+    db.refresh(fb)
+    return GiftCashbackFeedbackOut(
+        id=fb.id, record_id=fb.record_id, user_id=fb.user_id,
+        content=fb.content, created_at=fb.created_at,
+        user_name=current_user.name,
+    )
+
+
+@router.get("/{cashback_id}/feedbacks", response_model=list[GiftCashbackFeedbackOut])
+def get_feedbacks(
+    cashback_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    feedbacks = db.query(GiftCashbackFeedback).filter(
+        GiftCashbackFeedback.record_id == cashback_id,
+        GiftCashbackFeedback.company_id == current_user.company_id,
+    ).order_by(GiftCashbackFeedback.created_at.asc()).all()
+    return [
+        GiftCashbackFeedbackOut(
+            id=fb.id, record_id=fb.record_id, user_id=fb.user_id,
+            content=fb.content, created_at=fb.created_at,
+            user_name=fb.user.name if fb.user else "",
+        )
+        for fb in feedbacks
+    ]
 
 
 @router.get("/by-order/{order_no}", response_model=list[GiftCashbackOut])

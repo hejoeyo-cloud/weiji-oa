@@ -33,6 +33,8 @@ export interface ReturnExchangeCreateData {
   shipping_fee?: number
   remark?: string
   record_type?: string
+  upgrade_config?: string
+  upgrade_fee?: number
   has_damage?: boolean
   damage_items?: { name: string; amount: number; desc: string }[]
   claim_status?: string

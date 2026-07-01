@@ -135,6 +135,21 @@ class GiftResendFeedbackOut(BaseModel):
         from_attributes = True
 
 
+class GiftCashbackFeedbackCreate(BaseModel):
+    content: str = ""
+
+class GiftCashbackFeedbackOut(BaseModel):
+    id: int
+    record_id: int
+    user_id: int
+    content: str
+    created_at: Optional[datetime] = None
+    user_name: str = ""
+
+    class Config:
+        from_attributes = True
+
+
 # ── 发货登记 ─────────────────────────────────────────────────────
 
 class GiftCostItem(BaseModel):

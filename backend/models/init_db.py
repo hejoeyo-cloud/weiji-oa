@@ -39,6 +39,7 @@ def _migrate_db():
         "warehouse_outbound_feedbacks", "customer_invoice_requests",
         "sales_invoices", "purchase_invoices", "expense_invoices",
         "attendance_records", "task_boards", "shops",
+        "gift_cashback_feedbacks",
     ]
 
     if "companies" not in existing_tables:
@@ -559,6 +560,16 @@ def _migrate_db():
                 conn.execute(text(f"ALTER TABLE shops ADD COLUMN updated_at {_col('DATETIME', 'TIMESTAMP')}"))
                 conn.commit()
 
+    # ── 迁移：return_exchange_records 新增升级配置列 ───────────────
+    if 'return_exchange_records' in existing_tables:
+        columns = [c['name'] for c in inspector.get_columns('return_exchange_records')]
+        with engine.connect() as conn:
+            if 'upgrade_config' not in columns:
+                conn.execute(text("ALTER TABLE return_exchange_records ADD COLUMN upgrade_config VARCHAR(200) DEFAULT ''"))
+            if 'upgrade_fee' not in columns:
+                conn.execute(text(f"ALTER TABLE return_exchange_records ADD COLUMN upgrade_fee {_col('REAL', 'NUMERIC(12,2)')} DEFAULT 0"))
+            conn.commit()
+
     # ── 迁移：return_exchange_records 新增 shop_name 列 ───────────────
     if 'return_exchange_records' in existing_tables:
         columns = [c['name'] for c in inspector.get_columns('return_exchange_records')]
@@ -727,6 +738,21 @@ def _migrate_db():
                 with engine.connect() as conn:
                     conn.execute(text(f"ALTER TABLE gift_cashbacks ADD COLUMN {col_name} {col_def}"))
                     conn.commit()
+
+    # ── 迁移：返现登记处理记录表 ───────────────────────────────
+    if "gift_cashback_feedbacks" not in existing_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE gift_cashback_feedbacks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER REFERENCES companies(id),
+                    record_id INTEGER NOT NULL REFERENCES gift_cashbacks(id),
+                    user_id INTEGER NOT NULL REFERENCES users(id),
+                    content TEXT DEFAULT '',
+                    created_at DATETIME
+                )
+            """))
+            conn.commit()
 
     # ── 性能优化：添加常用查询索引 ──
     _ensure_indexes(engine, existing_tables)

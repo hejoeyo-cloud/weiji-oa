@@ -1,5 +1,5 @@
 import client from './client'
-import { GiftCashback } from '../types'
+import { GiftCashback, GiftCashbackFeedback } from '../types'
 
 export interface GiftCashbackListParams {
   page?: number
@@ -45,3 +45,9 @@ export const deleteGiftCashback = (id: number) =>
 
 export const getCashbacksByOrder = (orderNo: string) =>
   client.get<GiftCashback[]>(`/gift-cashback/by-order/${orderNo}`).then(r => r.data)
+
+export const getGiftCashbackFeedbacks = (id: number) =>
+  client.get<GiftCashbackFeedback[]>(`/gift-cashback/${id}/feedbacks`).then(r => r.data)
+
+export const addGiftCashbackFeedback = (id: number, content: string) =>
+  client.post<GiftCashbackFeedback>(`/gift-cashback/${id}/feedback`, { content }).then(r => r.data)

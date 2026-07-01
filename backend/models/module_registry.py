@@ -68,7 +68,7 @@ MODULE_REGISTRY: Dict[str, ModuleDefinition] = {
             FieldDefinition("send_tracking", "寄出单号", sort_order=8),
             FieldDefinition("shipping_fee", "运费", type="number", sort_order=9),
             FieldDefinition("record_type", "类型", type="select",
-                          options=["退货", "换货"], sort_order=10),
+                          options=["退货", "换货", "升级配置"], sort_order=10),
         ],
     ),
     "repair": ModuleDefinition(

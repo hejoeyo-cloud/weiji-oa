@@ -80,9 +80,9 @@ export default function ReportsPage() {
     { key: 'shipping', label: '发货分析', icon: Package },
     { key: 'aftersales', label: '售后分析', icon: RotateCcw },
     { key: 'repair_efficiency', label: '维修分析', icon: Wrench },
+    { key: 'product_issues', label: '产品故障', icon: AlertTriangle },
     { key: 'finance', label: '财务分析', icon: DollarSign },
     { key: 'shop', label: '店铺分析', icon: Store },
-    { key: 'product_issues', label: '产品故障', icon: AlertTriangle },
   ] as const
 
   return (

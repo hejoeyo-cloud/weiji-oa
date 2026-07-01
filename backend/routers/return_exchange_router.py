@@ -3,7 +3,7 @@ from collections import Counter
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from database import get_db, ReturnExchangeRecord, GiftRecord, User, ReturnExchangeFeedback, AfterSalesChargeRequest
+from database import get_db, ReturnExchangeRecord, GiftRecord, GiftFeedback, User, ReturnExchangeFeedback, AfterSalesChargeRequest
 from schemas import (
     ReturnExchangeCreate,
     ReturnExchangeUpdate,
@@ -48,6 +48,8 @@ def record_to_out(r: ReturnExchangeRecord, matched_gift=None) -> ReturnExchangeO
         shipping_fee=r.shipping_fee or 0,
         remark=r.remark or "",
         record_type=r.record_type or "",
+        upgrade_config=r.upgrade_config or "",
+        upgrade_fee=r.upgrade_fee or 0,
         has_damage=r.has_damage or False,
         damage_items=[{"name": item.get("name", ""), "amount": item.get("amount", 0), "desc": item.get("desc", "")} for item in damage_items if isinstance(item, dict)],
         total_damage_amount=total_damage,
@@ -106,7 +108,23 @@ def list_records(
     total = query.count()
     items = query.order_by(ReturnExchangeRecord.created_at.desc()) \
         .offset((page - 1) * page_size).limit(page_size).all()
-    out_items = [record_to_out(r) for r in items]
+    # 批量关联发货单（按订单号）
+    order_nos = list({r.order_no for r in items if r.order_no})
+    gift_map = {}
+    if order_nos:
+        gifts = db.query(GiftRecord).filter(
+            GiftRecord.company_id == current_user.company_id,
+            GiftRecord.order_no.in_(order_nos),
+        ).all()
+        for g in gifts:
+            gift_map[g.order_no] = GiftBrief(
+                id=g.id, date=g.date or "", model=g.model or "",
+                config=g.config or "", color=g.color or "",
+                quantity=g.quantity or 0, accessories=g.accessories or "",
+                send_tracking=g.send_tracking or "", order_amount=g.order_amount or 0,
+                gift_costs=g.gift_costs or [], status=g.status or "",
+            )
+    out_items = [record_to_out(r, gift_map.get(r.order_no)) for r in items]
     for o in out_items:
         o.duplicate_count = dup_counts.get(o.order_no, 0)
     return {"total": total, "page": page, "page_size": page_size, "items": out_items}
@@ -172,6 +190,8 @@ def create_record(
         shipping_fee=req.shipping_fee,
         remark=req.remark,
         record_type=req.record_type,
+        upgrade_config=req.upgrade_config,
+        upgrade_fee=req.upgrade_fee,
         has_damage=req.has_damage,
         damage_items=[item.model_dump() for item in req.damage_items] if req.damage_items else [],
         claim_status=req.claim_status,
@@ -180,6 +200,26 @@ def create_record(
     db.add(r)
     db.commit()
     db.refresh(r)
+    # 关联发货单：添加处理记录
+    if r.order_no:
+        gift = db.query(GiftRecord).filter(
+            GiftRecord.company_id == current_user.company_id,
+            GiftRecord.order_no == r.order_no,
+        ).first()
+        if gift:
+            type_label = next((t["label"] for t in [
+                {"value": "return", "label": "退货"},
+                {"value": "exchange", "label": "换货"},
+                {"value": "upgrade", "label": "升级配置"},
+            ] if t["value"] == r.record_type), r.record_type or "退换")
+            fb = GiftFeedback(
+                company_id=current_user.company_id,
+                record_id=gift.id,
+                user_id=current_user.id,
+                content=f"退换登记 #{r.id}: 客户申请{type_label}，原因: {r.return_reason or '未填写'}",
+            )
+            db.add(fb)
+            db.commit()
     audit_service.log(db, current_user, "create", "return_exchange", r.id,
                       f"创建退换登记: #{r.id} {r.order_no}")
     return record_to_out(r)
@@ -213,6 +253,22 @@ def update_record(
         ).first()
         if gift and gift.status not in ("intercepted", "torn", "cancelled"):
             gift.status = "returned"
+    # 进度变更 → 关联发货单添加处理记录
+    if r.progress != old_progress and r.order_no:
+        gift = db.query(GiftRecord).filter(
+            GiftRecord.company_id == r.company_id,
+            GiftRecord.order_no == r.order_no,
+        ).first()
+        if gift:
+            progress_map = {"pending": "待处理", "processing": "处理中", "completed": "已完成"}
+            old_label = progress_map.get(old_progress, old_progress or "未设置")
+            new_label = progress_map.get(r.progress, r.progress)
+            db.add(GiftFeedback(
+                company_id=current_user.company_id,
+                record_id=gift.id,
+                user_id=current_user.id,
+                content=f"退换登记 #{record_id}: 处理进度 {old_label} → {new_label}",
+            ))
     # 状态变更通知
     if r.progress != old_progress and r.created_by:
         try:

@@ -2,13 +2,13 @@ import { useState, useEffect, useCallback } from 'react'
 import { Plus, Search, Edit2, Trash2, X, Download, Wand2, Eye, CheckCircle, Clock } from 'lucide-react'
 import Pagination from '../components/Pagination'
 import EmptyState from '../components/EmptyState'
-import { getGiftCashbackList, getGiftCashbackDetail, createGiftCashback, updateGiftCashback, deleteGiftCashback } from '../api/giftCashback'
+import { getGiftCashbackList, getGiftCashbackDetail, createGiftCashback, updateGiftCashback, deleteGiftCashback, getGiftCashbackFeedbacks, addGiftCashbackFeedback } from '../api/giftCashback'
 import { lookupOrder } from '../api/gifts'
 import { useAuth } from '../hooks/useAuth'
 import ShopSelect from '../components/ShopSelect'
 import FieldSelect from '../components/FieldSelect'
 import ImageUpload from '../components/ImageUpload'
-import { GiftCashback } from '../types'
+import { GiftCashback, GiftCashbackFeedback } from '../types'
 import * as XLSX from 'xlsx'
 
 /** 通用 Excel 导出（浏览器端） */
@@ -78,6 +78,9 @@ export default function GiftCashbackList() {
   const [lookingUp, setLookingUp] = useState(false)
   const [showQrUpload, setShowQrUpload] = useState(false)
   const [previewImg, setPreviewImg] = useState<string | null>(null)
+  const [feedbacks, setFeedbacks] = useState<GiftCashbackFeedback[]>([])
+  const [feedbackText, setFeedbackText] = useState('')
+  const [addingFeedback, setAddingFeedback] = useState(false)
   const pageSize = 15
 
   const load = useCallback(() => {
@@ -157,6 +160,8 @@ export default function GiftCashbackList() {
     } catch {
       setDetailRecord(r)
     }
+    setFeedbackText('')
+    getGiftCashbackFeedbacks(r.id).then(setFeedbacks).catch(() => setFeedbacks([]))
     setShowDetail(true)
   }
 
@@ -179,8 +184,20 @@ export default function GiftCashbackList() {
       load()
       if (showDetail && detailRecord?.id === r.id) {
         setDetailRecord({ ...r, status: newStatus })
+        getGiftCashbackFeedbacks(r.id).then(setFeedbacks).catch(() => {})
       }
     }).catch(console.error)
+  }
+
+  const handleAddFeedback = async () => {
+    if (!feedbackText.trim() || !detailRecord) return
+    setAddingFeedback(true)
+    try {
+      const fb = await addGiftCashbackFeedback(detailRecord.id, feedbackText.trim())
+      setFeedbacks(prev => [...prev, fb])
+      setFeedbackText('')
+    } catch { alert('添加处理记录失败') }
+    finally { setAddingFeedback(false) }
   }
 
   const handleDelete = (id: number) => {
@@ -462,7 +479,39 @@ export default function GiftCashbackList() {
                       onClick={() => setPreviewImg(detailRecord.payment_qr_code)} />
                   </div>
                 )}
+
+                {/* 处理记录 */}
+                <div className="border-t border-gray-100 pt-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">处理记录</h4>
+                  {feedbacks.length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-2">暂无处理记录</p>
+                  ) : (
+                    <div className="space-y-2 mb-3 max-h-40 overflow-y-auto">
+                      {feedbacks.map(fb => (
+                        <div key={fb.id} className="flex gap-2 text-sm">
+                          <span className="text-gray-400 whitespace-nowrap flex-shrink-0">{fb.created_at ? fb.created_at.slice(0, 16).replace('T', ' ') : ''}</span>
+                          <span className="font-medium text-gray-700 flex-shrink-0">{fb.user_name}</span>
+                          <span className="text-gray-600 break-words">{fb.content}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <input
+                      className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-100"
+                      placeholder="添加处理记录..."
+                      value={feedbackText}
+                      onChange={e => setFeedbackText(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleAddFeedback()}
+                    />
+                    <button onClick={handleAddFeedback} disabled={addingFeedback || !feedbackText.trim()}
+                      className="btn-primary disabled:opacity-50 text-sm px-3 py-2">
+                      {addingFeedback ? '...' : '记录'}
+                    </button>
+                  </div>
+                </div>
               </div>
+
               <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100">
                 <button onClick={() => setShowDetail(false)}
                   className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 text-sm">关闭</button>

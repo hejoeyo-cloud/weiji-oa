@@ -93,6 +93,7 @@ class GiftCashback(Base):
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
     creator = relationship("User", foreign_keys=[created_by])
+    feedbacks = relationship("GiftCashbackFeedback", back_populates="record", cascade="all, delete-orphan")
 
 
 # ── 操作日志 ─────────────────────────────────────────────────────────
@@ -134,6 +135,21 @@ class GiftResendPreset(Base):
     created_at = Column(DateTime, default=datetime.now)
 
     creator = relationship("User", foreign_keys=[created_by])
+
+
+class GiftCashbackFeedback(Base):
+    """返现登记的处理记录（工作留痕）"""
+    __tablename__ = "gift_cashback_feedbacks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    record_id = Column(Integer, ForeignKey("gift_cashbacks.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.now)
+
+    record = relationship("GiftCashback", back_populates="feedbacks")
+    user = relationship("User")
 
 
 class GiftPreset(Base):

@@ -164,7 +164,9 @@ export interface ReturnExchangeRecord {
   send_tracking: string
   handle_result: string
   progress: string  // pending | processing | completed
-  record_type: string  // 登记类型：return(退货)/exchange(换货)
+  record_type: string  // return(退货)/exchange(换货)/upgrade(升级配置)
+  upgrade_config: string
+  upgrade_fee: number
   disassembly_feedback: string
   shipping_fee: number
   remark: string
@@ -303,6 +305,15 @@ export interface GiftCashback {
   created_at?: string
   updated_at?: string
   duplicate_count?: number
+}
+
+export interface GiftCashbackFeedback {
+  id: number
+  record_id: number
+  user_id: number
+  content: string
+  created_at?: string
+  user_name: string
 }
 
 // ── 礼品补发登记 ─────────────────────────────────────────────────────

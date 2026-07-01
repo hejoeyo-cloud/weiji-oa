@@ -161,6 +161,8 @@ class ReturnExchangeCreate(BaseModel):
     shipping_fee: float = 0
     remark: str = ""
     record_type: str = ""
+    upgrade_config: str = ""
+    upgrade_fee: float = 0
     has_damage: bool = False
     damage_items: List[DamageItem] = []
     claim_status: str = "none"
@@ -186,6 +188,8 @@ class ReturnExchangeUpdate(BaseModel):
     shipping_fee: Optional[float] = None
     remark: Optional[str] = None
     record_type: Optional[str] = None
+    upgrade_config: Optional[str] = None
+    upgrade_fee: Optional[float] = None
     has_damage: Optional[bool] = None
     damage_items: Optional[List[DamageItem]] = None
     claim_status: Optional[str] = None
@@ -225,6 +229,8 @@ class ReturnExchangeOut(BaseModel):
     shipping_fee: float = 0
     remark: str = ""
     record_type: str = ""
+    upgrade_config: str = ""
+    upgrade_fee: float = 0
     has_damage: bool = False
     damage_items: List[DamageItem] = []
     total_damage_amount: float = 0

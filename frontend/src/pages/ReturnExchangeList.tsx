@@ -48,6 +48,7 @@ const PROGRESSES = [
 const RECORD_TYPES = [
   { value: 'return', label: '退货', color: 'bg-orange-100 text-orange-700' },
   { value: 'exchange', label: '换货', color: 'bg-purple-100 text-purple-700' },
+  { value: 'upgrade', label: '升级配置', color: 'bg-cyan-100 text-cyan-700' },
 ]
 
 const CLAIM_STATUSES = [
@@ -72,7 +73,8 @@ const emptyForm = {
   config: '', computer_price: 0, quantity: 1, accessories: '', accessories_price: 0,
   customer_info: '', return_tracking: '', send_tracking: '', handle_result: '',
   progress: 'pending', disassembly_feedback: '', shipping_fee: 0, remark: '',
-  record_type: '', has_damage: false, damage_items: [] as { name: string; amount: number; desc: string }[], claim_status: 'none',
+  record_type: '', upgrade_config: '', upgrade_fee: 0,
+  has_damage: false, damage_items: [] as { name: string; amount: number; desc: string }[], claim_status: 'none',
 }
 
 function todayStr() {
@@ -207,6 +209,8 @@ export default function ReturnExchangeList() {
           '序号': idx + 1,
           '申请日期': r.apply_date || '',
           '登记类型': RECORD_TYPES.find(item => item.value === r.record_type)?.label || '',
+          '升级配置': r.upgrade_config || '',
+          '升级差价': r.upgrade_fee || 0,
           '订单编号': r.order_no || '',
           '型号': r.model || '',
           '配置': r.config || '',
@@ -254,6 +258,8 @@ export default function ReturnExchangeList() {
       shipping_fee: record.shipping_fee || 0,
       remark: record.remark || '',
       record_type: record.record_type || '',
+      upgrade_config: record.upgrade_config || '',
+      upgrade_fee: record.upgrade_fee || 0,
       has_damage: record.has_damage || false,
       damage_items: record.damage_items || [],
       claim_status: record.claim_status || 'none',
@@ -298,6 +304,8 @@ export default function ReturnExchangeList() {
           const nl = RECORD_TYPES.find(p => p.value === form.record_type)?.label || form.record_type || '未设置'
           changes.push(`登记类型: ${ol} → ${nl}`)
         }
+        if (s(old.upgrade_config) !== s(form.upgrade_config)) changes.push(`升级配置: ${s(old.upgrade_config) || '无'} → ${s(form.upgrade_config) || '无'}`)
+        if (Number(old.upgrade_fee) !== Number(form.upgrade_fee)) changes.push(`升级差价: ¥${old.upgrade_fee || 0} → ¥${form.upgrade_fee || 0}`)
         if (s(old.claim_status) !== s(form.claim_status)) {
           const ol = CLAIM_STATUSES.find(p => p.value === old.claim_status)?.label || old.claim_status
           const nl = CLAIM_STATUSES.find(p => p.value === form.claim_status)?.label || form.claim_status
@@ -477,8 +485,8 @@ export default function ReturnExchangeList() {
                 <td className="px-4 py-3">{r.shop_name || '-'}</td>
                 <td className="px-4 py-3"><RecordTypeBadge recordType={r.record_type} /></td>
                 <td className="px-4 py-3">{r.order_no || '-'}{(r.duplicate_count ?? 0) > 1 && <span className="ml-1 text-xs text-orange-600 font-medium">重复</span>}</td>
-                <td className="px-4 py-3">{r.model || '-'}</td>
-                <td className="px-4 py-3">{r.config || '-'}</td>
+                <td className="px-4 py-3">{r.matched_gift?.model || r.model || '-'}</td>
+                <td className="px-4 py-3">{r.matched_gift?.config || r.config || '-'}</td>
                 <td className="px-4 py-3 max-w-[150px] truncate">{r.customer_info || '-'}</td>
                 <td className="px-4 py-3"><ProgressBadge progress={r.progress} /></td>
                 <td className="px-4 py-3">{r.creator_name || '-'}</td>
@@ -562,6 +570,20 @@ export default function ReturnExchangeList() {
                 </select>
               </div>
               </div>
+              {form.record_type === 'upgrade' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">升级后配置</label>
+                    <FieldSelect fieldName="config" label="升级后配置" value={form.upgrade_config} onChange={v => setForm({ ...form, upgrade_config: v })} placeholder="请选择或输入升级后的配置" showGear={hasPermission('field_options:manage')} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">升级差价</label>
+                    <input type="number" min="0" step="0.01" value={form.upgrade_fee} onChange={e => setForm({ ...form, upgrade_fee: Number(e.target.value) })}
+                      placeholder="客户补款金额"
+                      className="w-full border rounded-lg px-3 py-2" />
+                  </div>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">客户信息</label>
                 <textarea value={form.customer_info} onChange={e => setForm({ ...form, customer_info: e.target.value })}
@@ -645,6 +667,12 @@ export default function ReturnExchangeList() {
                       className="px-2.5 py-1 btn-success text-xs rounded">已完成</button>
                   )}
                 </div>
+                {detailRecord.record_type === 'upgrade' && (
+                  <>
+                    <div><span className="text-gray-500">升级配置：</span><span className="text-cyan-700 font-medium">{detailRecord.upgrade_config || '-'}</span></div>
+                    <div><span className="text-gray-500">升级差价：</span><span className="text-cyan-700 font-medium">¥{detailRecord.upgrade_fee?.toFixed(2) || '0.00'}</span></div>
+                  </>
+                )}
                 <div className="col-span-2"><span className="text-gray-500">客户信息：</span>{detailRecord.customer_info || '-'}</div>
                 <div className="col-span-2"><span className="text-gray-500">退换原因：</span>{detailRecord.return_reason || '-'}</div>
                 <div><span className="text-gray-500">寄回单号：</span>{detailRecord.return_tracking || '-'}</div>
