@@ -10,10 +10,8 @@ from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from models.init_db import init_db
-    from seed_data import seed
     from license import get_license_status
     init_db()
-    seed()
 
     # 启动时检查授权状态
     lic = get_license_status()
@@ -63,7 +61,6 @@ from storage import get_storage
 storage = get_storage()
 from database import SessionLocal, User
 from models.init_db import init_db
-from seed_data import seed
 from auth import get_current_user, get_current_user_flexible
 from routers import (
     auth_router, ticket_router, user_router,
