@@ -248,7 +248,7 @@ export default function GiftCashbackList() {
         <div className="flex-1 min-w-[200px]">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input type="text" placeholder="搜索订单号/店铺名称..." value={search}
+            <input type="text" placeholder="搜索订单号/申请人/发货快递单号..." value={search}
               onChange={e => { setSearch(e.target.value); setPage(1) }}
               className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm" />
           </div>

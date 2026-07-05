@@ -33,6 +33,28 @@ function ChartTooltip({ active, payload, label }: any) {
   )
 }
 
+function FilterBadge({ note = "已排除作废订单：拦截快递 / 已撕单 / 已取消 / 已退货" }: { note?: string }) {
+  return (
+    <span className="relative inline-flex group">
+      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-500 rounded cursor-help leading-none">
+        已过滤
+      </span>
+      <span className="absolute top-full left-0 mt-1 hidden group-hover:block z-20 w-48 p-2 bg-gray-800 text-white text-[11px] rounded shadow-lg leading-relaxed whitespace-normal font-normal">
+        {note}
+      </span>
+    </span>
+  )
+}
+
+function ChartTitle({ children, filtered = false, note }: { children: React.ReactNode; filtered?: boolean; note?: string }) {
+  return (
+    <div className="flex items-center gap-2 mb-4">
+      <h3 className="text-sm font-semibold text-gray-600">{children}</h3>
+      {filtered && <FilterBadge note={note} />}
+    </div>
+  )
+}
+
 export default function ReportsPage() {
   const [year, setYear] = useState(currentYear)
   const [month, setMonth] = useState<number | undefined>(undefined)
@@ -136,6 +158,9 @@ function OverviewTab({ data }: { data: OverviewData }) {
   return (
     <div className="space-y-5">
       {/* 指标卡片 */}
+      <div className="flex justify-end mb-1">
+        <FilterBadge note="发货量 / 退货率 / 销售额 已排除作废订单：拦截快递 / 已撕单 / 已取消 / 已退货" />
+      </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {data.cards.map((c, i) => (
           <div key={i} className={cardStyle}>
@@ -154,7 +179,7 @@ function OverviewTab({ data }: { data: OverviewData }) {
 
       {/* 发货量 vs 退货率 */}
       <div className={cardStyle}>
-        <h3 className="text-sm font-semibold text-gray-600 mb-4">发货量 vs 退货率（月度对比）</h3>
+        <ChartTitle filtered>发货量 vs 退货率（月度对比）</ChartTitle>
         <ResponsiveContainer width="100%" height={chartH}>
           <ComposedChart data={data.shipping_vs_return}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -173,7 +198,7 @@ function OverviewTab({ data }: { data: OverviewData }) {
       {/* 模块分布 */}
       {data.module_distribution.length > 0 && (
         <div className={cardStyle}>
-          <h3 className="text-sm font-semibold text-gray-600 mb-4">业务模块分布</h3>
+          <ChartTitle filtered note="发货模块已排除作废订单：拦截快递 / 已撕单 / 已取消 / 已退货">业务模块分布</ChartTitle>
           <ResponsiveContainer width="100%" height={chartH}>
             <PieChart>
               <Pie data={data.module_distribution} dataKey="value" nameKey="name"
@@ -198,7 +223,7 @@ function ShippingTab({ data }: { data: ShippingData }) {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
         {/* 发货量趋势 */}
         <div className={cardStyle}>
-          <h3 className="text-sm font-semibold text-gray-600 mb-4">发货量趋势</h3>
+          <ChartTitle filtered>发货量趋势</ChartTitle>
           <ResponsiveContainer width="100%" height={chartH}>
             <LineChart data={data.qty_trend}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -212,7 +237,7 @@ function ShippingTab({ data }: { data: ShippingData }) {
 
         {/* 金额趋势 */}
         <div className={cardStyle}>
-          <h3 className="text-sm font-semibold text-gray-600 mb-4">金额趋势</h3>
+          <ChartTitle filtered>金额趋势</ChartTitle>
           <ResponsiveContainer width="100%" height={chartH}>
             <LineChart data={data.amount_trend}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -230,8 +255,7 @@ function ShippingTab({ data }: { data: ShippingData }) {
 
       {/* 利润分析 */}
       <div className={cardStyle}>
-        <h3 className="text-sm font-semibold text-gray-600 mb-4">利润分析</h3>
-        <p className="text-xs text-gray-400 -mt-3 mb-3">已过滤：拦截快递 / 已撕单 / 已取消 / 已退货</p>
+        <ChartTitle filtered>利润分析</ChartTitle>
         <ResponsiveContainer width="100%" height={chartH}>
           <BarChart data={data.profit_trend}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -251,7 +275,7 @@ function ShippingTab({ data }: { data: ShippingData }) {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         {/* 热销配置 */}
         <div className={cardStyle}>
-          <h3 className="text-sm font-semibold text-gray-600 mb-4">热销配置 Top 10</h3>
+          <ChartTitle filtered>热销配置 Top 10</ChartTitle>
           <ResponsiveContainer width="100%" height={chartH}>
             <BarChart data={data.top_configs} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -265,7 +289,7 @@ function ShippingTab({ data }: { data: ShippingData }) {
 
         {/* 热销型号 */}
         <div className={cardStyle}>
-          <h3 className="text-sm font-semibold text-gray-600 mb-4">热销型号 Top 10</h3>
+          <ChartTitle filtered>热销型号 Top 10</ChartTitle>
           <ResponsiveContainer width="100%" height={chartH}>
             <BarChart data={data.top_models} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -279,7 +303,7 @@ function ShippingTab({ data }: { data: ShippingData }) {
 
         {/* 客户颜色偏好 */}
         <div className={cardStyle}>
-          <h3 className="text-sm font-semibold text-gray-600 mb-4">产品颜色偏好</h3>
+          <ChartTitle filtered>产品颜色偏好</ChartTitle>
           <ResponsiveContainer width="100%" height={chartH}>
             <BarChart data={data.color_preference} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -602,7 +626,7 @@ function ShopTab({ data }: { data: ShopData }) {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         {/* 发货量排名 */}
         <div className={cardStyle}>
-          <h3 className="text-sm font-semibold text-gray-600 mb-4">店铺发货量排名</h3>
+          <ChartTitle filtered>店铺发货量排名</ChartTitle>
           <ResponsiveContainer width="100%" height={chartH}>
             <BarChart data={data.shipping_rank} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -616,7 +640,7 @@ function ShopTab({ data }: { data: ShopData }) {
 
         {/* 退货率排名 */}
         <div className={cardStyle}>
-          <h3 className="text-sm font-semibold text-gray-600 mb-4">店铺退货率排名</h3>
+          <ChartTitle filtered note="发货量已排除作废订单（退货率分母相应调整）">店铺退货率排名</ChartTitle>
           <ResponsiveContainer width="100%" height={chartH}>
             <BarChart data={data.return_rate_rank} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -630,7 +654,7 @@ function ShopTab({ data }: { data: ShopData }) {
 
         {/* 销售额排名 */}
         <div className={cardStyle}>
-          <h3 className="text-sm font-semibold text-gray-600 mb-4">店铺销售额排名</h3>
+          <ChartTitle filtered>店铺销售额排名</ChartTitle>
           <ResponsiveContainer width="100%" height={chartH}>
             <BarChart data={data.amount_rank} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -645,7 +669,7 @@ function ShopTab({ data }: { data: ShopData }) {
 
       {/* 详情表格 */}
       <div className={cardStyle}>
-        <h3 className="text-sm font-semibold text-gray-600 mb-4">店铺数据明细</h3>
+        <ChartTitle filtered note="发货量 / 退货率 / 销售额 已排除作废订单（维修量为独立登记，不受此过滤影响）">店铺数据明细</ChartTitle>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

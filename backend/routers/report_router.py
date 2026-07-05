@@ -110,6 +110,9 @@ def get_report_overview(
         return cached_result
     start, end = _month_range(year, month) if month else _year_range(year)
 
+    # 排除已撕单/已取消/拦截快递/已退货等作废订单
+    _valid = GiftRecord.status.notin_(["intercepted", "torn", "cancelled", "returned"])
+
     # 上一期
     if month:
         if month == 1:
@@ -121,10 +124,12 @@ def get_report_overview(
 
     # 发货量
     ship_qty = db.query(func.sum(GiftRecord.quantity)).filter(
-        GiftRecord.company_id == cid, GiftRecord.date >= start, GiftRecord.date < end,
+        GiftRecord.company_id == cid, _valid,
+        GiftRecord.date >= start, GiftRecord.date < end,
     ).scalar() or 0
     prev_ship = db.query(func.sum(GiftRecord.quantity)).filter(
-        GiftRecord.company_id == cid, GiftRecord.date >= prev_start, GiftRecord.date < prev_end,
+        GiftRecord.company_id == cid, _valid,
+        GiftRecord.date >= prev_start, GiftRecord.date < prev_end,
     ).scalar() or 0
 
     # 退货量（仅退货）
@@ -143,10 +148,12 @@ def get_report_overview(
 
     # 销售额
     sales = db.query(func.sum(GiftRecord.order_amount)).filter(
-        GiftRecord.company_id == cid, GiftRecord.date >= start, GiftRecord.date < end,
+        GiftRecord.company_id == cid, _valid,
+        GiftRecord.date >= start, GiftRecord.date < end,
     ).scalar() or 0
     prev_sales = db.query(func.sum(GiftRecord.order_amount)).filter(
-        GiftRecord.company_id == cid, GiftRecord.date >= prev_start, GiftRecord.date < prev_end,
+        GiftRecord.company_id == cid, _valid,
+        GiftRecord.date >= prev_start, GiftRecord.date < prev_end,
     ).scalar() or 0
 
     def _change(cur, prev):
@@ -164,7 +171,8 @@ def get_report_overview(
     for m in range(1, 13):
         ms, me = _month_range(year, m)
         sq = db.query(func.sum(GiftRecord.quantity)).filter(
-            GiftRecord.company_id == cid, GiftRecord.date >= ms, GiftRecord.date < me,
+            GiftRecord.company_id == cid, _valid,
+            GiftRecord.date >= ms, GiftRecord.date < me,
         ).scalar() or 0
         rq = db.query(func.sum(ReturnExchangeRecord.quantity)).filter(
             ReturnExchangeRecord.company_id == cid, ReturnExchangeRecord.record_type == "return",
@@ -180,7 +188,7 @@ def get_report_overview(
     # 模块分布
     md_start, md_end = start, end
     module_distribution = [
-        NameValue(name="发货", value=db.query(func.count(GiftRecord.id)).filter(GiftRecord.company_id == cid, GiftRecord.date >= md_start, GiftRecord.date < md_end).scalar() or 0),
+        NameValue(name="发货", value=db.query(func.count(GiftRecord.id)).filter(GiftRecord.company_id == cid, _valid, GiftRecord.date >= md_start, GiftRecord.date < md_end).scalar() or 0),
         NameValue(name="退换", value=db.query(func.count(ReturnExchangeRecord.id)).filter(ReturnExchangeRecord.company_id == cid, ReturnExchangeRecord.apply_date >= md_start, ReturnExchangeRecord.apply_date < md_end).scalar() or 0),
         NameValue(name="维修", value=db.query(func.count(RepairRecord.id)).filter(RepairRecord.company_id == cid, RepairRecord.apply_date >= md_start, RepairRecord.apply_date < md_end).scalar() or 0),
         NameValue(name="补发", value=db.query(func.count(GiftResendRecord.id)).filter(GiftResendRecord.company_id == cid, GiftResendRecord.apply_date >= md_start, GiftResendRecord.apply_date < md_end).scalar() or 0),
@@ -561,9 +569,13 @@ def get_report_shop(
     cid = current_user.company_id
     start, end = _month_range(year, month) if month else _year_range(year)
 
+    # 排除已撕单/已取消/拦截快递/已退货等作废订单
+    _valid = GiftRecord.status.notin_(["intercepted", "torn", "cancelled", "returned"])
+
     # 发货量排名
     ship_rows = db.query(GiftRecord.shop_name, func.sum(GiftRecord.quantity)).filter(
-        GiftRecord.company_id == cid, GiftRecord.date >= start, GiftRecord.date < end,
+        GiftRecord.company_id == cid, _valid,
+        GiftRecord.date >= start, GiftRecord.date < end,
         GiftRecord.shop_name != "",
     ).group_by(GiftRecord.shop_name).order_by(func.sum(GiftRecord.quantity).desc()).all()
     shipping_rank = [NameValue(name=r[0], value=r[1]) for r in ship_rows]
@@ -587,7 +599,8 @@ def get_report_shop(
 
     # 销售额排名
     amt_rows = db.query(GiftRecord.shop_name, func.sum(GiftRecord.order_amount)).filter(
-        GiftRecord.company_id == cid, GiftRecord.date >= start, GiftRecord.date < end,
+        GiftRecord.company_id == cid, _valid,
+        GiftRecord.date >= start, GiftRecord.date < end,
         GiftRecord.shop_name != "",
     ).group_by(GiftRecord.shop_name).order_by(func.sum(GiftRecord.order_amount).desc()).all()
     amount_rank = [NameValue(name=r[0], value=round(r[1], 2)) for r in amt_rows]

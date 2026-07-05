@@ -57,6 +57,7 @@ def list_records(
             (GiftResendRecord.order_no.like(pattern))
             | (GiftResendRecord.shop_name.like(pattern))
             | (GiftResendRecord.customer_info.like(pattern))
+            | (GiftResendRecord.tracking_no.like(pattern))
         )
     if start_date:
         query = query.filter(GiftResendRecord.apply_date >= start_date)

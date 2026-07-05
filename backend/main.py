@@ -15,24 +15,14 @@ async def lifespan(app: FastAPI):
 
     # 启动时检查授权状态
     lic = get_license_status()
-    status_en = {
-        "valid": "ACTIVE",
-        "expiring": "EXPIRING",
-        "expired": "EXPIRED (read-only)",
-        "locked": "LOCKED",
-        "dev": "DEV MODE",
-    }.get(lic["status"], lic["status"])
-    company = lic["company"] if lic["company"] else "N/A"
-    expires = lic["expires_at"] if lic["expires_at"] else "N/A"
-    print(f"[license] Status: {status_en} | Company: {company} | Expires: {expires}")
     if lic["status"] == "locked":
         print("[license] No license file found — system is locked. Place license.lic in the application folder.")
     elif lic["status"] == "expired":
-        print(f"[license] License expired {abs(lic['days_remaining'])} days ago — read-only mode. Contact your vendor for renewal.")
+        print("[license] License expired — read-only mode. Contact your vendor for renewal.")
     elif lic["status"] == "expiring":
-        print(f"[license] License expires in {lic['days_remaining']} days. Contact your vendor for renewal.")
+        print("[license] License expiring soon. Contact your vendor for renewal.")
     elif lic["status"] == "dev":
-        print("[license] No license file found — running in development mode.")
+        print("[license] Running in development mode.")
 
     # 启动定时任务（每天凌晨3点备份，4点清理）
     from apscheduler.schedulers.background import BackgroundScheduler

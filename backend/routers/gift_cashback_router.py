@@ -53,9 +53,16 @@ def list_cashbacks(
         query = query.filter(GiftCashback.status == status)
     if search:
         pattern = f"%{search}%"
+        # 用 exists 子查询匹配发货单的快递单号，避免 join 导致重复行
+        from sqlalchemy import exists as sa_exists
+        tracking_match = db.query(GiftRecord.id).filter(
+            GiftRecord.order_no == GiftCashback.order_no,
+            GiftRecord.send_tracking.like(pattern),
+        ).exists()
         query = query.filter(
             (GiftCashback.order_no.like(pattern))
             | (GiftCashback.applicant.like(pattern))
+            | tracking_match
         )
     if start_date:
         query = query.filter(GiftCashback.created_at >= start_date)

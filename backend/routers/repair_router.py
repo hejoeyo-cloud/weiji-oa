@@ -99,6 +99,7 @@ def list_records(
         query = query.filter(
             (RepairRecord.order_no.like(pattern))
             | (RepairRecord.return_tracking.like(pattern))
+            | (RepairRecord.send_tracking.like(pattern))
             | (RepairRecord.model.like(pattern))
             | (RepairRecord.customer_info.like(pattern))
         )

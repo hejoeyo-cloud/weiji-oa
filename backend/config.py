@@ -35,11 +35,23 @@ DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{os.path.join(PROJECT_DIR, 
 UPLOAD_DIR = os.path.join(PROJECT_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+import secrets as _secrets
+
 _jwt = os.getenv("JWT_SECRET")
 if not _jwt:
-    import warnings
-    warnings.warn("⚠️ JWT_SECRET 未设置，使用开发默认值。生产环境必须配置！")
-    _jwt = "weiji-oa-dev-secret"
+    # 尝试从持久化文件中读取（生产环境自动生成后保存）
+    _jwt_file = os.path.join(PROJECT_DIR, ".jwt_secret")
+    if os.path.exists(_jwt_file):
+        with open(_jwt_file, "r") as f:
+            _jwt = f.read().strip()
+    if not _jwt:
+        # 首次启动：自动生成随机密钥并持久化
+        _jwt = _secrets.token_hex(32)
+        try:
+            with open(_jwt_file, "w") as f:
+                f.write(_jwt)
+        except Exception:
+            pass  # 写文件失败也不影响运行
 JWT_SECRET = _jwt
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "480"))

@@ -89,6 +89,7 @@ def list_records(
         query = query.filter(
             (ReturnExchangeRecord.order_no.like(pattern))
             | (ReturnExchangeRecord.return_tracking.like(pattern))
+            | (ReturnExchangeRecord.send_tracking.like(pattern))
             | (ReturnExchangeRecord.model.like(pattern))
             | (ReturnExchangeRecord.customer_info.like(pattern))
         )

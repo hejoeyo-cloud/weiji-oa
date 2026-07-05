@@ -1,9 +1,11 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List, Any
 from datetime import datetime
 
 
 class ProductCreate(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     name: str
     model_number: str = ""
     images: List[str] = []
@@ -22,6 +24,8 @@ class ProductCreate(BaseModel):
 
 
 class ProductUpdate(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     name: Optional[str] = None
     model_number: Optional[str] = None
     images: Optional[List[str]] = None
@@ -40,6 +44,8 @@ class ProductUpdate(BaseModel):
 
 
 class ProductOut(BaseModel):
+    model_config = ConfigDict(protected_namespaces=(), from_attributes=True)
+
     id: int
     company_id: Optional[int] = None
     name: str
@@ -61,9 +67,6 @@ class ProductOut(BaseModel):
     creator_name: str = ""
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
 
 
 class ProductAftersalesSummary(BaseModel):

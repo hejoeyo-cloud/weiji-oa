@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Plus, Search, Edit2, Trash2, X, ChevronDown, Eye, Gift, Download } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, X, ChevronDown, Eye, Gift, Download, Wand2 } from 'lucide-react'
 import Pagination from '../components/Pagination'
 import { useSearchParams } from 'react-router-dom'
 import { getGiftResendList, createGiftResend, updateGiftResend, deleteGiftResend, addGiftResendFeedback, getGiftResendFeedbacks, getGiftResendPresets, createGiftResendPreset, deleteGiftResendPreset, GiftResendPreset } from '../api/giftResend'
+import { lookupOrder } from '../api/gifts'
 import { GiftResendRecord, GiftResendFeedback } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import ShopSelect from '../components/ShopSelect'
@@ -90,7 +91,23 @@ export default function GiftResendList() {
   const [showPresetDropdown, setShowPresetDropdown] = useState(false)
   const [showSavePreset, setShowSavePreset] = useState(false)
   const [presetName, setPresetName] = useState('')
+  const [lookingUp, setLookingUp] = useState(false)
   const pageSize = 15
+
+  const handleAutoFill = async () => {
+    if (!form.order_no.trim()) { alert('请先输入订单编号'); return }
+    setLookingUp(true)
+    try {
+      const result = await lookupOrder(form.order_no.trim())
+      if (!result.found) { alert('未找到匹配的发货记录'); return }
+      setForm(prev => ({
+        ...prev,
+        ...(result.shop_name && { shop_name: result.shop_name }),
+        ...(result.customer_info && { customer_info: result.customer_info }),
+      }))
+    } catch { alert('查询失败，请重试') }
+    finally { setLookingUp(false) }
+  }
 
   // 高亮动画样式
   const highlightStyle = `
@@ -330,7 +347,7 @@ export default function GiftResendList() {
         <div className="flex-1 min-w-[200px]">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input type="text" placeholder="搜索订单号/店铺/客户信息..." value={search}
+            <input type="text" placeholder="搜索订单号/店铺/客户信息/寄出单号..." value={search}
               onChange={e => { setSearch(e.target.value); setPage(1) }}
               className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm" />
           </div>
@@ -539,7 +556,18 @@ export default function GiftResendList() {
             <div className="p-5 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <F label="申请时间" value={form.apply_date} s={v => setForm(f => ({ ...f, apply_date: v }))} type="date" />
-                <F label="订单编号" value={form.order_no} s={v => setForm(f => ({ ...f, order_no: v }))} />
+                <div>
+                  <label className="flex items-center gap-2 text-xs font-medium text-gray-600 mb-1.5">
+                    <span>订单编号</span>
+                    <button type="button" onClick={handleAutoFill} disabled={lookingUp}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 disabled:opacity-50">
+                      <Wand2 size={12} />{lookingUp ? '识别中...' : '自动识别'}
+                    </button>
+                  </label>
+                  <input type="text"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-100"
+                    value={form.order_no} onChange={e => setForm(f => ({ ...f, order_no: e.target.value }))} />
+                </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">店铺名称</label>
                   <ShopSelect value={form.shop_name} onChange={v => setForm(f => ({ ...f, shop_name: v }))} showGear={hasPermission('field_options:manage')} />

@@ -49,3 +49,6 @@ backend/.vite/
 backend/keys/private.pem
 license.lic
 backups/
+
+# JWT 密钥（运行时自动生成）
+.jwt_secret
