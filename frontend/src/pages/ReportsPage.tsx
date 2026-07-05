@@ -39,7 +39,7 @@ function FilterBadge({ note = "已排除作废订单：拦截快递 / 已撕单 
       <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-500 rounded cursor-help leading-none">
         已过滤
       </span>
-      <span className="absolute top-full left-0 mt-1 hidden group-hover:block z-20 w-48 p-2 bg-gray-800 text-white text-[11px] rounded shadow-lg leading-relaxed whitespace-normal font-normal">
+      <span className="absolute top-full left-0 mt-1 hidden group-hover:block z-50 w-52 p-2 bg-gray-800 text-white text-[11px] rounded shadow-lg leading-relaxed whitespace-normal font-normal">
         {note}
       </span>
     </span>
@@ -158,7 +158,7 @@ function OverviewTab({ data }: { data: OverviewData }) {
   return (
     <div className="space-y-5">
       {/* 指标卡片 */}
-      <div className="flex justify-end mb-1">
+      <div className="flex justify-start mb-1">
         <FilterBadge note="发货量 / 退货率 / 销售额 已排除作废订单：拦截快递 / 已撕单 / 已取消 / 已退货" />
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -176,6 +176,36 @@ function OverviewTab({ data }: { data: OverviewData }) {
           </div>
         ))}
       </div>
+
+      {/* 作废订单分析 */}
+      {data.anomaly_summary && (
+        <div className={cardStyle}>
+          <ChartTitle>作废订单分析（已拦截 / 已撕单 / 已取消）</ChartTitle>
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            <div>
+              <p className="text-xs text-gray-500 mb-1">已拦截</p>
+              <p className="text-xl font-bold text-red-600">{data.anomaly_summary.intercepted.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">已撕单</p>
+              <p className="text-xl font-bold text-gray-700">{data.anomaly_summary.torn.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">已取消</p>
+              <p className="text-xl font-bold text-gray-700">{data.anomaly_summary.cancelled.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">合计</p>
+              <p className="text-xl font-bold text-gray-800">{data.anomaly_summary.total.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">占总订单</p>
+              <p className="text-xl font-bold text-orange-600">{data.anomaly_summary.ratio}%</p>
+              <p className="text-[10px] text-gray-400 mt-1">分母：{data.anomaly_summary.all_count.toLocaleString()} 单</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 发货量 vs 退货率 */}
       <div className={cardStyle}>
@@ -669,34 +699,52 @@ function ShopTab({ data }: { data: ShopData }) {
 
       {/* 详情表格 */}
       <div className={cardStyle}>
-        <ChartTitle filtered note="发货量 / 退货率 / 销售额 已排除作废订单（维修量为独立登记，不受此过滤影响）">店铺数据明细</ChartTitle>
+        <ChartTitle filtered note="发货量 / 退货率 / 销售额 已排除作废订单；拦截 / 撕单 / 取消为独立统计；异常率分母为该店铺全部订单（含作废）">店铺数据明细</ChartTitle>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm whitespace-nowrap">
             <thead>
               <tr className="bg-gray-50 text-gray-600">
-                <th className="px-4 py-2 text-left font-medium">店铺</th>
-                <th className="px-4 py-2 text-right font-medium">发货量</th>
-                <th className="px-4 py-2 text-right font-medium">退货量</th>
-                <th className="px-4 py-2 text-right font-medium">退货率</th>
-                <th className="px-4 py-2 text-right font-medium">销售额</th>
-                <th className="px-4 py-2 text-right font-medium">维修量</th>
+                <th className="px-3 py-2 text-left font-medium">店铺</th>
+                <th className="px-3 py-2 text-right font-medium">发货量</th>
+                <th className="px-3 py-2 text-right font-medium">退货量</th>
+                <th className="px-3 py-2 text-right font-medium">退货率</th>
+                <th className="px-3 py-2 text-right font-medium">销售额</th>
+                <th className="px-3 py-2 text-right font-medium">维修量</th>
+                <th className="px-3 py-2 text-right font-medium text-red-600">已拦截</th>
+                <th className="px-3 py-2 text-right font-medium">已撕单</th>
+                <th className="px-3 py-2 text-right font-medium">已取消</th>
+                <th className="px-3 py-2 text-right font-medium">异常合计</th>
+                <th className="px-3 py-2 text-right font-medium">异常率</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {data.detail_table.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-8 text-gray-400">暂无数据</td></tr>
+                <tr><td colSpan={11} className="text-center py-8 text-gray-400">暂无数据</td></tr>
               ) : data.detail_table.map((r, i) => (
                 <tr key={i} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 font-medium">{r.shop_name}</td>
-                  <td className="px-4 py-2 text-right">{r.shipping_qty}</td>
-                  <td className="px-4 py-2 text-right text-red-600">{r.return_qty}</td>
-                  <td className="px-4 py-2 text-right">
+                  <td className="px-3 py-2 font-medium">{r.shop_name}</td>
+                  <td className="px-3 py-2 text-right">{r.shipping_qty}</td>
+                  <td className="px-3 py-2 text-right text-red-600">{r.return_qty}</td>
+                  <td className="px-3 py-2 text-right">
                     <span className={r.return_rate > 10 ? 'text-red-600 font-medium' : 'text-gray-600'}>
                       {r.return_rate}%
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-right">¥{r.order_amount.toLocaleString()}</td>
-                  <td className="px-4 py-2 text-right">{r.repair_count}</td>
+                  <td className="px-3 py-2 text-right">¥{r.order_amount.toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right">{r.repair_count}</td>
+                  <td className="px-3 py-2 text-right text-red-600 font-medium">{r.intercepted_count || '-'}</td>
+                  <td className="px-3 py-2 text-right text-gray-600">{r.torn_count || '-'}</td>
+                  <td className="px-3 py-2 text-right text-gray-600">{r.cancelled_count || '-'}</td>
+                  <td className="px-3 py-2 text-right font-medium">{r.anomaly_total || '-'}</td>
+                  <td className="px-3 py-2 text-right">
+                    <span className={
+                      r.anomaly_rate > 20 ? 'text-red-600 font-bold'
+                      : r.anomaly_rate > 10 ? 'text-orange-600 font-medium'
+                      : 'text-gray-500'
+                    }>
+                      {r.anomaly_rate}%
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>

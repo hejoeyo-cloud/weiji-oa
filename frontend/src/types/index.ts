@@ -779,10 +779,19 @@ export interface MonthValue { month: string; value: number }
 export interface NameValue { name: string; value: number }
 
 export interface OverviewCard { label: string; value: number; change: number }
+export interface AnomalySummary {
+  intercepted: number
+  torn: number
+  cancelled: number
+  total: number
+  all_count: number
+  ratio: number
+}
 export interface OverviewData {
   cards: OverviewCard[]
   shipping_vs_return: { month: string; shipping_qty: number; return_qty: number; return_rate: number }[]
   module_distribution: NameValue[]
+  anomaly_summary: AnomalySummary
 }
 
 export interface ProfitItem {
@@ -827,6 +836,11 @@ export interface FinanceData {
 
 export interface ShopRankItem {
   shop_name: string; shipping_qty: number; return_qty: number; return_rate: number; order_amount: number; repair_count: number
+  intercepted_count: number
+  torn_count: number
+  cancelled_count: number
+  anomaly_total: number
+  anomaly_rate: number
 }
 export interface ShopData {
   shipping_rank: NameValue[]

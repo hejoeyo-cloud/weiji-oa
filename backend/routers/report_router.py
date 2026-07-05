@@ -16,7 +16,7 @@ from schemas.report import (
     OverviewData, OverviewCard, ShippingData, ProfitItem,
     AftersalesData, FinanceData, ShopData, ShopRankItem,
     MonthValue, NameValue, RepairEfficiencyData,
-    ProductIssueModelItem, ProductIssueData,
+    ProductIssueModelItem, ProductIssueData, AnomalySummary,
 )
 from auth import get_current_user, require_permission
 from services.cache import cached, cache_clear, cache_get, cache_set
@@ -196,7 +196,35 @@ def get_report_overview(
     ]
     module_distribution = [m for m in module_distribution if m.value > 0]
 
-    result = OverviewData(cards=cards, shipping_vs_return=shipping_vs_return, module_distribution=module_distribution)
+    # 作废订单统计（拦截 / 撕单 / 取消），按所选时间范围
+    intercepted = db.query(func.count(GiftRecord.id)).filter(
+        GiftRecord.company_id == cid, GiftRecord.status == "intercepted",
+        GiftRecord.date >= start, GiftRecord.date < end,
+    ).scalar() or 0
+    torn = db.query(func.count(GiftRecord.id)).filter(
+        GiftRecord.company_id == cid, GiftRecord.status == "torn",
+        GiftRecord.date >= start, GiftRecord.date < end,
+    ).scalar() or 0
+    cancelled = db.query(func.count(GiftRecord.id)).filter(
+        GiftRecord.company_id == cid, GiftRecord.status == "cancelled",
+        GiftRecord.date >= start, GiftRecord.date < end,
+    ).scalar() or 0
+    all_count = db.query(func.count(GiftRecord.id)).filter(
+        GiftRecord.company_id == cid,
+        GiftRecord.date >= start, GiftRecord.date < end,
+    ).scalar() or 0
+    anomaly_total = intercepted + torn + cancelled
+    anomaly_summary = AnomalySummary(
+        intercepted=intercepted, torn=torn, cancelled=cancelled,
+        total=anomaly_total, all_count=all_count,
+        ratio=_safe_div(anomaly_total, all_count),
+    )
+
+    result = OverviewData(
+        cards=cards, shipping_vs_return=shipping_vs_return,
+        module_distribution=module_distribution,
+        anomaly_summary=anomaly_summary,
+    )
     cache_set(cache_key, result)
     return result
 
@@ -612,8 +640,31 @@ def get_report_shop(
     ).group_by(RepairRecord.shop_name).all()
     repair_map = {r[0]: r[1] for r in repair_rows}
 
+    # 作废订单按店铺 × 状态分组（拦截 / 撕单 / 取消）
+    anomaly_rows = db.query(
+        GiftRecord.shop_name, GiftRecord.status, func.count(GiftRecord.id),
+    ).filter(
+        GiftRecord.company_id == cid,
+        GiftRecord.date >= start, GiftRecord.date < end,
+        GiftRecord.shop_name != "",
+        GiftRecord.status.in_(["intercepted", "torn", "cancelled"]),
+    ).group_by(GiftRecord.shop_name, GiftRecord.status).all()
+    anomaly_map: dict[str, dict[str, int]] = {}
+    for shop, status, cnt in anomaly_rows:
+        anomaly_map.setdefault(shop, {"intercepted": 0, "torn": 0, "cancelled": 0})[status] = cnt
+
+    # 每店铺全部订单数（含作废，作异常率分母）
+    all_count_rows = db.query(
+        GiftRecord.shop_name, func.count(GiftRecord.id),
+    ).filter(
+        GiftRecord.company_id == cid,
+        GiftRecord.date >= start, GiftRecord.date < end,
+        GiftRecord.shop_name != "",
+    ).group_by(GiftRecord.shop_name).all()
+    all_count_map = {r[0]: r[1] for r in all_count_rows}
+
     # 详情表格
-    all_shops = set(ship_map.keys()) | set(ret_map.keys()) | set(repair_map.keys())
+    all_shops = set(ship_map.keys()) | set(ret_map.keys()) | set(repair_map.keys()) | set(anomaly_map.keys())
     detail_table = []
     for shop in all_shops:
         sq = ship_map.get(shop, 0)
@@ -623,10 +674,18 @@ def get_report_shop(
             if r[0] == shop:
                 oa = r[1]
                 break
+        anomaly = anomaly_map.get(shop, {"intercepted": 0, "torn": 0, "cancelled": 0})
+        anomaly_total = anomaly["intercepted"] + anomaly["torn"] + anomaly["cancelled"]
+        all_count = all_count_map.get(shop, 0)
         detail_table.append(ShopRankItem(
             shop_name=shop, shipping_qty=sq, return_qty=rq,
             return_rate=_safe_div(rq, sq), order_amount=round(oa, 2),
             repair_count=repair_map.get(shop, 0),
+            intercepted_count=anomaly["intercepted"],
+            torn_count=anomaly["torn"],
+            cancelled_count=anomaly["cancelled"],
+            anomaly_total=anomaly_total,
+            anomaly_rate=_safe_div(anomaly_total, all_count),
         ))
     detail_table.sort(key=lambda x: x.shipping_qty, reverse=True)
 

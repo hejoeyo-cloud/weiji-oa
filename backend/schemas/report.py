@@ -20,10 +20,20 @@ class OverviewCard(BaseModel):
     change: float = 0  # 同比上月百分比变化
 
 
+class AnomalySummary(BaseModel):
+    intercepted: int = 0   # 已拦截
+    torn: int = 0          # 已撕单
+    cancelled: int = 0     # 已取消
+    total: int = 0         # 三者合计
+    all_count: int = 0     # 全部发货订单数（含作废）
+    ratio: float = 0       # 占比 %
+
+
 class OverviewData(BaseModel):
     cards: List[OverviewCard] = []
     shipping_vs_return: List[dict] = []  # [{month, shipping_qty, return_qty, return_rate}]
     module_distribution: List[NameValue] = []
+    anomaly_summary: AnomalySummary = AnomalySummary()
 
 
 # ── 发货分析 ─────────────────────────────────────────────────────
@@ -90,6 +100,11 @@ class ShopRankItem(BaseModel):
     return_rate: float = 0
     order_amount: float = 0
     repair_count: int = 0
+    intercepted_count: int = 0   # 已拦截
+    torn_count: int = 0          # 已撕单
+    cancelled_count: int = 0     # 已取消
+    anomaly_total: int = 0       # 异常合计（三种作废）
+    anomaly_rate: float = 0      # 异常率 %（分母为该店铺全部订单含作废）
 
 
 class ShopData(BaseModel):
