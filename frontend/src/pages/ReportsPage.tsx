@@ -157,24 +157,24 @@ export default function ReportsPage() {
 function OverviewTab({ data }: { data: OverviewData }) {
   return (
     <div className="space-y-5">
-      {/* 指标卡片 */}
-      <div className="flex justify-start mb-1">
-        <FilterBadge note="发货量 / 退货率 / 销售额 已排除作废订单：拦截快递 / 已撕单 / 已取消 / 已退货" />
-      </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {data.cards.map((c, i) => (
-          <div key={i} className={cardStyle}>
-            <p className="text-xs text-gray-500 mb-1">{c.label}</p>
-            <p className="text-2xl font-bold text-gray-800">{typeof c.value === 'number' ? c.value.toLocaleString() : c.value}{c.label === '退货率' ? '%' : ''}</p>
-            <div className="flex items-center gap-1 mt-1 text-xs">
-              {c.change > 0 ? <ChevronUp size={12} className="text-green-500" /> : c.change < 0 ? <ChevronDown size={12} className="text-red-500" /> : null}
-              <span className={c.change > 0 ? 'text-green-600' : c.change < 0 ? 'text-red-600' : 'text-gray-400'}>
-                {c.change > 0 ? '+' : ''}{c.change}%
-              </span>
-              <span className="text-gray-400">环比</span>
+      {/* 订单分析 */}
+      <div className={cardStyle}>
+        <ChartTitle filtered note="发货量 / 退货率 / 销售额 已排除作废订单：拦截快递 / 已撕单 / 已取消 / 已退货">订单分析</ChartTitle>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {data.cards.map((c, i) => (
+            <div key={i} className="border-l-2 border-gray-100 pl-4">
+              <p className="text-xs text-gray-500 mb-1">{c.label}</p>
+              <p className="text-2xl font-bold text-gray-800">{typeof c.value === 'number' ? c.value.toLocaleString() : c.value}{c.label === '退货率' ? '%' : ''}</p>
+              <div className="flex items-center gap-1 mt-1 text-xs">
+                {c.change > 0 ? <ChevronUp size={12} className="text-green-500" /> : c.change < 0 ? <ChevronDown size={12} className="text-red-500" /> : null}
+                <span className={c.change > 0 ? 'text-green-600' : c.change < 0 ? 'text-red-600' : 'text-gray-400'}>
+                  {c.change > 0 ? '+' : ''}{c.change}%
+                </span>
+                <span className="text-gray-400">环比</span>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* 作废订单分析 */}
