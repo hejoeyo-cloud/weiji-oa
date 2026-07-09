@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   Calendar, Plus, Trash2, X, ArrowLeftRight, Settings, ChevronLeft, ChevronRight,
-  Check, XCircle, Clock, User, AlertCircle
+  Check, XCircle, Clock, User, AlertCircle, Download
 } from 'lucide-react'
 import {
   getShifts, createShift, updateShift, deleteShift,
@@ -11,6 +11,7 @@ import {
 } from '../api/schedule'
 import { useAuth } from '../hooks/useAuth'
 import type { ScheduleShift, ScheduleSlot, ShiftSwapRequest } from '../types'
+import * as XLSX from 'xlsx'
 
 type TabKey = 'schedule' | 'shifts' | 'swaps'
 
@@ -19,7 +20,6 @@ const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
 function getMonthDays(year: number, month: number) {
   const firstDay = new Date(year, month - 1, 1)
   const lastDay = new Date(year, month, 0)
-  // 周一=0, 周日=6
   let startWeekday = firstDay.getDay() - 1
   if (startWeekday < 0) startWeekday = 6
   const days: (number | null)[] = []
@@ -32,9 +32,30 @@ function fmtDate(year: number, month: number, day: number) {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
+function weekdayOf(year: number, month: number, day: number) {
+  const d = new Date(year, month - 1, day).getDay()
+  const idx = d === 0 ? 6 : d - 1
+  return WEEKDAYS[idx]
+}
+
+function exportToExcel(filename: string, rows: Record<string, any>[]) {
+  if (!rows.length) { alert('暂无数据可导出'); return }
+  const wb = XLSX.utils.book_new()
+  const ws = XLSX.utils.json_to_sheet(rows)
+  XLSX.utils.book_append_sheet(wb, ws, filename)
+  const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = `${filename}_${new Date().toISOString().slice(0, 10)}.xlsx`
+  document.body.appendChild(a); a.click(); document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 5000)
+}
+
 export default function SchedulePage() {
   const { user, hasPermission } = useAuth()
   const isAdmin = hasPermission('schedule:create', 'schedule:edit')
+  const canExport = !!user?.is_manager || isAdmin
 
   const [tab, setTab] = useState<TabKey>('schedule')
 
@@ -106,6 +127,45 @@ export default function SchedulePage() {
   // 排班人员列表（显示所有用户）
   const scheduleUsers = users
 
+  // 有排班的用户ID集合（导出时使用）
+  const scheduledUserIds = new Set(Object.keys(slotMap).map(Number))
+  const scheduledCount = scheduledUserIds.size
+
+  const handleExportSchedule = () => {
+    if (scheduledCount === 0) { alert('当月无排班数据可导出'); return }
+    const validDays = days.filter((d): d is number => d !== null)
+    // 班次明细统计：每个 shift_name 计数
+    const shiftStat: Record<string, Record<string, number>> = {}
+    const rows = users
+      .filter(u => scheduledUserIds.has(u.id))
+      .map(u => {
+        const row: Record<string, any> = { '姓名': u.name }
+        let total = 0
+        shiftStat[u.name] = {}
+        for (const d of validDays) {
+          const dateStr = fmtDate(year, month, d)
+          const slot = slotMap[u.id]?.[dateStr]
+          const header = `${String(d).padStart(2, '0')}(${weekdayOf(year, month, d)})`
+          if (slot) {
+            const label = slot.shift_short_name || slot.shift_name?.[0] || ''
+            row[header] = label
+            total += 1
+            const sname = slot.shift_name || '未知'
+            shiftStat[u.name][sname] = (shiftStat[u.name][sname] || 0) + 1
+          } else {
+            row[header] = ''
+          }
+        }
+        row['合计'] = total
+        // 班次明细列：早班×10 晚班×12 休×4
+        row['班次明细'] = Object.entries(shiftStat[u.name])
+          .map(([n, c]) => `${n}×${c}`)
+          .join(' ')
+        return row
+      })
+    exportToExcel(`排班表_${yearMonth}`, rows)
+  }
+
   // ── 渲染 ────────────────────────────────────────────────────────
   return (
     <div className="p-4 lg:p-6 space-y-5">
@@ -147,11 +207,23 @@ export default function SchedulePage() {
       {tab === 'schedule' && (
         <div className="space-y-4">
           {/* 月份导航 */}
-          <div className="flex items-center gap-4">
-            <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded-lg"><ChevronLeft size={18} /></button>
-            <span className="text-lg font-semibold text-gray-800 min-w-32 text-center">{year} 年 {month} 月</span>
-            <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded-lg"><ChevronRight size={18} /></button>
-            <button onClick={goToday} className="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">今天</button>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-4">
+              <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded-lg"><ChevronLeft size={18} /></button>
+              <span className="text-lg font-semibold text-gray-800 min-w-32 text-center">{year} 年 {month} 月</span>
+              <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded-lg"><ChevronRight size={18} /></button>
+              <button onClick={goToday} className="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">今天</button>
+            </div>
+            {canExport && (
+              <button
+                onClick={handleExportSchedule}
+                disabled={scheduledCount === 0}
+                title={scheduledCount === 0 ? '当月无排班数据' : `导出 ${scheduledCount} 名有排班的员工`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download size={14} /> 导出排班{scheduledCount > 0 ? ` · ${scheduledCount}人` : ''}
+              </button>
+            )}
           </div>
 
           {/* 图例 */}
