@@ -172,19 +172,16 @@ export default function GiftList() {
             '客户信息': r.customer_info || '',
             '发出单号': r.send_tracking || '',
             '出货日期': r.ship_date || '',
-            '返现金额': r.total_cashback || 0,
-            '运费': r.shipping_fee || 0,
             '状态': r.status || '',
             '备注': r.remark || '',
             '登记人': r.creator_name || '',
             '登记时间': r.created_at ? r.created_at.slice(0, 16).replace('T', ' ') : '',
           }
-          // 有成本查看权限时才导出财务数据
-          if (canCostView) {
-            row['订单金额'] = r.order_amount || 0
-            row['产品成本'] = r.cost || 0
-            row['毛利'] = r.profit || 0
-          }
+          row['订单金额'] = r.order_amount || 0
+          row['产品成本'] = r.cost || 0
+          row['返现金额'] = r.total_cashback || 0
+          row['运费'] = r.shipping_fee || 0
+          row['毛利'] = r.profit || 0
           return row
         })
         exportToExcel('发货登记', exportData)

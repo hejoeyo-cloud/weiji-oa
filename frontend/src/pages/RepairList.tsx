@@ -172,8 +172,8 @@ export default function RepairList() {
     } catch { alert('查询失败，请重试') }
     finally { setLookingUp(false) }
   }
-  const canCreateChargeRequest = user?.role === 'admin' || user?.role === 'technician'
-  const canMarkChargePaid = user?.role === 'admin' || user?.role === 'customer'
+  const canCreateChargeRequest = canProcess
+  const canMarkChargePaid = canProcess
   const pendingChargeRequest = chargeRequests.find(item => item.status === 'pending_charge')
 
   const load = useCallback(() => {
@@ -216,6 +216,7 @@ export default function RepairList() {
       setDetailRecord(record)
       setFeedbacks(feedbackList)
       setChargeRequests(chargeList)
+      setRecords(prev => prev.map(r => r.id === record.id ? record : r))
       return record
     })
   }, [])

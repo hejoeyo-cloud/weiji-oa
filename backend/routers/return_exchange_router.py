@@ -73,6 +73,7 @@ def list_records(
     start_date: str = Query("", description="Filter by apply_date >= start_date (YYYY-MM-DD)"),
     end_date: str = Query("", description="Filter by apply_date <= end_date (YYYY-MM-DD)"),
     all: bool = Query(False, description="Return all records (for export)"),
+    has_damage: str = Query("", description="Filter by has_damage: true/false"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("return_exchange:view")),
 ):
@@ -97,6 +98,10 @@ def list_records(
         query = query.filter(ReturnExchangeRecord.apply_date >= start_date)
     if end_date:
         query = query.filter(ReturnExchangeRecord.apply_date <= end_date)
+    if has_damage == "true":
+        query = query.filter(ReturnExchangeRecord.has_damage == True)
+    elif has_damage == "false":
+        query = query.filter(ReturnExchangeRecord.has_damage == False)
     # 计算重复订单号
     all_order_nos = [r[0] for r in query.with_entities(ReturnExchangeRecord.order_no).filter(ReturnExchangeRecord.order_no != "").all()]
     dup_counts = dict(Counter(all_order_nos))

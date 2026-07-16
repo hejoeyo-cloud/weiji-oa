@@ -11,6 +11,7 @@ export interface ReturnExchangeListParams {
   start_date?: string
   end_date?: string
   all?: boolean
+  has_damage?: string
 }
 
 export interface ReturnExchangeCreateData {

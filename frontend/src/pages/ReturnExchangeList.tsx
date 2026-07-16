@@ -97,6 +97,7 @@ export default function ReturnExchangeList() {
   const [shopFilter, setShopFilter] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [damageFilter, setDamageFilter] = useState('')
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
@@ -174,11 +175,12 @@ export default function ReturnExchangeList() {
       shop_name: shopFilter,
       start_date: startDate,
       end_date: endDate,
+      has_damage: damageFilter,
     })
       .then(data => { setRecords(data.items); setTotal(data.total) })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [page, search, statusFilter, recordTypeFilter, shopFilter, startDate, endDate])
+  }, [page, search, statusFilter, recordTypeFilter, shopFilter, startDate, endDate, damageFilter])
 
   useEffect(() => { load() }, [load])
 
@@ -189,9 +191,21 @@ export default function ReturnExchangeList() {
     ]).then(([record, feedbackList]) => {
       setDetailRecord(record)
       setFeedbacks(feedbackList)
+      setRecords(prev => prev.map(r => r.id === record.id ? record : r))
       return record
     })
   }, [])
+
+  function formatDamageItems(items: { name: string; amount: number; desc: string }[]): string {
+    if (!items || items.length === 0) return ''
+    return items
+      .map(item => {
+        const parts = [`${item.name || '未命名'}: ¥${(item.amount || 0).toFixed(2)}`]
+        if (item.desc) parts.push(`(${item.desc})`)
+        return parts.join(' ')
+      })
+      .join('; ')
+  }
 
   const handleExport = () => {
     getReturnExchangeList({
@@ -203,6 +217,7 @@ export default function ReturnExchangeList() {
       shop_name: shopFilter,
       start_date: startDate,
       end_date: endDate,
+      has_damage: damageFilter,
     })
       .then(data => {
         const rows = data.items.map((r: ReturnExchangeRecord, idx: number) => ({
@@ -218,9 +233,15 @@ export default function ReturnExchangeList() {
           '数量': r.quantity || '',
           '电脑价格': r.computer_price || 0,
           '客户信息': r.customer_info || '',
-          '处理进度': r.progress || '',
+          '退货原因': r.return_reason || '',
+          '处理进度': PROGRESSES.find(p => p.value === r.progress)?.label || '',
           '处理结果': r.handle_result || '',
+          '拆件反馈': r.disassembly_feedback || '',
           '备注': r.remark || '',
+          '是否有货损': r.has_damage ? '是' : '否',
+          '货损明细': formatDamageItems(r.damage_items),
+          '货损总金额': r.total_damage_amount || 0,
+          '索赔状态': CLAIM_STATUSES.find(s => s.value === r.claim_status)?.label || '',
           '登记人': r.creator_name || '',
           '登记时间': formatDateTime(r.created_at),
         }))
@@ -427,6 +448,15 @@ export default function ReturnExchangeList() {
               className="border rounded-lg px-3 py-1.5 text-sm">
               <option value="">全部</option>
               {RECORD_TYPES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">货损:</span>
+            <select value={damageFilter} onChange={e => { setDamageFilter(e.target.value); setPage(1) }}
+              className="border rounded-lg px-3 py-1.5 text-sm">
+              <option value="">全部</option>
+              <option value="true">有货损</option>
+              <option value="false">无货损</option>
             </select>
           </div>
           <div className="min-w-[140px]">
