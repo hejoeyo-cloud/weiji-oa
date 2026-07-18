@@ -85,4 +85,4 @@ UPDATE_CHECK_URL_GITEE = os.getenv(
 # AUTO_UPDATE_ENABLED: 是否启用自动更新检测（默认启用）
 # AUTO_UPDATE_INTERVAL_HOURS: 检测间隔小时数（默认 6 小时，最小 1 小时）
 AUTO_UPDATE_ENABLED = os.getenv("AUTO_UPDATE_ENABLED", "true").lower() == "true"
-AUTO_UPDATE_INTERVAL_HOURS = max(int(os.getenv("AUTO_UPDATE_INTERVAL_HOURS", "6")), 1)
+AUTO_UPDATE_INTERVAL_HOURS = max(int(os.getenv("AUTO_UPDATE_INTERVAL_HOURS", "4")), 1)
