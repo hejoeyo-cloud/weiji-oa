@@ -148,7 +148,7 @@ def _create_backup(old_version: str) -> str:
     return backup_dir
 
 
-# ── updater.bat 模板 ─────────────────────────────────────────────────
+# ── 更新脚本模板 ─────────────────────────────────────────────────────
 
 UPDATER_BAT_TEMPLATE = """@echo off
 setlocal enabledelayedexpansion
@@ -205,20 +205,78 @@ pause
 exit /b 1
 """
 
+UPDATER_SH_TEMPLATE = """#!/bin/bash
+set -e
 
-def _generate_updater_bat(app_dir: str, staging_dir: str) -> str:
-    """生成 updater.bat 到项目根目录"""
-    bat_path = os.path.join(app_dir, UPDATER_BAT_NAME)
-    with open(bat_path, "w", encoding="ascii") as f:
-        f.write(UPDATER_BAT_TEMPLATE)
-    print(f"[updater] Generated: {bat_path}")
-    return bat_path
+APP_DIR="$1"
+STAGING_DIR="$2"
+PID="$3"
+
+echo "[Updater] Waiting 10 seconds for HTTP response to complete..."
+sleep 10
+
+echo "[Updater] Stopping old application..."
+if kill "$PID" 2>/dev/null; then
+    sleep 3
+    kill -9 "$PID" 2>/dev/null || true
+    sleep 1
+fi
+
+echo "[Updater] Installing update..."
+
+if ! cp -R "$STAGING_DIR/backend/"* "$APP_DIR/backend/" 2>/dev/null; then
+    echo "[Updater] ERROR: Failed to update backend files"
+    exit 1
+fi
+
+if ! cp -R "$STAGING_DIR/frontend/dist/"* "$APP_DIR/frontend/dist/" 2>/dev/null; then
+    echo "[Updater] ERROR: Failed to update frontend files"
+    exit 1
+fi
+
+if [ -d "$STAGING_DIR/tools" ]; then
+    cp -R "$STAGING_DIR/tools/"* "$APP_DIR/tools/" 2>/dev/null || true
+fi
+
+if [ -f "$STAGING_DIR/version.json" ]; then
+    cp "$STAGING_DIR/version.json" "$APP_DIR/version.json" 2>/dev/null || true
+fi
+
+echo "[Updater] Cleaning up Python cache..."
+find "$APP_DIR/backend" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+find "$APP_DIR/backend" -type f -name "*.pyc" -delete 2>/dev/null || true
+
+echo "[Updater] Removing staging files..."
+rm -rf "$STAGING_DIR" 2>/dev/null || true
+
+echo "[Updater] Starting new version..."
+cd "$APP_DIR/backend"
+nohup python3 main.py > /dev/null 2>&1 &
+
+echo "[Updater] Update complete!"
+exit 0
+"""
+
+
+def _generate_updater_script(app_dir: str, staging_dir: str) -> str:
+    """生成平台对应的更新脚本到项目根目录"""
+    if sys.platform == "win32":
+        script_path = os.path.join(app_dir, UPDATER_BAT_NAME)
+        with open(script_path, "w", encoding="ascii") as f:
+            f.write(UPDATER_BAT_TEMPLATE)
+    else:
+        script_path = os.path.join(app_dir, "updater.sh")
+        with open(script_path, "w", encoding="utf-8") as f:
+            f.write(UPDATER_SH_TEMPLATE)
+        os.chmod(script_path, 0o755)
+    print(f"[updater] Generated: {script_path}")
+    return script_path
 
 
 def apply_update(download_url: str, expected_sha256: str) -> dict:
-    """下载更新包、校验、解压、备份、启动 updater.bat
+    """下载更新包、校验、解压、备份、启动更新脚本
 
-    此函数在后台线程中执行，启动 updater.bat 后不返回。
+    此函数在后台线程中执行，启动更新脚本后不返回。
     """
     current = get_current_version()
     old_ver = current.get("version", "0.0.0")
@@ -255,29 +313,28 @@ def apply_update(download_url: str, expected_sha256: str) -> dict:
     # 4) 备份当前版本
     _create_backup(old_ver)
 
-    # 5) 生成 updater.bat
-    _generate_updater_bat(PROJECT_DIR, staging_dir)
+    # 5) 生成平台对应的更新脚本
+    script_path = _generate_updater_script(PROJECT_DIR, staging_dir)
 
-    # 6) 启动 updater.bat（独立进程）
-    bat_path = os.path.join(PROJECT_DIR, UPDATER_BAT_NAME)
+    # 6) 启动更新脚本（独立进程）
     pid = os.getpid()
 
     if sys.platform == "win32":
         CREATE_NO_WINDOW = 0x08000000
         DETACHED_PROCESS = 0x00000008
         subprocess.Popen(
-            ["cmd", "/c", bat_path, PROJECT_DIR, staging_dir, str(pid)],
+            ["cmd", "/c", script_path, PROJECT_DIR, staging_dir, str(pid)],
             creationflags=CREATE_NO_WINDOW | DETACHED_PROCESS,
             close_fds=True,
         )
     else:
         subprocess.Popen(
-            ["bash", bat_path, PROJECT_DIR, staging_dir, str(pid)],
+            ["bash", script_path, PROJECT_DIR, staging_dir, str(pid)],
             start_new_session=True,
             close_fds=True,
         )
 
-    print(f"[updater] Launched updater.bat, PID {pid} will be terminated by updater")
+    print(f"[updater] Launched updater script, PID {pid} will be terminated by updater")
 
     return {"status": "installing"}
 
