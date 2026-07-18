@@ -4,5 +4,5 @@
   "changelog": "发货管理页面重构优化\n财务页面改进\n修复更新检查 Gitee 302 重定向错误\n新增 install.bat / README.txt 部署文档\n启动脚本优化",
   "download_url_github": "https://github.com/hejoeyo-cloud/weiji-oa/releases/download/v1.0.1/weijioa-deploy.zip",
   "download_url_gitee": "https://gitee.com/darchro/weiji-oa/releases/download/v1.0.1/weijioa-deploy.zip",
-  "sha256": "a642485b4b5f071fdae44fc53c619865ba37cd0d6d9953cb82c7506b60976002"
+  "sha256": "5ddbe085bd23372f075b74f8c8a14fc3c5ba79d03654ee7fa28704cd1b5339e4"
 }
