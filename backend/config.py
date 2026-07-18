@@ -80,3 +80,9 @@ UPDATE_CHECK_URL_GITEE = os.getenv(
     "UPDATE_CHECK_URL_GITEE",
     "https://gitee.com/darchro/weiji-oa/raw/main/version.json",
 )
+
+# ── 自动更新策略 ──────────────────────────────────────────
+# AUTO_UPDATE_ENABLED: 是否启用自动更新检测（默认启用）
+# AUTO_UPDATE_INTERVAL_HOURS: 检测间隔小时数（默认 6 小时，最小 1 小时）
+AUTO_UPDATE_ENABLED = os.getenv("AUTO_UPDATE_ENABLED", "true").lower() == "true"
+AUTO_UPDATE_INTERVAL_HOURS = max(int(os.getenv("AUTO_UPDATE_INTERVAL_HOURS", "6")), 1)

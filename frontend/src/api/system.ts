@@ -4,6 +4,8 @@ export interface SystemStatus {
   version: string
   release_date: string
   server_time: string
+  auto_update_enabled: boolean
+  auto_update_interval_hours: number
 }
 
 export interface UpdateCheckResult {

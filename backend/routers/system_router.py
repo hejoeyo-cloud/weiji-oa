@@ -25,11 +25,14 @@ class ApplyUpdateRequest(BaseModel):
 @router.get("/status")
 def system_status(current_user: User = Depends(get_current_user)):
     """获取系统版本及运行状态（登录后可用）"""
+    from config import AUTO_UPDATE_ENABLED, AUTO_UPDATE_INTERVAL_HOURS
     ver = get_current_version()
     return {
         "version": ver.get("version", "unknown"),
         "release_date": ver.get("release_date", ""),
         "server_time": datetime.now().isoformat(),
+        "auto_update_enabled": AUTO_UPDATE_ENABLED,
+        "auto_update_interval_hours": AUTO_UPDATE_INTERVAL_HOURS,
     }
 
 

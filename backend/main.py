@@ -28,12 +28,30 @@ async def lifespan(app: FastAPI):
     from apscheduler.schedulers.background import BackgroundScheduler
     from backup import backup_database
     from services.data_cleanup import run_all_cleanup
+    from services.updater import auto_update_check
+    from config import AUTO_UPDATE_ENABLED, AUTO_UPDATE_INTERVAL_HOURS
     scheduler = BackgroundScheduler()
     scheduler.add_job(backup_database, "cron", hour=3, minute=0, id="db_backup")
     scheduler.add_job(run_all_cleanup, "cron", hour=4, minute=0, id="data_cleanup")
+    if AUTO_UPDATE_ENABLED:
+        scheduler.add_job(
+            auto_update_check,
+            "interval",
+            hours=AUTO_UPDATE_INTERVAL_HOURS,
+            id="auto_update",
+        )
     scheduler.start()
     # 启动时立即执行一次备份
     backup_database()
+    # 启动 60 秒后执行首次更新检查
+    if AUTO_UPDATE_ENABLED:
+        from apscheduler.triggers.date import DateTrigger
+        from datetime import datetime, timedelta
+        scheduler.add_job(
+            auto_update_check,
+            DateTrigger(run_date=datetime.now() + timedelta(seconds=60)),
+            id="auto_update_startup",
+        )
 
     yield
 

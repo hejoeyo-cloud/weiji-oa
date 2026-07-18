@@ -26,7 +26,7 @@ export default function SystemSettings() {
   useEffect(() => {
     getSystemStatus()
       .then(setStatus)
-      .catch(() => setStatus({ version: 'unknown', release_date: '', server_time: '' }))
+      .catch(() => setStatus({ version: 'unknown', release_date: '', server_time: '', auto_update_enabled: false, auto_update_interval_hours: 0 }))
   }, [])
 
   const handleCheckUpdate = useCallback(async () => {
@@ -120,7 +120,15 @@ export default function SystemSettings() {
           <div>
             <span style={{ color: '#a3a3a3' }}>更新源</span>
             <p className="mt-0.5" style={{ color: '#737373' }}>
-              GitHub + Gitee（自动选择可用源）
+              国内+国外源（自动选择可用源）
+            </p>
+          </div>
+          <div>
+            <span style={{ color: '#a3a3a3' }}>自动更新</span>
+            <p className="mt-0.5" style={{ color: '#737373' }}>
+              {status?.auto_update_enabled
+                ? `每 ${status.auto_update_interval_hours} 小时自动检测并更新`
+                : '未启用'}
             </p>
           </div>
         </div>
@@ -273,7 +281,6 @@ export default function SystemSettings() {
           <li>更新前系统会自动备份当前版本，出问题可手动回滚</li>
           <li>更新过程中系统会短暂不可用（约 10-20 秒）</li>
           <li>更新不会影响数据库、上传文件、授权文件等数据</li>
-          <li>仅超级管理员可以执行更新操作</li>
         </ul>
       </div>
     </div>

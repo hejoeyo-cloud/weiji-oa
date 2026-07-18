@@ -280,3 +280,38 @@ def apply_update(download_url: str, expected_sha256: str) -> dict:
     print(f"[updater] Launched updater.bat, PID {pid} will be terminated by updater")
 
     return {"status": "installing"}
+
+
+# ── 定时自动更新（供 APScheduler 调用） ──────────────────────────────
+
+def auto_update_check():
+    """定时检查更新，发现有新版本则自动执行更新。
+
+    由 APScheduler 后台线程调用，内部用 asyncio.run() 执行异步检查。
+    """
+    import asyncio
+    from config import AUTO_UPDATE_ENABLED
+
+    if not AUTO_UPDATE_ENABLED:
+        return
+
+    try:
+        result = asyncio.run(check_for_update())
+    except UpdaterError as e:
+        print(f"[auto-update] Check failed: {e}")
+        return
+    except Exception as e:
+        print(f"[auto-update] Unexpected error: {e}")
+        return
+
+    if not result.get("has_update"):
+        print(f"[auto-update] Already up to date (v{result.get('current_version')})")
+        return
+
+    print(f"[auto-update] New version v{result['latest_version']} found, applying...")
+    try:
+        apply_update(result["download_url"], result["sha256"])
+    except UpdaterError as e:
+        print(f"[auto-update] Apply failed: {e}")
+    except Exception as e:
+        print(f"[auto-update] Unexpected error during apply: {e}")
