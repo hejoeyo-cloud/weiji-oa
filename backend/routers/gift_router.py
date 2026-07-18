@@ -1,5 +1,6 @@
 from datetime import datetime
 from collections import Counter
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -80,6 +81,7 @@ def record_to_out(db: Session, r: GiftRecord, has_cost_permission: bool = False)
         total_gift_cost=total_gift_cost,
         total_cashback=total_cashback,
         profit=profit,
+        is_jingcang=r.is_jingcang or False,
         remark=r.remark or "",
         ship_date=r.ship_date or "",
         status=r.status or "pending",
@@ -109,6 +111,7 @@ def list_records(
     search: str = Query("", description="Search in order_no/model/customer_info"),
     start_date: str = Query("", description="Filter by date >= start_date (YYYY-MM-DD)"),
     end_date: str = Query("", description="Filter by date <= end_date (YYYY-MM-DD)"),
+    is_jingcang: Optional[bool] = Query(None, description="Filter by is_jingcang (True=京仓, False=非京仓, None=全部)"),
     all: bool = Query(False, description="Return all records (for export)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("gifts:view")),
@@ -134,6 +137,8 @@ def list_records(
         query = query.filter(GiftRecord.date >= start_date)
     if end_date:
         query = query.filter(GiftRecord.date <= end_date)
+    if is_jingcang is not None:
+        query = query.filter(GiftRecord.is_jingcang == is_jingcang)
     # 计算重复订单号
     all_order_nos = [r[0] for r in query.with_entities(GiftRecord.order_no).filter(GiftRecord.order_no != "").all()]
     dup_counts = dict(Counter(all_order_nos))
@@ -174,7 +179,7 @@ def create_record(
     current_user: User = Depends(require_permission("gifts:create")),
 ):
     has_cost_permission = "gifts:cost_view" in (current_user.role_obj.permissions if current_user.role_obj else [])
-    
+
     # 自动填充 shop_name
     shop_name = req.shop_name
     if req.shop_id and not shop_name:
@@ -201,6 +206,7 @@ def create_record(
         order_amount=req.order_amount,
         cost=req.cost,
         gift_costs=[item.model_dump() for item in req.gift_costs] if req.gift_costs else [],
+        is_jingcang=req.is_jingcang,
         remark=req.remark,
         ship_date=req.ship_date or (datetime.now().strftime("%Y-%m-%d") if (req.send_tracking and req.send_tracking.strip()) else ""),
         status="sent" if (req.send_tracking and req.send_tracking.strip()) else "pending",

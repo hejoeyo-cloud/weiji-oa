@@ -614,6 +614,14 @@ def _migrate_db():
                 conn.execute(text("ALTER TABLE gift_records ADD COLUMN gift_costs TEXT DEFAULT '[]'"))
                 conn.commit()
 
+    # ── 迁移：gift_records 新增 is_jingcang 列 ─────────────────────
+    if 'gift_records' in existing_tables:
+        columns = [c['name'] for c in inspector.get_columns('gift_records')]
+        if 'is_jingcang' not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE gift_records ADD COLUMN is_jingcang BOOLEAN DEFAULT 0"))
+                conn.commit()
+
     # ── 创建字段预设选项表 ──────────────────────────────────────────
     if "field_options" not in inspector.get_table_names():
         with engine.connect() as conn:

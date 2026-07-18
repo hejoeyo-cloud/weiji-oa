@@ -58,6 +58,7 @@ class GiftRecord(Base):
     order_amount = Column(Float, default=0)              # 订单金额
     cost = Column(Float, default=0)                       # 产品成本
     gift_costs = Column(JSONType, default=list)           # 礼品成本 [{name, amount}]
+    is_jingcang = Column(Boolean, default=False)          # 是否京仓发货
     remark = Column(Text, default="")                    # 备注
     ship_date = Column(String(20), default="")           # 出货日期
     status = Column(String(20), default="pending")       # pending/sent/intercepted/torn/cancelled/returned

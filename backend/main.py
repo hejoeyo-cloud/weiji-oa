@@ -102,7 +102,7 @@ from routers import customer_router
 from routers import system_router
 from websocket.manager import manager
 
-app = FastAPI(title="微迹OA 内部系统", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="微迹OA 内部系统", version="1.0.1", lifespan=lifespan)
 
 app.add_middleware(RateLimitMiddleware, max_requests=600, window_seconds=60, burst_max=30)
 app.add_middleware(LicenseGuardMiddleware)

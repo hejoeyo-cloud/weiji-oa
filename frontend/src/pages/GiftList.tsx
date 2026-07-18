@@ -52,6 +52,7 @@ const emptyForm = {
   date: '', shop_id: null as number | null, shop_name: '', order_no: '', product: '', size: '', model: '', config: '', color: '',
   quantity: 1, accessories: '', customer_info: '', send_tracking: '',
   shipping_fee: 0, order_amount: 0, cost: 0, gift_costs: [] as { name: string; amount: number }[],
+  is_jingcang: false,
   remark: '', ship_date: '', status: 'pending',
 }
 
@@ -79,6 +80,7 @@ export default function GiftList() {
   const [shopFilter, setShopFilter] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [isJingcangFilter, setIsJingcangFilter] = useState<string>('')  // ''=全部, '1'=京仓, '0'=非京仓
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
@@ -131,11 +133,11 @@ export default function GiftList() {
 
   const load = useCallback(() => {
     setLoading(true)
-    getGiftList({ page, page_size: pageSize, search, status: statusFilter, shop_name: shopFilter, start_date: startDate, end_date: endDate })
+    getGiftList({ page, page_size: pageSize, search, status: statusFilter, shop_name: shopFilter, start_date: startDate, end_date: endDate, is_jingcang: isJingcangFilter === '' ? undefined : isJingcangFilter === '1' })
       .then(data => { setRecords(data.items); setTotal(data.total) })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [page, search, statusFilter, shopFilter, startDate, endDate])
+  }, [page, search, statusFilter, shopFilter, startDate, endDate, isJingcangFilter])
 
   useEffect(() => { load() }, [load])
 
@@ -155,7 +157,7 @@ export default function GiftList() {
   }, [records, highlightId])
 
   const handleExport = () => {
-    getGiftList({ page: 1, page_size: 100000, search, status: statusFilter, shop_name: shopFilter, start_date: startDate, end_date: endDate })
+    getGiftList({ page: 1, page_size: 100000, search, status: statusFilter, shop_name: shopFilter, start_date: startDate, end_date: endDate, is_jingcang: isJingcangFilter === '' ? undefined : isJingcangFilter === '1' })
       .then(data => {
         const exportData: Record<string, any>[] = data.items.map((r: GiftRecord, idx: number) => {
           const row: Record<string, any> = {
@@ -172,6 +174,7 @@ export default function GiftList() {
             '客户信息': r.customer_info || '',
             '发出单号': r.send_tracking || '',
             '出货日期': r.ship_date || '',
+            '京仓发货': r.is_jingcang ? '是' : '否',
             '状态': r.status || '',
             '备注': r.remark || '',
             '登记人': r.creator_name || '',
@@ -199,6 +202,7 @@ export default function GiftList() {
       send_tracking: r.send_tracking, shipping_fee: r.shipping_fee,
       order_amount: r.order_amount, cost: r.cost,
       gift_costs: r.gift_costs || [],
+      is_jingcang: r.is_jingcang || false,
       remark: r.remark, ship_date: r.ship_date, status: r.status,
     })
     setShowDetail(false)
@@ -233,6 +237,7 @@ export default function GiftList() {
         if (old.order_no !== form.order_no) changes.push(`订单编号: ${old.order_no || '无'} → ${form.order_no || '无'}`)
         if (old.send_tracking !== form.send_tracking) changes.push(`发出单号: ${old.send_tracking || '无'} → ${form.send_tracking || '无'}`)
         if (old.ship_date !== form.ship_date) changes.push(`出货日期: ${old.ship_date || '无'} → ${form.ship_date || '无'}`)
+        if (old.is_jingcang !== form.is_jingcang) changes.push(`京仓发货: ${old.is_jingcang ? '是' : '否'} → ${form.is_jingcang ? '是' : '否'}`)
         if (old.remark !== form.remark) changes.push(`备注: ${old.remark || '无'} → ${form.remark || '无'}`)
         if (old.status !== form.status) {
           const oldLabel = STATUSES.find(s => s.value === old.status)?.label || old.status
@@ -357,6 +362,16 @@ export default function GiftList() {
             {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
         </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">京仓:</span>
+          <select value={isJingcangFilter}
+            onChange={e => { setIsJingcangFilter(e.target.value); setPage(1) }}
+            className="border rounded-lg px-3 py-1.5 text-sm">
+            <option value="">全部</option>
+            <option value="1">京仓发货</option>
+            <option value="0">非京仓</option>
+          </select>
+        </div>
         <div className="min-w-[140px]">
           <ShopSelect value={shopFilter} onChange={v => { setShopFilter(v); setPage(1) }} showGear={false} placeholder="全部店铺" />
         </div>
@@ -408,14 +423,15 @@ export default function GiftList() {
                 <th className="text-left px-4 py-3 font-medium text-gray-600">毛利</th>
               )}
               <th className="text-left px-4 py-3 font-medium text-gray-600">状态</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-600">京仓</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">操作</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {loading ? (
-              <tr><td colSpan={canCostView ? 15 : 12} className="text-center py-8 text-gray-400">加载中...</td></tr>
+              <tr><td colSpan={canCostView ? 16 : 13} className="text-center py-8 text-gray-400">加载中...</td></tr>
             ) : records.length === 0 ? (
-              <tr><td colSpan={canCostView ? 15 : 12} className="text-center py-8 text-gray-400">暂无数据</td></tr>
+              <tr><td colSpan={canCostView ? 16 : 13} className="text-center py-8 text-gray-400">暂无数据</td></tr>
             ) : records.map((r, idx) => (
               <tr
                 key={r.id}
@@ -452,6 +468,7 @@ export default function GiftList() {
                   </td>
                 )}
                 <td className="px-4 py-3"><StatusBadge status={r.status || (r.send_tracking ? 'sent' : 'pending')} /></td>
+                <td className="px-4 py-3">{r.is_jingcang ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">京仓</span> : '-'}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <button onClick={() => openDetail(r)} className={`p-1 rounded ${r.remark ? 'text-amber-600 bg-amber-50 hover:bg-amber-100' : 'text-gray-400 hover:text-violet-600'}`} title={r.remark ? `备注: ${r.remark}` : '查看详情'}><Eye size={14} /></button>
@@ -597,7 +614,7 @@ export default function GiftList() {
                   placeholder="姓名/电话/地址"
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">发出单号</label>
                   <input value={form.send_tracking}
@@ -621,6 +638,14 @@ export default function GiftList() {
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100">
                     {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
+                </div>
+                <div className="flex items-end pb-0.5">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={form.is_jingcang}
+                  onChange={e => setForm({ ...form, is_jingcang: e.target.checked })}
+                  className="rounded border-gray-300 text-violet-600 focus:ring-violet-500" />
+                    <span className="text-sm text-gray-700">京仓发货</span>
+                  </label>
                 </div>
               </div>
 
@@ -801,6 +826,7 @@ export default function GiftList() {
               <div><span className="text-gray-500">发出单号：</span>{detailRecord.send_tracking || '-'}</div>
               <div><span className="text-gray-500">出货日期：</span>{detailRecord.ship_date || '-'}</div>
               <div><span className="text-gray-500">运费：</span>¥{detailRecord.shipping_fee?.toFixed(2) || '0.00'}</div>
+              <div><span className="text-gray-500">京仓发货：</span>{detailRecord.is_jingcang ? <span className="text-amber-600 font-medium">是</span> : '否'}</div>
               {canCostView && detailRecord.order_amount > 0 && (
                 <div><span className="text-gray-500">订单金额：</span><span className="text-gray-700">¥{detailRecord.order_amount?.toFixed(2)}</span></div>
               )}

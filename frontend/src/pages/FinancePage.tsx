@@ -57,6 +57,7 @@ const REQUEST_STATUS_MAP: Record<string, { label: string; color: string }> = {
   issued: { label: '已开具', color: 'bg-green-100 text-green-800' },
   mailed: { label: '已邮寄', color: 'bg-purple-100 text-purple-800' },
   signed: { label: '已签收', color: 'bg-gray-100 text-gray-800' },
+  pending_void: { label: '待作废', color: 'bg-orange-100 text-orange-700' },
   voided: { label: '已作废', color: 'bg-red-100 text-red-800' },
 }
 
@@ -459,7 +460,7 @@ function InvoiceRequestTab() {
                   {(() => {
                     const allStatuses = Object.entries(REQUEST_STATUS_MAP).filter(([k]) => k !== 'voided')
                     const statuses = r.invoice_type === '电子发票'
-                      ? allStatuses.filter(([k]) => ['pending', 'processing', 'issued'].includes(k))
+                      ? allStatuses.filter(([k]) => ['pending', 'processing', 'issued', 'pending_void'].includes(k))
                       : allStatuses
                     const keys = statuses.map(([k]) => k)
                     const currentIdx = keys.indexOf(r.status)
@@ -509,12 +510,18 @@ function InvoiceRequestTab() {
                       </>
                     )
                   })()}
-                  {r.status !== 'voided' && (
-                    <button onClick={() => { if (confirm('确认作废此开票申请？')) handleDetailStatusChange('voided') }}
-                      className="mt-2 flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-colors">
-                      <Ban size={12} /> 作废此申请
+                  {r.status !== 'pending_void' && r.status !== 'voided' && (
+                    <button onClick={() => { if (confirm('确认申请作废此开票申请？')) handleDetailStatusChange('pending_void') }}
+                      className="mt-2 flex items-center gap-1.5 px-3 py-1.5 text-xs text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg border border-orange-200 transition-colors">
+                      <Ban size={12} /> 申请作废
                     </button>
                   )}
+                  {r.status === 'pending_void' && (
+                      <button onClick={() => { if (confirm('确认彻底作废此开票申请？此操作不可撤销。')) handleDetailStatusChange('voided') }}
+                        className="mt-2 flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-colors">
+                        <Ban size={12} /> 确认作废
+                      </button>
+                    )}
                   {r.status === 'voided' && (
                     <span className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 bg-red-50 rounded-lg border border-red-200">
                       <Ban size={12} /> 已作废

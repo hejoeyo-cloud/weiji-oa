@@ -9,6 +9,7 @@ export interface GiftListParams {
   search?: string
   start_date?: string
   end_date?: string
+  is_jingcang?: boolean
   all?: boolean
 }
 

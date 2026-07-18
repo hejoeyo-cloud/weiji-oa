@@ -175,6 +175,7 @@ class GiftRecordCreate(BaseModel):
     order_amount: float = 0
     cost: float = 0
     gift_costs: List[GiftCostItem] = []
+    is_jingcang: bool = False
     remark: str = ""
     ship_date: str = ""
     status: str = "pending"
@@ -198,6 +199,7 @@ class GiftRecordUpdate(BaseModel):
     order_amount: Optional[float] = None
     cost: Optional[float] = None
     gift_costs: Optional[List[GiftCostItem]] = None
+    is_jingcang: Optional[bool] = None
     remark: Optional[str] = None
     ship_date: Optional[str] = None
     status: Optional[str] = None
@@ -222,6 +224,7 @@ class GiftRecordOut(BaseModel):
     order_amount: float = 0
     cost: float = 0
     gift_costs: List[GiftCostItem] = []
+    is_jingcang: bool = False
     total_gift_cost: float = 0     # 礼品成本合计
     total_cashback: float = 0      # 自动汇总的返现金额（来自返现表）
     profit: float = 0              # 利润 = 订单金额 - 产品成本 - 礼品合计 - 返现

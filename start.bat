@@ -25,7 +25,9 @@ if %errorlevel% neq 0 (
 
 :: Start server
 echo Starting server...
+cd /d "%~dp0backend"
 start /b python main.py
+cd /d "%~dp0"
 
 :: Wait for server to be ready
 echo Waiting for server to start...

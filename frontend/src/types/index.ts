@@ -276,6 +276,7 @@ export interface GiftRecord {
   total_gift_cost: number // 礼品成本合计
   total_cashback: number // 自动汇总的返现金额（来自返现表）
   profit: number        // 利润 = 订单金额 - 产品成本 - 礼品合计 - 返现
+  is_jingcang: boolean  // 是否京仓发货
   remark: string
   ship_date: string
   status: string  // pending | sent
