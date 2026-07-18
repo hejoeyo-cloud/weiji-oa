@@ -257,6 +257,29 @@ def apply_update(download_url: str, expected_sha256: str) -> dict:
     os.remove(zip_path)
     print("[updater] Extracted to staging")
 
+    # 3.5) 防循环：检查 staging 中的版本是否真的比当前版本新
+    try:
+        import json
+        staging_ver_path = os.path.join(staging_dir, "version.json")
+        if os.path.exists(staging_ver_path):
+            with open(staging_ver_path, "r", encoding="utf-8") as f:
+                staging_ver = json.load(f)
+            new_ver = staging_ver.get("version", "0.0.0")
+            if not _version_gt(new_ver, old_ver):
+                shutil.rmtree(staging_dir)
+                raise UpdaterError(
+                    f"更新包版本 v{new_ver} 不高于当前版本 v{old_ver}，跳过更新"
+                )
+            print(f"[updater] Version check OK: v{old_ver} → v{new_ver}")
+        else:
+            shutil.rmtree(staging_dir)
+            raise UpdaterError("更新包中缺少 version.json，无法确认版本")
+    except UpdaterError:
+        raise
+    except Exception as e:
+        shutil.rmtree(staging_dir)
+        raise UpdaterError(f"读取更新包版本失败: {e}")
+
     # 4) 备份
     _create_backup(old_ver)
 
