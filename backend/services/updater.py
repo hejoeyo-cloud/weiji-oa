@@ -148,39 +148,49 @@ def _create_backup(old_version: str) -> str:
 
 
 def _replace_files(staging_dir: str) -> None:
-    """用 staging 中的新文件替换项目中的旧文件（Python 进程内完成）"""
-    pairs = [
-        ("backend", os.path.join(PROJECT_DIR, "backend")),
-        ("frontend/dist", os.path.join(PROJECT_DIR, "frontend", "dist")),
-    ]
+    """将 staging 中的文件合并覆盖到项目目录。
 
-    for src_rel, dst in pairs:
-        src = os.path.join(staging_dir, src_rel)
-        if not os.path.exists(src):
-            continue
-        # 清空目标目录后复制新文件进去
-        for item in os.listdir(dst):
-            item_path = os.path.join(dst, item)
-            if os.path.isdir(item_path) and not os.path.islink(item_path):
-                shutil.rmtree(item_path)
-            else:
-                os.remove(item_path)
-        shutil.copytree(src, dst, dirs_exist_ok=True)
-        print(f"[updater] Replaced: {src_rel}")
+    采用"合并覆盖"策略——只覆盖 staging 中存在的文件，
+    不删目标目录原有的运行时文件（logs、db、uploads 等），
+    避免因文件被锁定导致更新失败。
+    """
+
+    def _merge_overwrite(src_dir: str, dst_dir: str) -> None:
+        """递归将 src_dir 内容覆盖到 dst_dir"""
+        os.makedirs(dst_dir, exist_ok=True)
+        for item in os.listdir(src_dir):
+            s = os.path.join(src_dir, item)
+            d = os.path.join(dst_dir, item)
+            try:
+                if os.path.isdir(s):
+                    _merge_overwrite(s, d)
+                else:
+                    shutil.copy2(s, d)
+            except (PermissionError, OSError) as e:
+                print(f"[updater] Skipped locked file: {d} ({e})")
+
+    # backend — 合并覆盖，不动运行时产生的 logs/db/uploads
+    backend_src = os.path.join(staging_dir, "backend")
+    if os.path.exists(backend_src):
+        _merge_overwrite(backend_src, os.path.join(PROJECT_DIR, "backend"))
+        print("[updater] Replaced: backend")
+
+    # frontend/dist — 清空再复制（静态文件不会被锁）
+    frontend_src = os.path.join(staging_dir, "frontend", "dist")
+    frontend_dst = os.path.join(PROJECT_DIR, "frontend", "dist")
+    if os.path.exists(frontend_src):
+        if os.path.exists(frontend_dst):
+            shutil.rmtree(frontend_dst)
+        shutil.copytree(frontend_src, frontend_dst)
+        print("[updater] Replaced: frontend/dist")
 
     # tools
     tools_src = os.path.join(staging_dir, "tools")
     tools_dst = os.path.join(PROJECT_DIR, "tools")
     if os.path.exists(tools_src):
-        for item in os.listdir(tools_src):
-            s = os.path.join(tools_src, item)
-            d = os.path.join(tools_dst, item)
-            if os.path.isdir(s):
-                if os.path.exists(d):
-                    shutil.rmtree(d)
-                shutil.copytree(s, d)
-            else:
-                shutil.copy2(s, d)
+        if os.path.exists(tools_dst):
+            shutil.rmtree(tools_dst)
+        shutil.copytree(tools_src, tools_dst)
         print("[updater] Replaced: tools")
 
     # version.json
