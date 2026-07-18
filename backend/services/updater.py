@@ -1,4 +1,4 @@
-"""自动更新服务 — 检查更新、下载、校验、解压、备份、生成更新脚本"""
+"""自动更新服务 — 检查更新、下载、校验、解压、备份、替换文件、重启"""
 import hashlib
 import os
 import shutil
@@ -10,7 +10,6 @@ import httpx
 from config import PROJECT_DIR, UPDATE_CHECK_URL_GITHUB, UPDATE_CHECK_URL_GITEE
 from version import get_current_version
 
-UPDATER_BAT_NAME = "updater.bat"
 STAGING_DIR_NAME = "update_staging"
 
 
@@ -28,7 +27,6 @@ def _version_gt(a: str, b: str) -> bool:
         parts_b = [int(x) for x in str(b).strip().split(".")]
     except (ValueError, AttributeError):
         return False
-    # 补齐长度
     while len(parts_a) < len(parts_b):
         parts_a.append(0)
     while len(parts_b) < len(parts_a):
@@ -38,7 +36,7 @@ def _version_gt(a: str, b: str) -> bool:
             return True
         if x < y:
             return False
-    return False  # 完全相等
+    return False
 
 
 # ── 检查更新（异步并行请求 GitHub + Gitee） ─────────────────────────
@@ -66,7 +64,7 @@ async def check_for_update() -> dict:
         urls.append(("github", UPDATE_CHECK_URL_GITHUB))
 
     if not urls:
-        raise UpdaterError("未配置任何更新源，请设置环境变量 UPDATE_CHECK_URL_GITHUB 或 UPDATE_CHECK_URL_GITEE")
+        raise UpdaterError("未配置任何更新源")
 
     remote = None
     source = None
@@ -97,7 +95,9 @@ async def check_for_update() -> dict:
         "latest_version": latest_ver,
         "changelog": remote.get("changelog", ""),
         "release_date": remote.get("release_date", ""),
-        "download_url": remote.get("download_url_github" if source == "github" else "download_url_gitee", ""),
+        "download_url": remote.get(
+            "download_url_github" if source == "github" else "download_url_gitee", ""
+        ),
         "sha256": remote.get("sha256", ""),
         "source": source,
     }
@@ -127,172 +127,110 @@ def _download_file(url: str, dest: str) -> None:
 
 
 def _create_backup(old_version: str) -> str:
-    """备份当前 backend/ 和 frontend/dist/，返回备份目录路径"""
+    """备份当前 backend/、frontend/dist/、tools/ 到 backups/"""
     backup_dir = os.path.join(PROJECT_DIR, "backups", f"update_backup_v{old_version}")
     os.makedirs(backup_dir, exist_ok=True)
 
-    src_dirs = [
+    dirs = [
         ("backend", os.path.join(PROJECT_DIR, "backend")),
-        ("frontend", os.path.join(PROJECT_DIR, "frontend", "dist")),
+        ("frontend_dist", os.path.join(PROJECT_DIR, "frontend", "dist")),
         ("tools", os.path.join(PROJECT_DIR, "tools")),
     ]
 
-    for name, src in src_dirs:
+    for name, src in dirs:
         if os.path.exists(src):
             dst = os.path.join(backup_dir, name)
-            # copytree with dirs_exist_ok=True for Python 3.8+
             shutil.copytree(src, dst, dirs_exist_ok=True)
-            print(f"[updater] Backup: {name} → {dst}")
+            print(f"[updater] Backup: {name} OK")
 
-    print(f"[updater] Backup created: {backup_dir}")
+    print(f"[updater] Backup created at {backup_dir}")
     return backup_dir
 
 
-# ── 更新脚本模板 ─────────────────────────────────────────────────────
+def _replace_files(staging_dir: str) -> None:
+    """用 staging 中的新文件替换项目中的旧文件（Python 进程内完成）"""
+    pairs = [
+        ("backend", os.path.join(PROJECT_DIR, "backend")),
+        ("frontend/dist", os.path.join(PROJECT_DIR, "frontend", "dist")),
+    ]
 
-UPDATER_BAT_TEMPLATE = """@echo off
-setlocal enabledelayedexpansion
+    for src_rel, dst in pairs:
+        src = os.path.join(staging_dir, src_rel)
+        if not os.path.exists(src):
+            continue
+        # 清空目标目录后复制新文件进去
+        for item in os.listdir(dst):
+            item_path = os.path.join(dst, item)
+            if os.path.isdir(item_path) and not os.path.islink(item_path):
+                shutil.rmtree(item_path)
+            else:
+                os.remove(item_path)
+        shutil.copytree(src, dst, dirs_exist_ok=True)
+        print(f"[updater] Replaced: {src_rel}")
 
-set "APP_DIR=%~1"
-set "STAGING_DIR=%~2"
-set "PID=%~3"
+    # tools
+    tools_src = os.path.join(staging_dir, "tools")
+    tools_dst = os.path.join(PROJECT_DIR, "tools")
+    if os.path.exists(tools_src):
+        for item in os.listdir(tools_src):
+            s = os.path.join(tools_src, item)
+            d = os.path.join(tools_dst, item)
+            if os.path.isdir(s):
+                if os.path.exists(d):
+                    shutil.rmtree(d)
+                shutil.copytree(s, d)
+            else:
+                shutil.copy2(s, d)
+        print("[updater] Replaced: tools")
 
-echo [Updater] Waiting 10 seconds for HTTP response to complete...
-timeout /t 10 /nobreak >nul
+    # version.json
+    ver_src = os.path.join(staging_dir, "version.json")
+    if os.path.exists(ver_src):
+        shutil.copy2(ver_src, os.path.join(PROJECT_DIR, "version.json"))
+        print("[updater] Replaced: version.json")
 
-echo [Updater] Stopping old application...
-taskkill /PID %PID% /F >nul 2>&1
-timeout /t 3 /nobreak >nul
-
-echo [Updater] Installing update...
-
-robocopy "%STAGING_DIR%\\backend" "%APP_DIR%\\backend" /E /IS /NFL /NDL /NJH /NJS /NP
-if %errorlevel% geq 8 (
-    echo [Updater] ERROR: Failed to update backend files (errorlevel=%errorlevel%)
-    goto :error
-)
-
-robocopy "%STAGING_DIR%\\frontend\\dist" "%APP_DIR%\\frontend\\dist" /E /IS /NFL /NDL /NJH /NJS /NP
-if %errorlevel% geq 8 (
-    echo [Updater] ERROR: Failed to update frontend files (errorlevel=%errorlevel%)
-    goto :error
-)
-
-if exist "%STAGING_DIR%\\tools" (
-    robocopy "%STAGING_DIR%\\tools" "%APP_DIR%\\tools" /E /IS /NFL /NDL /NJH /NJS /NP
-)
-
-if exist "%STAGING_DIR%\\version.json" (
-    copy /Y "%STAGING_DIR%\\version.json" "%APP_DIR%\\version.json" >nul
-)
-
-echo [Updater] Cleaning up Python cache...
-for /d /r "%APP_DIR%\\backend" %%d in (__pycache__) do @if exist "%%d" rmdir /s /q "%%d" 2>nul
-
-echo [Updater] Removing staging files...
-rmdir /s /q "%STAGING_DIR%" 2>nul
-
-echo [Updater] Starting new version...
-cd /d "%APP_DIR%"
-start "" start.bat
-
-echo [Updater] Update complete!
-exit /b 0
-
-:error
-echo [Updater] Update failed! You can restore from: %APP_DIR%\\backups\\
-pause
-exit /b 1
-"""
-
-UPDATER_SH_TEMPLATE = """#!/bin/bash
-set -e
-
-APP_DIR="$1"
-STAGING_DIR="$2"
-PID="$3"
-
-echo "[Updater] Waiting 10 seconds for HTTP response to complete..."
-sleep 10
-
-echo "[Updater] Stopping old application..."
-if kill "$PID" 2>/dev/null; then
-    sleep 3
-    kill -9 "$PID" 2>/dev/null || true
-    sleep 1
-fi
-
-echo "[Updater] Installing update..."
-
-if ! cp -R "$STAGING_DIR/backend/"* "$APP_DIR/backend/" 2>/dev/null; then
-    echo "[Updater] ERROR: Failed to update backend files"
-    exit 1
-fi
-
-if ! cp -R "$STAGING_DIR/frontend/dist/"* "$APP_DIR/frontend/dist/" 2>/dev/null; then
-    echo "[Updater] ERROR: Failed to update frontend files"
-    exit 1
-fi
-
-if [ -d "$STAGING_DIR/tools" ]; then
-    cp -R "$STAGING_DIR/tools/"* "$APP_DIR/tools/" 2>/dev/null || true
-fi
-
-if [ -f "$STAGING_DIR/version.json" ]; then
-    cp "$STAGING_DIR/version.json" "$APP_DIR/version.json" 2>/dev/null || true
-fi
-
-echo "[Updater] Cleaning up Python cache..."
-find "$APP_DIR/backend" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-find "$APP_DIR/backend" -type f -name "*.pyc" -delete 2>/dev/null || true
-
-echo "[Updater] Removing staging files..."
-rm -rf "$STAGING_DIR" 2>/dev/null || true
-
-echo "[Updater] Starting new version..."
-cd "$APP_DIR/backend"
-nohup python3 main.py > /dev/null 2>&1 &
-
-echo "[Updater] Update complete!"
-exit 0
-"""
+    # 清理 __pycache__
+    for root, dirs, _ in os.walk(os.path.join(PROJECT_DIR, "backend")):
+        for d in dirs:
+            if d == "__pycache__":
+                shutil.rmtree(os.path.join(root, d), ignore_errors=True)
+    print("[updater] Cleaned __pycache__")
 
 
-def _generate_updater_script(app_dir: str, staging_dir: str) -> str:
-    """生成平台对应的更新脚本到项目根目录"""
-    if sys.platform == "win32":
-        script_path = os.path.join(app_dir, UPDATER_BAT_NAME)
-        with open(script_path, "w", encoding="ascii") as f:
-            f.write(UPDATER_BAT_TEMPLATE)
-    else:
-        script_path = os.path.join(app_dir, "updater.sh")
-        with open(script_path, "w", encoding="utf-8") as f:
-            f.write(UPDATER_SH_TEMPLATE)
-        os.chmod(script_path, 0o755)
-    print(f"[updater] Generated: {script_path}")
-    return script_path
+def _generate_restart_bat() -> str:
+    """生成极简重启脚本 — 只负责等待 + 启动 start.bat"""
+    content = (
+        "@echo off\r\n"
+        "timeout /t 3 /nobreak >nul\r\n"
+        'cd /d "%~dp0"\r\n'
+        'start "" start.bat\r\n'
+    )
+    bat_path = os.path.join(PROJECT_DIR, "_restart.bat")
+    with open(bat_path, "w", encoding="ascii") as f:
+        f.write(content)
+    print(f"[updater] Generated restart script: {bat_path}")
+    return bat_path
 
 
 def apply_update(download_url: str, expected_sha256: str) -> dict:
-    """下载更新包、校验、解压、备份、启动更新脚本
+    """下载、校验、解压、备份、替换文件、启动重启脚本
 
-    此函数在后台线程中执行，启动更新脚本后不返回。
+    核心思路：文件替换全部在 Python 中完成，重启脚本只做"等待 + 启动 start.bat"。
     """
     current = get_current_version()
     old_ver = current.get("version", "0.0.0")
 
     staging_dir = os.path.join(PROJECT_DIR, STAGING_DIR_NAME)
 
-    # 清理并创建临时目录
     if os.path.exists(staging_dir):
         shutil.rmtree(staging_dir)
     os.makedirs(staging_dir)
 
-    # 1) 下载更新包
+    # 1) 下载
     zip_path = os.path.join(staging_dir, "update.zip")
-    print(f"[updater] Downloading update from {download_url} ...")
+    print(f"[updater] Downloading from {download_url} ...")
     _download_file(download_url, zip_path)
-    print(f"[updater] Downloaded: {zip_path}")
+    print(f"[updater] Downloaded: {os.path.getsize(zip_path)} bytes")
 
     # 2) 校验 SHA256
     actual_sha = _compute_sha256(zip_path)
@@ -300,52 +238,51 @@ def apply_update(download_url: str, expected_sha256: str) -> dict:
         os.remove(zip_path)
         shutil.rmtree(staging_dir)
         raise UpdaterError(
-            f"SHA256 校验失败。"
-            f"期望 {expected_sha256[:16]}..., 实际 {actual_sha[:16]}..."
+            f"SHA256 校验失败。期望 {expected_sha256[:16]}..., 实际 {actual_sha[:16]}..."
         )
-    print(f"[updater] SHA256 verified: {actual_sha[:16]}...")
+    print(f"[updater] SHA256 OK: {actual_sha[:16]}...")
 
     # 3) 解压
     shutil.unpack_archive(zip_path, staging_dir)
     os.remove(zip_path)
-    print(f"[updater] Extracted to: {staging_dir}")
+    print("[updater] Extracted to staging")
 
-    # 4) 备份当前版本
+    # 4) 备份
     _create_backup(old_ver)
 
-    # 5) 生成平台对应的更新脚本
-    script_path = _generate_updater_script(PROJECT_DIR, staging_dir)
+    # 5) Python 直接替换文件
+    _replace_files(staging_dir)
 
-    # 6) 启动更新脚本（独立进程）
-    pid = os.getpid()
+    # 6) 清理 staging
+    shutil.rmtree(staging_dir)
+
+    # 7) 生成重启脚本并启动
+    restart_bat = _generate_restart_bat()
 
     if sys.platform == "win32":
         CREATE_NO_WINDOW = 0x08000000
         DETACHED_PROCESS = 0x00000008
         subprocess.Popen(
-            ["cmd", "/c", script_path, PROJECT_DIR, staging_dir, str(pid)],
+            ["cmd", "/c", restart_bat],
             creationflags=CREATE_NO_WINDOW | DETACHED_PROCESS,
             close_fds=True,
         )
     else:
         subprocess.Popen(
-            ["bash", script_path, PROJECT_DIR, staging_dir, str(pid)],
+            ["bash", "-c",
+             f'sleep 3; cd "{PROJECT_DIR}/backend" 2>/dev/null; python3 main.py &'],
             start_new_session=True,
             close_fds=True,
         )
 
-    print(f"[updater] Launched updater script, PID {pid} will be terminated by updater")
-
-    return {"status": "installing"}
+    print("[updater] Restart triggered. Old process will exit now.")
+    os._exit(0)
 
 
 # ── 定时自动更新（供 APScheduler 调用） ──────────────────────────────
 
 def auto_update_check():
-    """定时检查更新，发现有新版本则自动执行更新。
-
-    由 APScheduler 后台线程调用，内部用 asyncio.run() 执行异步检查。
-    """
+    """定时检查更新，发现有新版本则自动执行更新。"""
     import asyncio
     from config import AUTO_UPDATE_ENABLED
 
