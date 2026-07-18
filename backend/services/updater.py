@@ -72,7 +72,7 @@ async def check_for_update() -> dict:
     source = None
     errors = []
 
-    async with httpx.AsyncClient(timeout=httpx.Timeout(15.0, connect=10.0)) as client:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(15.0, connect=10.0), follow_redirects=True) as client:
         tasks = [_fetch_version_json(client, src, url) for src, url in urls]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
