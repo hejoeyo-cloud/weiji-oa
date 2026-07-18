@@ -168,7 +168,8 @@ function InvoiceRequestTab() {
     getInvoiceRequests({ all: true, keyword, status: filterStatus, invoice_type: filterType, start_date: startDate, end_date: endDate })
       .then(r => exportToExcel('客户开票申请', r.data.items.map((x: any, i: number) => ({
         序号: i + 1, 申请日期: x.apply_date, 订单编号: x.order_no, 店铺: x.shop_name,
-        客户名称: x.customer_name, 纳税人识别号: x.tax_id, 发票类型: x.invoice_type,
+        客户名称: x.customer_name, 纳税人识别号: x.tax_id,
+        注册地址: x.register_address, 开户行及账号: x.bank_account, 发票类型: x.invoice_type,
         开票内容: x.invoice_content, 开票金额: x.amount, 税率: `${(x.tax_rate * 100).toFixed(0)}%`,
         税额: x.tax_amount, 邮箱: x.email, 邮寄地址: x.mail_address,
         状态: REQUEST_STATUS_MAP[x.status]?.label || x.status, 经手人: x.handler, 备注: x.remark,
