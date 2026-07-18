@@ -5,7 +5,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from auth import get_current_user, require_admin
+from auth import get_current_user, require_permission
 from database import User
 from services.updater import check_for_update, apply_update, UpdaterError
 from version import get_current_version
@@ -49,9 +49,9 @@ async def system_check_update(current_user: User = Depends(get_current_user)):
 @router.post("/apply-update")
 def system_apply_update(
     req: ApplyUpdateRequest,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_permission("departments:view")),
 ):
-    """执行系统更新（仅管理员可操作）
+    """执行系统更新（管理员或拥有部门管理权限的用户可操作）
 
     后台下载更新包、校验 SHA256、解压、备份、启动更新脚本后退出。
     更新脚本会自动替换文件并重启服务。

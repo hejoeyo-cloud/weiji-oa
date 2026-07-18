@@ -17,6 +17,7 @@ type PageState =
 export default function SystemSettings() {
   const { user, hasPermission } = useAuth()
   const isAdmin = user?.role === 'admin'
+  const canUpdate = isAdmin || hasPermission('departments:view')
   const [status, setStatus] = useState<SystemStatus | null>(null)
   const [pageState, setPageState] = useState<PageState>({ step: 'idle' })
   const [checking, setChecking] = useState(false)
@@ -159,17 +160,17 @@ export default function SystemSettings() {
           <div>
             <button
               onClick={handleCheckUpdate}
-              disabled={checking || !isAdmin}
+              disabled={checking || !canUpdate}
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: '#404040', color: 'white' }}
-              onMouseEnter={e => { if (!checking && isAdmin) e.currentTarget.style.background = '#262626' }}
-              onMouseLeave={e => { if (!checking && isAdmin) e.currentTarget.style.background = '#404040' }}
+              onMouseEnter={e => { if (!checking && canUpdate) e.currentTarget.style.background = '#262626' }}
+              onMouseLeave={e => { if (!checking && canUpdate) e.currentTarget.style.background = '#404040' }}
             >
               <RefreshCw size={14} className={checking ? 'animate-spin' : ''} />
               {checking ? '正在检查...' : '检查更新'}
             </button>
-            {!isAdmin && (
-              <p className="text-xs mt-2" style={{ color: '#a3a3a3' }}>仅管理员可执行更新操作</p>
+            {!canUpdate && (
+              <p className="text-xs mt-2" style={{ color: '#a3a3a3' }}>仅管理员或部门管理者可执行更新操作</p>
             )}
           </div>
         )}
@@ -211,7 +212,7 @@ export default function SystemSettings() {
                 </div>
               )}
             </div>
-            {isAdmin && (
+            {canUpdate && (
               <button
                 onClick={handleApplyUpdate}
                 disabled={installing}

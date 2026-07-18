@@ -75,7 +75,7 @@ const navGroups: NavGroup[] = [
       { path: '/module-settings', label: '模块配置', icon: Settings, permission: ['module_settings:view'] },
       { path: '/approval-rules', label: '审批规则', icon: GanttChartSquare, permission: ['approval_rules:view'] },
       { path: '/audit-logs', label: '操作日志', icon: Shield, permission: ['audit_logs:view'] },
-      { path: '/system-settings', label: '系统设置', icon: RefreshCw, permission: [] },
+      { path: '/system-settings', label: '系统设置', icon: RefreshCw, permission: ['departments:view'] },
     ],
   },
 ]
