@@ -54,19 +54,24 @@ export default function SystemSettings() {
     try {
       await applyUpdate(info.download_url, info.sha256)
       setPageState({ step: 'installing' })
-      // 轮询等待服务恢复
+      // 轮询：先等服务器挂掉（updater 杀旧进程），再等服务器恢复（新版本启动）
       let retries = 0
+      let serverWentDown = false
       const poll = setInterval(() => {
         retries++
-        fetch('/api/system/status')
-          .then(r => {
-            if (r.ok) {
+        getSystemStatus()
+          .then(() => {
+            if (serverWentDown) {
+              // 服务器恢复，更新完成
               clearInterval(poll)
               window.location.reload()
             }
+            // 还没挂，继续等
           })
           .catch(() => {
-            if (retries > 60) {
+            // 服务器挂了（或网络错误），说明 updater 已开始工作
+            serverWentDown = true
+            if (retries > 90) {
               clearInterval(poll)
               setPageState({ step: 'error', message: '更新超时，请手动检查系统是否已启动' })
             }
