@@ -5,7 +5,7 @@ import {
   Bell, LogOut, Menu, ClipboardList, Gift, DollarSign,
   Megaphone, CheckSquare, Shield, ChevronDown, Calendar, PackageCheck, User, Store,
   ChevronLeft, ChevronRight, Warehouse, RotateCcw, Wrench, Receipt,
-  Fingerprint, Kanban, BarChart3, Settings, Mail, GanttChartSquare
+  Fingerprint, Kanban, BarChart3, Settings, Mail, GanttChartSquare, RefreshCw
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useWebSocket } from '../hooks/useWebSocket'
@@ -75,6 +75,7 @@ const navGroups: NavGroup[] = [
       { path: '/module-settings', label: '模块配置', icon: Settings, permission: ['module_settings:view'] },
       { path: '/approval-rules', label: '审批规则', icon: GanttChartSquare, permission: ['approval_rules:view'] },
       { path: '/audit-logs', label: '操作日志', icon: Shield, permission: ['audit_logs:view'] },
+      { path: '/system-settings', label: '系统设置', icon: RefreshCw, permission: [] },
     ],
   },
 ]

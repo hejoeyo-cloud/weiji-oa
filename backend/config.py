@@ -69,3 +69,14 @@ SERVER_HOST = "0.0.0.0"
 SERVER_PORT = 8000
 
 # ── 本地版：无订阅/计费配置 ──────────────────────────────
+
+# ── 自动更新源（GitHub / Gitee） ──────────────────────────
+# 通过环境变量覆盖，默认指向项目的 GitHub / Gitee 仓库 raw 文件
+UPDATE_CHECK_URL_GITHUB = os.getenv(
+    "UPDATE_CHECK_URL_GITHUB",
+    "https://raw.githubusercontent.com/hejoeyo-cloud/weiji-oa/main/version.json",
+)
+UPDATE_CHECK_URL_GITEE = os.getenv(
+    "UPDATE_CHECK_URL_GITEE",
+    "https://gitee.com/darchro/weiji-oa/raw/main/version.json",
+)

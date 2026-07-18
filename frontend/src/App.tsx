@@ -30,6 +30,7 @@ import MessagesPage from './pages/MessagesPage'
 import ApprovalRulesPage from './pages/ApprovalRulesPage'
 import ProductList from './pages/ProductList'
 import ProductDetail from './pages/ProductDetail'
+import SystemSettings from './pages/SystemSettings'
 import { MODULE_REGISTRY } from './config/moduleRegistry'
 
 function isTokenExpired(): boolean {
@@ -137,6 +138,7 @@ export default function App() {
           <Route path="/tasks" element={<TaskBoard />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/module-settings" element={<ModuleSettingsPage />} />
+          <Route path="/system-settings" element={<SystemSettings />} />
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/approval-rules" element={<ApprovalRulesPage />} />
         </Route>
