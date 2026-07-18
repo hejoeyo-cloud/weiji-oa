@@ -60,10 +60,10 @@ async def check_for_update() -> dict:
     current_ver = current.get("version", "0.0.0")
 
     urls = []
-    if UPDATE_CHECK_URL_GITHUB:
-        urls.append(("github", UPDATE_CHECK_URL_GITHUB))
     if UPDATE_CHECK_URL_GITEE:
         urls.append(("gitee", UPDATE_CHECK_URL_GITEE))
+    if UPDATE_CHECK_URL_GITHUB:
+        urls.append(("github", UPDATE_CHECK_URL_GITHUB))
 
     if not urls:
         raise UpdaterError("未配置任何更新源，请设置环境变量 UPDATE_CHECK_URL_GITHUB 或 UPDATE_CHECK_URL_GITEE")
