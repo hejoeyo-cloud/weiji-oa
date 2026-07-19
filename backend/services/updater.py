@@ -207,11 +207,18 @@ def _replace_files(staging_dir: str) -> None:
     print("[updater] Cleaned __pycache__")
 
 
-def _generate_restart_bat() -> str:
-    """生成极简重启脚本 — 只负责等待 + 启动 start.bat"""
+def _generate_restart_bat(old_pid: int) -> str:
+    """生成极简重启脚本 — 等待 → 杀掉旧 cmd 窗口 → 启动 start.bat"""
     content = (
         "@echo off\r\n"
+        f'set "OLD_PID={old_pid}"\r\n'
         "timeout /t 3 /nobreak >nul\r\n"
+        ":: 找到旧 Python 进程的父 cmd.exe 并杀掉\r\n"
+        "for /f \"skip=1 tokens=*\" %%a in ('wmic process where \"processid=%OLD_PID%\" get parentprocessid 2^>nul') do (\r\n"
+        '    if not "%%a"=="" taskkill /F /PID %%a >nul 2>&1\r\n'
+        "    goto :cont\r\n"
+        ")\r\n"
+        ":cont\r\n"
         'cd /d "%~dp0"\r\n'
         'start "" start.bat\r\n'
     )
@@ -290,7 +297,8 @@ def apply_update(download_url: str, expected_sha256: str) -> dict:
     shutil.rmtree(staging_dir)
 
     # 7) 生成重启脚本并启动
-    restart_bat = _generate_restart_bat()
+    old_pid = os.getpid()
+    restart_bat = _generate_restart_bat(old_pid)
 
     if sys.platform == "win32":
         CREATE_NO_WINDOW = 0x08000000
@@ -303,7 +311,7 @@ def apply_update(download_url: str, expected_sha256: str) -> dict:
     else:
         subprocess.Popen(
             ["bash", "-c",
-             f'sleep 3; cd "{PROJECT_DIR}/backend" 2>/dev/null; python3 main.py &'],
+             f'sleep 3; kill {old_pid} 2>/dev/null; cd "{PROJECT_DIR}/backend" 2>/dev/null; python3 main.py &'],
             start_new_session=True,
             close_fds=True,
         )

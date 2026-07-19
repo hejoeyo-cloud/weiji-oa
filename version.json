@@ -1,8 +1,8 @@
 {
-  "version": "1.0.2",
+  "version": "1.0.3",
   "release_date": "2026-07-19",
-  "changelog": "登录页版本号改为动态获取\n退换登记新增折价退货选项及金额字段\n修复更新流程文件锁定问题\n更新流程重构：Python 直接替换文件",
-  "download_url_github": "https://github.com/hejoeyo-cloud/weiji-oa/releases/download/v1.0.2/weijioa-deploy.zip",
-  "download_url_gitee": "https://gitee.com/darchro/weiji-oa/releases/download/v1.0.2/weijioa-deploy.zip",
-  "sha256": "5e9b0e6b774cdbcc436339fd9e4b88d2a756cb816d8e2566153fceac7a594c59"
+  "changelog": "修复更新后旧 cmd 窗口不自动关闭问题\n重启脚本主动杀掉旧 cmd.exe 父进程",
+  "download_url_github": "https://github.com/hejoeyo-cloud/weiji-oa/releases/download/v1.0.3/weijioa-deploy.zip",
+  "download_url_gitee": "https://gitee.com/darchro/weiji-oa/releases/download/v1.0.3/weijioa-deploy.zip",
+  "sha256": "9a981be15a84d5f47f7e2a275d95ea4bbeb6ad38da8971b466a3ef99094ef481"
 }
