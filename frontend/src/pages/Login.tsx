@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Store, Eye, EyeOff } from 'lucide-react'
 import { login } from '../api/auth'
+import { getSystemStatus } from '../api/system'
 
 export default function Login() {
   const [email, setEmail] = useState(() => localStorage.getItem('remembered_email') || '')
@@ -10,7 +11,14 @@ export default function Login() {
   const [showPwd, setShowPwd] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [version, setVersion] = useState('')
   const navigate = useNavigate()
+
+  useEffect(() => {
+    getSystemStatus()
+      .then(s => setVersion(s.version))
+      .catch(() => setVersion(''))
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -128,7 +136,7 @@ export default function Login() {
 
         <div className="text-center mt-6">
           <p className="text-xs tracking-wider" style={{ color: '#d4d4d4' }}>
-            微迹 OA INTERNAL SYSTEM v1.0
+            微迹 OA INTERNAL SYSTEM{version ? ` v${version}` : ''}
           </p>
         </div>
       </div>

@@ -588,6 +588,8 @@ def _migrate_db():
                 conn.execute(text("ALTER TABLE return_exchange_records ADD COLUMN damage_items TEXT DEFAULT '[]'"))
             if 'claim_status' not in columns:
                 conn.execute(text("ALTER TABLE return_exchange_records ADD COLUMN claim_status VARCHAR(20) DEFAULT 'none'"))
+            if 'discount_amount' not in columns:
+                conn.execute(text(f"ALTER TABLE return_exchange_records ADD COLUMN discount_amount {_col('REAL', 'NUMERIC(12,2)')} DEFAULT 0"))
             conn.commit()
 
     # ── 迁移：gift_records 新增 shop_name 列 ─────────────────────────

@@ -164,9 +164,10 @@ export interface ReturnExchangeRecord {
   send_tracking: string
   handle_result: string
   progress: string  // pending | processing | completed
-  record_type: string  // return(退货)/exchange(换货)/upgrade(升级配置)
+  record_type: string  // return(退货)/exchange(换货)/upgrade(升级配置)/discount_return(折价退货)
   upgrade_config: string
   upgrade_fee: number
+  discount_amount: number
   disassembly_feedback: string
   shipping_fee: number
   remark: string

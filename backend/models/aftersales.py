@@ -85,9 +85,10 @@ class ReturnExchangeRecord(Base):
     disassembly_feedback = Column(Text, default="")      # 拆件反馈
     shipping_fee = Column(Float, default=0)              # 运费
     remark = Column(Text, default="")                    # 备注
-    record_type = Column(String(20), default="")          # 登记类型：return(退货)/exchange(换货)/upgrade(升级配置)
+    record_type = Column(String(20), default="")          # 登记类型：return(退货)/exchange(换货)/upgrade(升级配置)/discount_return(折价退货)
     upgrade_config = Column(String(200), default="")        # 升级后的目标配置
     upgrade_fee = Column(Float, default=0)                 # 升级差价
+    discount_amount = Column(Float, default=0)              # 折价金额（折价退货时填写）
     has_damage = Column(Boolean, default=False)            # 是否有货损
     damage_items = Column(JSONType, default=list)          # 货损明细 [{name, amount, desc}]
     claim_status = Column(String(20), default="none")      # 追赔状态: none/pending/claimed

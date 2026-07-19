@@ -48,6 +48,7 @@ const PROGRESSES = [
 const RECORD_TYPES = [
   { value: 'return', label: '退货', color: 'bg-orange-100 text-orange-700' },
   { value: 'exchange', label: '换货', color: 'bg-purple-100 text-purple-700' },
+  { value: 'discount_return', label: '折价退货', color: 'bg-red-100 text-red-700' },
   { value: 'upgrade', label: '升级配置', color: 'bg-cyan-100 text-cyan-700' },
 ]
 
@@ -73,7 +74,7 @@ const emptyForm = {
   config: '', computer_price: 0, quantity: 1, accessories: '', accessories_price: 0,
   customer_info: '', return_tracking: '', send_tracking: '', handle_result: '',
   progress: 'pending', disassembly_feedback: '', shipping_fee: 0, remark: '',
-  record_type: '', upgrade_config: '', upgrade_fee: 0,
+  record_type: '', upgrade_config: '', upgrade_fee: 0, discount_amount: 0,
   has_damage: false, damage_items: [] as { name: string; amount: number; desc: string }[], claim_status: 'none',
 }
 
@@ -226,6 +227,7 @@ export default function ReturnExchangeList() {
           '登记类型': RECORD_TYPES.find(item => item.value === r.record_type)?.label || '',
           '升级配置': r.upgrade_config || '',
           '升级差价': r.upgrade_fee || 0,
+          '折价金额': r.discount_amount || 0,
           '订单编号': r.order_no || '',
           '型号': r.model || '',
           '配置': r.config || '',
@@ -281,6 +283,7 @@ export default function ReturnExchangeList() {
       record_type: record.record_type || '',
       upgrade_config: record.upgrade_config || '',
       upgrade_fee: record.upgrade_fee || 0,
+      discount_amount: record.discount_amount || 0,
       has_damage: record.has_damage || false,
       damage_items: record.damage_items || [],
       claim_status: record.claim_status || 'none',
@@ -614,6 +617,14 @@ export default function ReturnExchangeList() {
                   </div>
                 </div>
               )}
+              {form.record_type === 'discount_return' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">折价金额</label>
+                  <input type="number" min="0" step="0.01" value={form.discount_amount} onChange={e => setForm({ ...form, discount_amount: Number(e.target.value) })}
+                    placeholder="折价退货金额"
+                    className="w-full border rounded-lg px-3 py-2" />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">客户信息</label>
                 <textarea value={form.customer_info} onChange={e => setForm({ ...form, customer_info: e.target.value })}
@@ -702,6 +713,9 @@ export default function ReturnExchangeList() {
                     <div><span className="text-gray-500">升级配置：</span><span className="text-cyan-700 font-medium">{detailRecord.upgrade_config || '-'}</span></div>
                     <div><span className="text-gray-500">升级差价：</span><span className="text-cyan-700 font-medium">¥{detailRecord.upgrade_fee?.toFixed(2) || '0.00'}</span></div>
                   </>
+                )}
+                {detailRecord.record_type === 'discount_return' && (
+                  <div><span className="text-gray-500">折价金额：</span><span className="text-red-600 font-medium">¥{detailRecord.discount_amount?.toFixed(2) || '0.00'}</span></div>
                 )}
                 <div className="col-span-2"><span className="text-gray-500">客户信息：</span>{detailRecord.customer_info || '-'}</div>
                 <div className="col-span-2"><span className="text-gray-500">退换原因：</span>{detailRecord.return_reason || '-'}</div>
