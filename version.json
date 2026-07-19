@@ -1,8 +1,8 @@
 {
-  "version": "1.0.1",
-  "release_date": "2026-07-18",
-  "changelog": "发货管理页面重构优化\n财务页面改进\n修复更新检查 Gitee 302 重定向错误\n新增 install.bat / README.txt 部署文档\n启动脚本优化",
-  "download_url_github": "https://github.com/hejoeyo-cloud/weiji-oa/releases/download/v1.0.1/weijioa-deploy.zip",
-  "download_url_gitee": "https://gitee.com/darchro/weiji-oa/releases/download/v1.0.1/weijioa-deploy.zip",
-  "sha256": "60c35c58a5467f503485aa92c3156a9222750caa956971b93dde09034634239e"
+  "version": "1.0.2",
+  "release_date": "2026-07-19",
+  "changelog": "登录页版本号改为动态获取\n退换登记新增折价退货选项及金额字段\n修复更新流程文件锁定问题\n更新流程重构：Python 直接替换文件",
+  "download_url_github": "https://github.com/hejoeyo-cloud/weiji-oa/releases/download/v1.0.2/weijioa-deploy.zip",
+  "download_url_gitee": "https://gitee.com/darchro/weiji-oa/releases/download/v1.0.2/weijioa-deploy.zip",
+  "sha256": "5e9b0e6b774cdbcc436339fd9e4b88d2a756cb816d8e2566153fceac7a594c59"
 }
