@@ -181,7 +181,7 @@ def step_create_zip() -> None:
                 if file == ".DS_Store":
                     continue
                 file_path = os.path.join(root, file)
-                arcname = os.path.relpath(file_path, DEPLOY_DIR.parent)
+                arcname = os.path.relpath(file_path, DEPLOY_DIR)
                 zf.write(file_path, arcname)
 
     print(f"  [OK] 打包完成: {ZIP_PATH}")
