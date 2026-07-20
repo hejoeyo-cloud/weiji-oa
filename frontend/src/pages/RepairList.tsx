@@ -318,10 +318,41 @@ export default function RepairList() {
   const handleSubmit = async () => {
     setSaving(true)
     try {
+      let saved: RepairRecord | null = null
       if (editRecord) {
-        await updateRepair(editRecord.id, form)
+        const changes: string[] = []
+        const old = editRecord
+        const s = (v: any) => (v ?? '').toString().trim()
+        if (s(old.apply_date) !== s(form.apply_date)) changes.push(`日期: ${old.apply_date || '无'} → ${form.apply_date || '无'}`)
+        if (s(old.shop_name) !== s(form.shop_name)) changes.push(`店铺: ${old.shop_name || '无'} → ${form.shop_name || '无'}`)
+        if (s(old.order_no) !== s(form.order_no)) changes.push(`订单编号: ${old.order_no || '无'} → ${form.order_no || '无'}`)
+        if (s(old.return_reason) !== s(form.return_reason)) changes.push(`故障描述: ${old.return_reason || '无'} → ${form.return_reason || '无'}`)
+        if (s(old.model) !== s(form.model)) changes.push(`型号: ${old.model || '无'} → ${form.model || '无'}`)
+        if (s(old.config) !== s(form.config)) changes.push(`配置: ${old.config || '无'} → ${form.config || '无'}`)
+        if (Number(old.quantity) !== Number(form.quantity)) changes.push(`数量: ${old.quantity || 1} → ${form.quantity || 1}`)
+        if (s(old.accessories) !== s(form.accessories)) changes.push(`配件: ${old.accessories || '无'} → ${form.accessories || '无'}`)
+        if (s(old.customer_info) !== s(form.customer_info)) changes.push(`客户信息已更新`)
+        if (s(old.return_tracking) !== s(form.return_tracking)) changes.push(`寄回单号: ${old.return_tracking || '无'} → ${form.return_tracking || '无'}`)
+        if (s(old.send_tracking) !== s(form.send_tracking)) changes.push(`寄出新单号: ${old.send_tracking || '无'} → ${form.send_tracking || '无'}`)
+        if (s(old.handle_result) !== s(form.handle_result)) changes.push(`维修结果已更新`)
+        if (old.repair_status !== form.repair_status) {
+          const oldLabel = REPAIR_STATUSES.find(s => s.value === old.repair_status)?.label || old.repair_status
+          const newLabel = REPAIR_STATUSES.find(s => s.value === form.repair_status)?.label || form.repair_status
+          changes.push(`维修状态: ${oldLabel} → ${newLabel}`)
+        }
+        if (s(old.disassembly_feedback) !== s(form.disassembly_feedback)) changes.push(`拆件反馈已更新`)
+        if (Number(old.shipping_fee) !== Number(form.shipping_fee)) changes.push(`运费: ¥${old.shipping_fee || 0} → ¥${form.shipping_fee || 0}`)
+        if (s(old.remark) !== s(form.remark)) changes.push(`备注: ${old.remark || '无'} → ${form.remark || '无'}`)
+        const content = changes.length > 0 ? changes.join('；') : '更新维修登记（无字段变更）'
+        saved = await updateRepair(editRecord.id, form)
+        if (saved?.id) {
+          addRepairFeedback(saved.id, content).catch(console.error)
+        }
       } else {
-        await createRepair(form)
+        saved = await createRepair(form)
+        if (saved?.id) {
+          addRepairFeedback(saved.id, `新建维修登记 #${saved.id}`).catch(console.error)
+        }
       }
       setShowModal(false)
       load()
