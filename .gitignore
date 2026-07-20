@@ -45,8 +45,15 @@ uploads/
 .gstack/
 backend/.vite/
 
-# 授权系统
-backend/keys/private.pem
+# 运行时生成
+_restart.bat
+nul
+update_staging/
+
+# 部署包构建产物
+微迹OA系统-部署包/
+
+# 授权系统/密钥
 license.lic
 backups/
 

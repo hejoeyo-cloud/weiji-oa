@@ -26,13 +26,12 @@ python main.py     # Uvicorn on :8000 (0.0.0.0), auto-reload via __main__
 
 No test framework is configured. Alembic config exists but is unused — database schema changes are handled by manual migration logic in `backend/models/init_db.py` (see Database Migrations below).
 
-**Client deployment build** (PyInstaller, protects source code):
+**Client deployment build** (源码分发，客户需要 Python 环境):
 ```bash
-cd frontend && npm run build          # Build frontend first
-pip install pyinstaller               # One-time
-pyinstaller build.spec --clean        # Output in dist/
+python build_deploy.py                  # 一键构建（前端构建 + 复制源码 + 打包 zip）
+python build_deploy.py --skip-npm       # 跳过前端构建，只更新源码和 zip
 ```
-The packaged executable loads `license.lic` from the same directory. The `build.spec` auto-collects backend modules, bundles `frontend/dist/` and `public.pem`, and excludes heavy packages (numpy, pandas, matplotlib, tkinter).
+The packaged executable loads `license.lic` from the same directory. The `build.spec` auto-collects backend modules, bundles `frontend/dist/` and `public.pem`, and excludes heavy packages (numpy, pandas, matplotlib, tkinter). `build_deploy.py` orchestrates the full pipeline: builds frontend, copies backend source code, syncs `version.json`, and packages the zip.
 
 ## Architecture
 
@@ -84,6 +83,7 @@ The packaged executable loads `license.lic` from the same directory. The `build.
 | `tools/gen_license.py` | License file generator (requires private key) |
 | `tools/migrate_to_pg.py` | SQLite → PostgreSQL migration utility |
 | `build.spec` | PyInstaller 打包配置（客户交付用） |
+| `build_deploy.py` | 一键构建部署包脚本（前端构建 → 打包 → 组装 → 自动同步 version.json） |
 
 ## Branch Strategy
 
@@ -127,7 +127,7 @@ The packaged executable loads `license.lic` from the same directory. The `build.
 - Navigation sidebar groups and their permission requirements are defined in `AppLayout.tsx`; dynamic module items are merged in at runtime from `/api/module-configs`
 - After editing frontend code, run `npm run build` (from `frontend/`) before restarting the backend — FastAPI serves from `frontend/dist/`, not the dev server. For customer deployment, run `pyinstaller build.spec --clean` after building frontend.
 - To restart the backend: kill the process on port 8000, then `cd backend && python main.py`
-- **Deployment package**: Build frontend (`npm run build`), run `pyinstaller build.spec --clean`, copy `dist/weiji-oa` directory + `install.bat` + `start.bat` + `README.txt` (pure ASCII, no special symbols) into `微迹OA系统-部署包/`. zip the directory for delivery. The customer places `license.lic` next to the exe.
+- **Deployment package**: Run `python build_deploy.py` from project root — it automates: frontend build (`npm run build`) → copy backend source, frontend dist, tools, and root files into `微迹OA系统-部署包/weijioa-deploy/` → create `weijioa-deploy.zip`. The script **automatically syncs `version.json` from root** into the deployment package, preventing version mismatch bugs. Options: `--skip-npm` (skip frontend build), `--skip-zip` (skip zipping). The customer places `license.lic` next to the exe.
 - WebSocket endpoint is `/ws/{user_id}` — used for real-time notifications (new tickets, status changes, etc.)
 - The `ReturnExchangeRecord` model uses JSON columns for `damage_items` (array of `{name, amount, desc}`) — follow this same pattern for any new array-type fields
 - **Field options system**: `backend/models/field_option.py` provides a generic per-company key-value store for dropdown presets. `field_name` distinguishes categories (e.g., `model`, `config`, `color`, `accessories`). The `FieldSelect` component (`frontend/src/components/FieldSelect.tsx`) is the frontend consumer — it auto-loads options for a given `fieldName` and renders a searchable dropdown with management modal. The `color` field_name additionally supports `color_code` for visual swatches.
