@@ -4,5 +4,5 @@
   "changelog": "修复维修登记保存时不自动生成处理记录的问题\n创建/更新维修登记时自动记录操作历史，与发货登记、退换登记保持一致",
   "download_url_github": "https://github.com/hejoeyo-cloud/weiji-oa/releases/download/v1.0.4/weijioa-deploy.zip",
   "download_url_gitee": "https://gitee.com/darchro/weiji-oa/releases/download/v1.0.4/weijioa-deploy.zip",
-  "sha256": "a9ff4b5798ff2c8bd084ff916d8148dd6a7fec080ee60f7b1b630e919dda4cd3"
+  "sha256": "6e054c8e7130c33ae00f68950dbde8fe20e32a3638724d9666863725a51037f8"
 }
