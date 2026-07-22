@@ -55,6 +55,7 @@ update_staging/
 
 # 授权系统/密钥
 license.lic
+backend/keys/private.pem
 backups/
 
 # JWT 密钥（运行时自动生成）

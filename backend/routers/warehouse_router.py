@@ -5,6 +5,7 @@ from sqlalchemy import func
 from database import get_db, WarehouseProduct, WarehouseInbound, WarehouseOutbound, User
 from database import WarehouseInboundFeedback, WarehouseOutboundFeedback
 from database import WarehouseReturnToFactory, WarehouseReturnToFactoryFeedback
+from database import WarehouseBatch, WarehouseOutboundBatch
 from schemas import (
     WarehouseProductCreate, WarehouseProductUpdate, WarehouseProductOut,
     WarehouseInboundCreate, WarehouseInboundUpdate, WarehouseInboundOut,
@@ -13,6 +14,7 @@ from schemas import (
     WarehouseOutboundFeedbackCreate, WarehouseOutboundFeedbackOut,
     WarehouseReturnToFactoryCreate, WarehouseReturnToFactoryUpdate, WarehouseReturnToFactoryOut,
     WarehouseReturnToFactoryFeedbackCreate, WarehouseReturnToFactoryFeedbackOut,
+    WarehouseBatchOut, WarehouseOutboundAllocationOut,
 )
 from auth import get_current_user, require_permission
 from services import audit_service
@@ -62,6 +64,14 @@ def product_to_out(p: WarehouseProduct, db: Session) -> WarehouseProductOut:
         WarehouseReturnToFactory.status == "repaired",
     ).scalar() or 0
     current_qty = (p.initial_qty or 0) + inbound_qty - outbound_qty - return_factory_qty
+    # 计算加权平均单价
+    batches = db.query(WarehouseBatch).filter(
+        WarehouseBatch.product_id == p.id,
+        WarehouseBatch.company_id == p.company_id,
+    ).all()
+    total_value = sum(b.unit_price * b.remaining_quantity for b in batches if b.remaining_quantity > 0)
+    total_qty_in_batches = sum(b.remaining_quantity for b in batches if b.remaining_quantity > 0)
+    avg_price = round(total_value / total_qty_in_batches, 2) if total_qty_in_batches > 0 else 0
     return WarehouseProductOut(
         id=p.id,
         code=p.code or "",
@@ -75,6 +85,7 @@ def product_to_out(p: WarehouseProduct, db: Session) -> WarehouseProductOut:
         inbound_qty=inbound_qty,
         outbound_qty=outbound_qty,
         current_qty=current_qty,
+        avg_unit_price=avg_price,
         created_by=p.created_by,
         creator_name=p.creator.name if p.creator else "",
         created_at=p.created_at,
@@ -93,6 +104,8 @@ def inbound_to_out(r: WarehouseInbound) -> WarehouseInboundOut:
         spec=r.spec or "",
         location=r.location or "",
         quantity=r.quantity or 0,
+        unit_price=r.unit_price or 0,
+        batch_no=r.batch.batch_no if r.batch else "",
         operator=r.operator or "",
         remark=r.remark or "",
         created_by=r.created_by,
@@ -249,6 +262,36 @@ def delete_product(
 
 
 # ══════════════════════════════════════════════════════
+# 产品批次查询
+# ══════════════════════════════════════════════════════
+
+@router.get("/products/{product_id}/batches", response_model=list[WarehouseBatchOut])
+def list_product_batches(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """查看某货品的所有批次"""
+    batches = db.query(WarehouseBatch).filter(
+        WarehouseBatch.product_id == product_id,
+        WarehouseBatch.company_id == current_user.company_id,
+    ).order_by(WarehouseBatch.created_at.asc()).all()
+    return [
+        WarehouseBatchOut(
+            id=b.id,
+            product_id=b.product_id,
+            batch_no=b.batch_no or "",
+            unit_price=b.unit_price or 0,
+            initial_quantity=b.initial_quantity or 0,
+            remaining_quantity=b.remaining_quantity or 0,
+            inbound_id=b.inbound_id or 0,
+            created_at=b.created_at,
+        )
+        for b in batches
+    ]
+
+
+# ══════════════════════════════════════════════════════
 # 入库处理记录（必须在 /inbound 列表路由之前定义）
 # ══════════════════════════════════════════════════════
 
@@ -372,11 +415,28 @@ def create_inbound(
         spec=product.spec,
         location=product.location,
         quantity=data.quantity,
+        unit_price=data.unit_price,
         operator=data.operator,
         remark=data.remark,
         created_by=current_user.id,
     )
     db.add(r)
+    db.flush()
+    from datetime import datetime as _dt
+    if data.unit_price > 0:
+        batch_no = f"BATCH-{_dt.now().strftime('%Y%m%d')}-{r.id:04d}"
+        batch = WarehouseBatch(
+            company_id=current_user.company_id,
+            product_id=data.product_id,
+            batch_no=batch_no,
+            unit_price=data.unit_price,
+            initial_quantity=data.quantity,
+            remaining_quantity=data.quantity,
+            inbound_id=r.id,
+        )
+        db.add(batch)
+        db.flush()
+        r.batch_id = batch.id
     db.commit()
     db.refresh(r)
     audit_service.log(db, current_user, "create", "warehouse_inbound", r.id,
@@ -411,6 +471,16 @@ def delete_inbound(
     r = db.query(WarehouseInbound).filter(WarehouseInbound.id == record_id, WarehouseInbound.company_id == current_user.company_id).first()
     if not r:
         raise HTTPException(status_code=404, detail="记录不存在")
+    # 检查关联批次是否有出库记录
+    if r.batch_id:
+        allocations = db.query(WarehouseOutboundBatch).filter(
+            WarehouseOutboundBatch.batch_id == r.batch_id
+        ).count()
+        if allocations > 0:
+            raise HTTPException(status_code=400, detail="该批次已有出库记录，无法删除入库单")
+    # 删除关联批次
+    if r.batch_id:
+        db.query(WarehouseBatch).filter(WarehouseBatch.id == r.batch_id).delete()
     audit_service.log(db, current_user, "delete", "warehouse_inbound", r.id,
                       f"删除入库记录: {r.product_name} x{r.quantity}")
     db.delete(r)
@@ -551,6 +621,75 @@ def create_outbound(
         created_by=current_user.id,
     )
     db.add(r)
+    db.flush()
+    # 批次扣减逻辑
+    if data.batch_allocations and len(data.batch_allocations) > 0:
+        # ── 手动分配 ──
+        total_allocated = sum(a.get("quantity", 0) for a in data.batch_allocations)
+        if total_allocated != data.quantity:
+            raise HTTPException(
+                status_code=400,
+                detail=f"批次分配数量之和({total_allocated})不等于出库总数量({data.quantity})"
+            )
+        for alloc_data in data.batch_allocations:
+            batch_id = alloc_data.get("batch_id", 0)
+            alloc_qty = alloc_data.get("quantity", 0)
+            if alloc_qty <= 0:
+                continue
+            batch = db.query(WarehouseBatch).filter(
+                WarehouseBatch.id == batch_id,
+                WarehouseBatch.product_id == data.product_id,
+                WarehouseBatch.company_id == current_user.company_id,
+            ).first()
+            if not batch:
+                raise HTTPException(status_code=400, detail=f"批次不存在: #{batch_id}")
+            if alloc_qty > batch.remaining_quantity:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"批次{batch.batch_no}库存不足(剩余{batch.remaining_quantity}，需要{alloc_qty})"
+                )
+            alloc = WarehouseOutboundBatch(
+                outbound_id=r.id,
+                batch_id=batch_id,
+                quantity=alloc_qty,
+            )
+            db.add(alloc)
+            batch.remaining_quantity -= alloc_qty
+    else:
+        # ── 自动 FIFO（未传入 batch_allocations 时回退） ──
+        remaining_to_deduct = data.quantity
+        total_batch_deducted = db.query(func.sum(WarehouseOutboundBatch.quantity)).join(
+            WarehouseOutbound, WarehouseOutboundBatch.outbound_id == WarehouseOutbound.id
+        ).filter(
+            WarehouseOutbound.product_id == data.product_id,
+            WarehouseOutbound.company_id == current_user.company_id,
+        ).scalar() or 0
+        total_outbound_all = db.query(func.sum(WarehouseOutbound.quantity)).filter(
+            WarehouseOutbound.product_id == data.product_id,
+            WarehouseOutbound.company_id == current_user.company_id,
+        ).scalar() or 0
+        already_from_initial = total_outbound_all - total_batch_deducted
+        available_initial = max(0, (product.initial_qty or 0) - already_from_initial)
+        deduct_from_initial = min(remaining_to_deduct, available_initial)
+        remaining_to_deduct -= deduct_from_initial
+        if remaining_to_deduct > 0:
+            batches = db.query(WarehouseBatch).filter(
+                WarehouseBatch.product_id == data.product_id,
+                WarehouseBatch.company_id == current_user.company_id,
+                WarehouseBatch.remaining_quantity > 0,
+            ).order_by(WarehouseBatch.created_at.asc()).all()
+            for batch in batches:
+                if remaining_to_deduct <= 0:
+                    break
+                take = min(remaining_to_deduct, batch.remaining_quantity)
+                alloc = WarehouseOutboundBatch(
+                    outbound_id=r.id,
+                    batch_id=batch.id,
+                    quantity=take,
+                )
+                db.add(alloc)
+                batch.remaining_quantity -= take
+                remaining_to_deduct -= take
     db.commit()
     db.refresh(r)
     audit_service.log(db, current_user, "create", "warehouse_outbound", r.id,
@@ -585,11 +724,48 @@ def delete_outbound(
     r = db.query(WarehouseOutbound).filter(WarehouseOutbound.id == record_id, WarehouseOutbound.company_id == current_user.company_id).first()
     if not r:
         raise HTTPException(status_code=404, detail="记录不存在")
+    # 恢复批次剩余数量
+    allocs = db.query(WarehouseOutboundBatch).filter(
+        WarehouseOutboundBatch.outbound_id == record_id
+    ).all()
+    for alloc in allocs:
+        batch = db.query(WarehouseBatch).filter(
+            WarehouseBatch.id == alloc.batch_id
+        ).first()
+        if batch:
+            batch.remaining_quantity += alloc.quantity
+        db.delete(alloc)
     audit_service.log(db, current_user, "delete", "warehouse_outbound", r.id,
                       f"删除出库记录: {r.product_name} x{r.quantity}")
     db.delete(r)
     db.commit()
     return {"ok": True}
+
+
+# ══════════════════════════════════════════════════════
+# 出库批次分配查询
+# ══════════════════════════════════════════════════════
+
+@router.get("/outbound/{record_id}/allocations", response_model=list[WarehouseOutboundAllocationOut])
+def get_outbound_allocations(
+    record_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """查看某次出库的批次分配明细"""
+    allocations = db.query(WarehouseOutboundBatch).filter(
+        WarehouseOutboundBatch.outbound_id == record_id
+    ).all()
+    result = []
+    for a in allocations:
+        batch = db.query(WarehouseBatch).filter(WarehouseBatch.id == a.batch_id).first()
+        result.append(WarehouseOutboundAllocationOut(
+            batch_id=a.batch_id,
+            batch_no=batch.batch_no if batch else "",
+            unit_price=batch.unit_price if batch else 0,
+            quantity=a.quantity,
+        ))
+    return result
 
 
 # ══════════════════════════════════════════════════════
@@ -636,7 +812,8 @@ def _return_to_factory_to_out(r: WarehouseReturnToFactory, db: Session) -> Wareh
         id=r.id, date=r.date or "", product_id=r.product_id,
         product_code=r.product_code or "", category=r.category or "",
         product_name=r.product_name or "", spec=r.spec or "", location=r.location or "",
-        quantity=r.quantity or 0, reason=r.reason or "", status=r.status or "repairing",
+        quantity=r.quantity or 0, returned_quantity=r.returned_quantity or 0,
+        reason=r.reason or "", status=r.status or "repairing",
         repaired_at=r.repaired_at, operator=r.operator or "", remark=r.remark or "",
         created_by=r.created_by, creator_name=r.creator.name if r.creator else "",
         created_at=r.created_at, updated_at=r.updated_at,
@@ -725,17 +902,42 @@ def update_return_to_factory(
     if not r:
         raise HTTPException(status_code=404, detail="记录不存在")
     old_status = r.status
-    for k, v in data.model_dump(exclude_unset=True).items():
-        setattr(r, k, v)
-    # 如果状态从维修中变为已返库，记录返库时间并自动添加处理记录
-    if old_status == "repairing" and data.status == "repaired":
+    # 处理部分返库逻辑
+    if data.returned_quantity is not None:
         from datetime import datetime as _dt
-        r.repaired_at = _dt.now()
+        additional = data.returned_quantity
+        r.returned_quantity = (r.returned_quantity or 0) + additional
+        # 不能超过总数量
+        if r.returned_quantity > r.quantity:
+            raise HTTPException(status_code=400, detail=f"返库数量({r.returned_quantity})不能超过总数量({r.quantity})")
+        # 自动添加处理记录
         fb = WarehouseReturnToFactoryFeedback(
             company_id=current_user.company_id, record_id=r.id,
-            user_id=current_user.id, content=f"维修完成返库：{r.product_name} x{r.quantity}",
+            user_id=current_user.id,
+            content=f"部分返库：{r.product_name} x{additional}（累计 {r.returned_quantity}/{r.quantity}）",
         )
         db.add(fb)
+        # 如果全部返库，自动标记状态
+        if r.returned_quantity >= r.quantity:
+            r.status = "repaired"
+            r.repaired_at = _dt.now()
+        else:
+            r.status = "repairing"
+    else:
+        # 兼容旧逻辑：直接设置状态
+        for k, v in data.model_dump(exclude_unset=True).items():
+            if k == "returned_quantity":
+                continue
+            setattr(r, k, v)
+        if old_status == "repairing" and data.status == "repaired":
+            from datetime import datetime as _dt
+            r.repaired_at = _dt.now()
+            r.returned_quantity = r.quantity  # 全量返库
+            fb = WarehouseReturnToFactoryFeedback(
+                company_id=current_user.company_id, record_id=r.id,
+                user_id=current_user.id, content=f"维修完成返库：{r.product_name} x{r.quantity}",
+            )
+            db.add(fb)
     db.commit()
     db.refresh(r)
     audit_service.log(db, current_user, "warehouse_return_to_factory", "update", r.id, f"更新返厂出库记录")

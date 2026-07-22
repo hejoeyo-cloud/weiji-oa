@@ -39,7 +39,8 @@ def _migrate_db():
         "warehouse_outbound_feedbacks", "customer_invoice_requests",
         "sales_invoices", "purchase_invoices", "expense_invoices",
         "attendance_records", "task_boards", "shops",
-        "gift_cashback_feedbacks",
+        "gift_cashback_feedbacks", "warehouse_batches",
+        "warehouse_outbound_batches",
     ]
 
     if "companies" not in existing_tables:
@@ -763,6 +764,56 @@ def _migrate_db():
                 )
             """))
             conn.commit()
+
+    # ── 迁移：仓储批次管理 ────────────────────────────────────
+    if "warehouse_batches" not in existing_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE warehouse_batches (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company_id INTEGER REFERENCES companies(id),
+                    product_id INTEGER NOT NULL REFERENCES warehouse_products(id),
+                    batch_no VARCHAR(50) NOT NULL,
+                    unit_price FLOAT DEFAULT 0,
+                    initial_quantity INTEGER DEFAULT 0,
+                    remaining_quantity INTEGER DEFAULT 0,
+                    inbound_id INTEGER REFERENCES warehouse_inbound(id),
+                    created_at DATETIME
+                )
+            """))
+            conn.commit()
+            existing_tables = inspect(engine).get_table_names()
+
+    if "warehouse_outbound_batches" not in existing_tables:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE warehouse_outbound_batches (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    outbound_id INTEGER NOT NULL REFERENCES warehouse_outbound(id),
+                    batch_id INTEGER NOT NULL REFERENCES warehouse_batches(id),
+                    quantity INTEGER DEFAULT 0
+                )
+            """))
+            conn.commit()
+            existing_tables = inspect(engine).get_table_names()
+
+    if "warehouse_inbound" in existing_tables:
+        columns = [c["name"] for c in inspect(engine).get_columns("warehouse_inbound")]
+        if "unit_price" not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE warehouse_inbound ADD COLUMN unit_price FLOAT DEFAULT 0"))
+                conn.commit()
+        if "batch_id" not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE warehouse_inbound ADD COLUMN batch_id INTEGER REFERENCES warehouse_batches(id)"))
+                conn.commit()
+
+    if "warehouse_return_to_factory" in existing_tables:
+        columns = [c["name"] for c in inspect(engine).get_columns("warehouse_return_to_factory")]
+        if "returned_quantity" not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE warehouse_return_to_factory ADD COLUMN returned_quantity INTEGER DEFAULT 0"))
+                conn.commit()
 
     # ── 性能优化：添加常用查询索引 ──
     _ensure_indexes(engine, existing_tables)

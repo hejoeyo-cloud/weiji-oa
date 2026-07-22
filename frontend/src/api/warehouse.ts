@@ -1,5 +1,5 @@
 import client from './client'
-import type { WarehouseProduct, WarehouseInbound, WarehouseOutbound, WarehouseStats, WarehouseInboundFeedback, WarehouseOutboundFeedback, WarehouseReturnToFactory, WarehouseReturnToFactoryFeedback } from '../types'
+import type { WarehouseProduct, WarehouseInbound, WarehouseOutbound, WarehouseStats, WarehouseInboundFeedback, WarehouseOutboundFeedback, WarehouseReturnToFactory, WarehouseReturnToFactoryFeedback, WarehouseBatch, WarehouseOutboundAllocation } from '../types'
 
 // ── 货品管理 ──────────────────────────────────────────────────────────
 
@@ -56,6 +56,7 @@ export interface InboundCreateData {
   date?: string
   product_id: number
   quantity: number
+  unit_price?: number
   operator?: string
   remark?: string
 }
@@ -93,6 +94,7 @@ export interface OutboundCreateData {
   quantity: number
   operator?: string
   remark?: string
+  batch_allocations?: {batch_id: number, quantity: number}[]
 }
 
 export const getOutboundList = (params: OutboundListParams = {}) =>
@@ -162,7 +164,7 @@ export const getReturnToFactoryList = (params: ReturnToFactoryListParams = {}) =
 export const createReturnToFactory = (data: ReturnToFactoryCreateData) =>
   client.post<WarehouseReturnToFactory>('/warehouse/return-to-factory', data).then(r => r.data)
 
-export const updateReturnToFactory = (id: number, data: Partial<ReturnToFactoryCreateData & { status: string }>) =>
+export const updateReturnToFactory = (id: number, data: Partial<ReturnToFactoryCreateData & { status: string; returned_quantity: number }>) =>
   client.put<WarehouseReturnToFactory>(`/warehouse/return-to-factory/${id}`, data).then(r => r.data)
 
 export const deleteReturnToFactory = (id: number) =>
@@ -173,3 +175,12 @@ export const getReturnToFactoryFeedbacks = (recordId: number) =>
 
 export const addReturnToFactoryFeedback = (recordId: number, content: string) =>
   client.post<WarehouseReturnToFactoryFeedback>(`/warehouse/return-to-factory/${recordId}/feedback`, { content }).then(r => r.data)
+
+
+// ── 批次管理 ──────────────────────────────────────────────────────────
+
+export const getProductBatches = (productId: number) =>
+  client.get<WarehouseBatch[]>(`/warehouse/products/${productId}/batches`).then(r => r.data)
+
+export const getOutboundAllocations = (outboundId: number) =>
+  client.get<WarehouseOutboundAllocation[]>(`/warehouse/outbound/${outboundId}/allocations`).then(r => r.data)

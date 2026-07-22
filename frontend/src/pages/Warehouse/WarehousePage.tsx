@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
-  Plus, Search, Edit2, Trash2, X, ChevronLeft, ChevronRight,
+  Plus, Search, Edit2, Trash2, X, Layers, ChevronLeft, ChevronRight,
   Package, TrendingUp, TrendingDown, AlertTriangle, Boxes,
   Download, RefreshCw, Eye, Send, RotateCcw
 } from 'lucide-react'
@@ -13,10 +13,13 @@ import {
   getOutboundFeedbacks, addOutboundFeedback,
   getReturnToFactoryList, createReturnToFactory, updateReturnToFactory, deleteReturnToFactory,
   getReturnToFactoryFeedbacks, addReturnToFactoryFeedback,
+  getProductBatches, getOutboundAllocations,
   type ProductCreateData, type InboundCreateData, type OutboundCreateData, type ReturnToFactoryCreateData
 } from '../../api/warehouse'
-import type { WarehouseProduct, WarehouseInbound, WarehouseOutbound, WarehouseStats, WarehouseInboundFeedback, WarehouseOutboundFeedback, WarehouseReturnToFactory, WarehouseReturnToFactoryFeedback } from '../../types'
+import type { WarehouseProduct, WarehouseInbound, WarehouseOutbound, WarehouseStats, WarehouseInboundFeedback, WarehouseOutboundFeedback, WarehouseReturnToFactory, WarehouseReturnToFactoryFeedback, WarehouseBatch, WarehouseOutboundAllocation } from '../../types'
 import { useAuth } from '../../hooks/useAuth'
+import BatchSelector from './BatchSelector'
+import BatchDetailModal from './BatchDetailModal'
 import * as XLSX from 'xlsx'
 
 // ── 工具函数 ──────────────────────────────────────────────────────────
@@ -338,6 +341,10 @@ function ProductsTab({
   const [editItem, setEditItem] = useState<WarehouseProduct | null>(null)
   const [form, setForm] = useState<ProductCreateData>(emptyProductForm)
   const [saving, setSaving] = useState(false)
+  const [showBatchModal, setShowBatchModal] = useState(false)
+  const [batchProduct, setBatchProduct] = useState<WarehouseProduct | null>(null)
+  const [batchItems, setBatchItems] = useState<WarehouseBatch[]>([])
+  const [loadingBatches, setLoadingBatches] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -365,6 +372,17 @@ function ProductsTab({
       unit: item.unit, remark: item.remark,
     })
     setShowModal(true)
+  }
+
+  const openBatchView = async (item: WarehouseProduct) => {
+    setBatchProduct(item)
+    setLoadingBatches(true)
+    setShowBatchModal(true)
+    try {
+      const data = await getProductBatches(item.id)
+      setBatchItems(data)
+    } catch (e) { console.error(e); setBatchItems([]) }
+    finally { setLoadingBatches(false) }
   }
 
   const handleSave = async () => {
@@ -445,16 +463,16 @@ function ProductsTab({
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: '#fafaf9', borderBottom: '1px solid #f0f0f0' }}>
-                {['产品编码', '类别', '产品名称', '规格', '位置', '期初库存', '当前库存', '单位', '操作'].map(h => (
+                {['产品编码', '类别', '产品名称', '规格', '位置', '期初库存', '当前库存', '均价(¥)', '单位', '操作'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-medium" style={{ color: '#737373' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y" style={{ borderColor: '#f9f9f9' }}>
               {loading ? (
-                <tr><td colSpan={9} className="text-center py-10 text-sm" style={{ color: '#a3a3a3' }}>加载中...</td></tr>
+                <tr><td colSpan={10} className="text-center py-10 text-sm" style={{ color: '#a3a3a3' }}>加载中...</td></tr>
               ) : items.length === 0 ? (
-                <tr><td colSpan={9} className="text-center py-10 text-sm" style={{ color: '#a3a3a3' }}>暂无数据</td></tr>
+                <tr><td colSpan={10} className="text-center py-10 text-sm" style={{ color: '#a3a3a3' }}>暂无数据</td></tr>
               ) : items.map(item => (
                 <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-4 py-3 font-mono text-xs" style={{ color: '#404040' }}>{item.code}</td>
@@ -468,9 +486,15 @@ function ProductsTab({
                       {item.current_qty}
                     </span>
                   </td>
+                  <td className="px-4 py-3 text-xs" style={{ color: '#737373' }}>
+                    {item.avg_unit_price > 0 ? `¥${item.avg_unit_price.toFixed(2)}` : '-'}
+                  </td>
                   <td className="px-4 py-3" style={{ color: '#737373' }}>{item.unit}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
+                      <button onClick={() => openBatchView(item)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors" title="查看批次">
+                        <Layers className="w-3.5 h-3.5" style={{ color: '#6366f1' }} />
+                      </button>
                       {canEdit && (
                         <button onClick={() => openEdit(item)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
                           <Edit2 className="w-3.5 h-3.5" style={{ color: '#404040' }} />
@@ -555,6 +579,14 @@ function ProductsTab({
           </div>
         </Modal>
       )}
+
+      <BatchDetailModal
+        show={showBatchModal}
+        product={batchProduct}
+        batches={batchItems}
+        loading={loadingBatches}
+        onClose={() => { setShowBatchModal(false); setBatchProduct(null); setBatchItems([]) }}
+      />
     </div>
   )
 }
@@ -580,7 +612,7 @@ function InboundTab({
   const [products, setProducts] = useState<WarehouseProduct[]>([])
   const [productSearch, setProductSearch] = useState('')
   const [showProductDropdown, setShowProductDropdown] = useState(false)
-  const [form, setForm] = useState<InboundCreateData>({ date: todayStr(), product_id: 0, quantity: 1, operator: '', remark: '' })
+  const [form, setForm] = useState<InboundCreateData>({ date: todayStr(), product_id: 0, quantity: 1, unit_price: 0, operator: '', remark: '' })
   const [saving, setSaving] = useState(false)
 
   // 点击外部关闭货品下拉框
@@ -618,7 +650,7 @@ function InboundTab({
       const data = await getProductList({ all: true })
       setProducts(data.items)
     } catch (e) { console.error(e) }
-    setForm({ date: todayStr(), product_id: 0, quantity: 1, operator: '', remark: '' })
+    setForm({ date: todayStr(), product_id: 0, quantity: 1, unit_price: 0, operator: '', remark: '' })
     setProductSearch('')
     setShowProductDropdown(false)
     setShowModal(true)
@@ -652,7 +684,7 @@ function InboundTab({
     exportToExcel('入库记录', data.items.map(r => ({
       '日期': r.date, '产品编码': r.product_code, '类别': r.category,
       '产品名称': r.product_name, '规格': r.spec, '位置': r.location,
-      '入库数量': r.quantity, '入库人': r.operator, '备注': r.remark, '操作人': r.creator_name,
+      '入库数量': r.quantity, '进货单价': r.unit_price > 0 ? `¥${r.unit_price.toFixed(2)}` : '-', '批次号': r.batch_no || '-', '入库人': r.operator, '备注': r.remark, '操作人': r.creator_name,
     })))
   }
 
@@ -811,7 +843,7 @@ function InboundTab({
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-medium mb-1.5" style={{ color: '#404040' }}>入库日期</label>
                 <input type="date" value={form.date}
@@ -823,6 +855,14 @@ function InboundTab({
                 <label className="block text-xs font-medium mb-1.5" style={{ color: '#404040' }}>入库数量 *</label>
                 <input type="number" min={1} value={form.quantity}
                   onChange={e => setForm(prev => ({ ...prev, quantity: Number(e.target.value) }))}
+                  className="w-full px-3 py-2 text-sm border rounded-lg outline-none"
+                  style={{ borderColor: '#e5e5e5', color: '#1f1f1f' }} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: '#404040' }}>进货单价 (¥)</label>
+                <input type="number" min={0} step="0.01" value={form.unit_price}
+                  onChange={e => setForm(prev => ({ ...prev, unit_price: Number(e.target.value) }))}
+                  placeholder="0.00"
                   className="w-full px-3 py-2 text-sm border rounded-lg outline-none"
                   style={{ borderColor: '#e5e5e5', color: '#1f1f1f' }} />
               </div>
@@ -893,6 +933,14 @@ function InboundTab({
               <div>
                 <label className="block text-xs font-medium mb-1" style={{ color: '#737373' }}>操作人</label>
                 <p className="text-sm" style={{ color: '#1f1f1f' }}>{detailRecord.creator_name}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1" style={{ color: '#737373' }}>进货单价</label>
+                <p className="text-sm" style={{ color: '#1f1f1f' }}>{detailRecord.unit_price > 0 ? `¥${detailRecord.unit_price.toFixed(2)}` : '-'}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1" style={{ color: '#737373' }}>批次号</label>
+                <p className="text-sm font-mono" style={{ color: '#404040' }}>{detailRecord.batch_no || '-'}</p>
               </div>
               <div>
                 <label className="block text-xs font-medium mb-1" style={{ color: '#737373' }}>创建时间</label>
@@ -997,6 +1045,9 @@ function OutboundTab({
   const [showProductDropdown, setShowProductDropdown] = useState(false)
   const [form, setForm] = useState<OutboundCreateData>({ date: todayStr(), product_id: 0, quantity: 1, operator: '', remark: '' })
   const [saving, setSaving] = useState(false)
+  const [batchQtys, setBatchQtys] = useState<Record<number, number>>({})
+  const [availableBatches, setAvailableBatches] = useState<WarehouseBatch[]>([])
+  const [loadingBatches, setLoadingBatches] = useState(false)
 
   // 点击外部关闭货品下拉框
   const productRef = useRef<HTMLDivElement>(null)
@@ -1015,6 +1066,8 @@ function OutboundTab({
   const [feedbacks, setFeedbacks] = useState<WarehouseOutboundFeedback[]>([])
   const [feedbackText, setFeedbackText] = useState('')
   const [addingFeedback, setAddingFeedback] = useState(false)
+  const [allocations, setAllocations] = useState<WarehouseOutboundAllocation[]>([])
+  const [loadingAllocs, setLoadingAllocs] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -1036,7 +1089,21 @@ function OutboundTab({
     setForm({ date: todayStr(), product_id: 0, quantity: 1, operator: '', remark: '' })
     setProductSearch('')
     setShowProductDropdown(false)
+    setBatchQtys({})
+    setAvailableBatches([])
     setShowModal(true)
+  }
+
+  const autoFillFIFO = () => {
+    let need = form.quantity
+    const qtyMap: Record<number, number> = {}
+    for (const b of availableBatches) {
+      if (need <= 0) break
+      const take = Math.min(need, b.remaining_quantity)
+      qtyMap[b.id] = take
+      need -= take
+    }
+    setBatchQtys(qtyMap)
   }
 
   const handleSave = async () => {
@@ -1044,7 +1111,10 @@ function OutboundTab({
     if (!form.quantity || form.quantity <= 0) { alert('请输入正确的出库数量'); return }
     setSaving(true)
     try {
-      await createOutbound(form)
+      const allocs = Object.entries(batchQtys)
+        .filter(([, qty]) => qty > 0)
+        .map(([batchId, qty]) => ({ batch_id: Number(batchId), quantity: qty }))
+      await createOutbound({ ...form, batch_allocations: allocs.length > 0 ? allocs : undefined })
       setShowModal(false)
       load()
       onStatsRefresh()
@@ -1064,24 +1134,89 @@ function OutboundTab({
 
   const handleExport = async () => {
     const data = await getOutboundList({ all: true, search, start_date: startDate, end_date: endDate })
-    exportToExcel('出库记录', data.items.map(r => ({
+    const records = data.items
+
+    // 加载所有出库的批次分配明细
+    const allocResults = await Promise.allSettled(
+      records.map(r => getOutboundAllocations(r.id))
+    )
+
+    // 主表：出库记录
+    const mainRows = records.map(r => ({
       '日期': r.date, '产品编码': r.product_code, '类别': r.category,
-      '产品名称': r.product_name, '规格': r.spec, '位置': r.location,
+      '产品名称': r.product_name, '规格': r.spec,
       '出库数量': r.quantity, '出库人': r.operator, '备注': r.remark, '操作人': r.creator_name,
-    })))
+    }))
+
+    // 附表：批次明细
+    const detailRows: Record<string, string | number>[] = []
+    records.forEach((r, i) => {
+      const allocs = allocResults[i].status === 'fulfilled' ? allocResults[i].value : []
+      if (allocs.length > 0) {
+        allocs.forEach((a: WarehouseOutboundAllocation) => {
+          detailRows.push({
+            '出库日期': r.date,
+            '产品名称': r.product_name,
+            '产品编码': r.product_code,
+            '批次号': a.batch_no,
+            '单价': a.unit_price,
+            '出库数量': a.quantity,
+            '小计': a.unit_price * a.quantity,
+          })
+        })
+      } else {
+        detailRows.push({
+          '出库日期': r.date,
+          '产品名称': r.product_name,
+          '产品编码': r.product_code,
+          '批次号': '-',
+          '单价': '-',
+          '出库数量': r.quantity,
+          '小计': '-',
+        })
+      }
+    })
+
+    // 构建多 sheet 工作簿
+    const wb = XLSX.utils.book_new()
+    const ws1 = XLSX.utils.json_to_sheet(mainRows)
+    XLSX.utils.book_append_sheet(wb, ws1, '出库记录')
+    const ws2 = XLSX.utils.json_to_sheet(detailRows)
+    XLSX.utils.book_append_sheet(wb, ws2, '批次明细')
+
+    // 设置列宽
+    const colWidths1 = [14, 14, 10, 20, 14, 12, 12, 20, 12]
+    ws1['!cols'] = colWidths1.map(w => ({ wch: w }))
+    const colWidths2 = [14, 20, 14, 18, 10, 12, 12]
+    ws2['!cols'] = colWidths2.map(w => ({ wch: w }))
+
+    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(blob),
+      download: `出库记录_含批次_${todayStr()}.xlsx`,
+    })
+    document.body.appendChild(a); a.click(); document.body.removeChild(a)
   }
 
   // 打开详情弹窗
   const openDetail = async (item: WarehouseOutbound) => {
     setDetailRecord(item)
     setShowDetailModal(true)
+    setAllocations([])
+    setLoadingAllocs(true)
     try {
-      const data = await getOutboundFeedbacks(item.id)
-      setFeedbacks(Array.isArray(data) ? data : [])
+      const [fbData, allocData] = await Promise.all([
+        getOutboundFeedbacks(item.id),
+        getOutboundAllocations(item.id).catch(() => []),
+      ])
+      setFeedbacks(Array.isArray(fbData) ? fbData : [])
+      setAllocations(Array.isArray(allocData) ? allocData : [])
     } catch (e) {
       console.error(e)
       setFeedbacks([])
-    }
+      setAllocations([])
+    } finally { setLoadingAllocs(false) }
   }
 
   // 添加处理记录
@@ -1216,7 +1351,18 @@ function OutboundTab({
                       products.filter(p => !productSearch || p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.code.toLowerCase().includes(productSearch.toLowerCase())).map(p => (
                         <div key={p.id}
                           className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-50"
-                          onClick={() => { setForm(prev => ({ ...prev, product_id: p.id })); setProductSearch(''); setShowProductDropdown(false) }}
+                          onClick={async () => {
+                            setForm(prev => ({ ...prev, product_id: p.id }));
+                            setProductSearch('');
+                            setShowProductDropdown(false);
+                            setBatchQtys({});
+                            setLoadingBatches(true);
+                            try {
+                              const batches = await getProductBatches(p.id);
+                              setAvailableBatches(batches.filter(b => b.remaining_quantity > 0));
+                            } catch (e) { setAvailableBatches([]) }
+                            finally { setLoadingBatches(false) }
+                          }}
                         >
                           {p.name}（{p.code}）- 库存: {p.current_qty} {p.unit}
                           {p.current_qty === 0 ? ' ⚠️ 无库存' : p.current_qty <= 20 ? ' ⚠️ 低库存' : ''}
@@ -1257,6 +1403,19 @@ function OutboundTab({
                 rows={2} className="w-full px-3 py-2 text-sm border rounded-lg outline-none resize-none"
                 style={{ borderColor: '#e5e5e5', color: '#1f1f1f' }} />
             </div>
+            {loadingBatches ? (
+              <div className="text-xs" style={{ color: '#a3a3a3' }}>加载批次信息...</div>
+            ) : availableBatches.length > 0 ? (
+              <BatchSelector
+                batches={availableBatches}
+                batchQtys={batchQtys}
+                setBatchQtys={setBatchQtys}
+                totalQuantity={form.quantity}
+                onAutoFillFIFO={autoFillFIFO}
+              />
+            ) : form.product_id > 0 ? (
+              <div className="text-xs" style={{ color: '#a3a3a3' }}>该货品无批次数据</div>
+            ) : null}
           </div>
           <div className="flex justify-end gap-3 px-6 pb-6">
             <button onClick={() => setShowModal(false)}
@@ -1270,7 +1429,7 @@ function OutboundTab({
 
       {/* 出库详情弹窗 */}
       {showDetailModal && detailRecord && (
-        <Modal title="出库记录详情" onClose={() => { setShowDetailModal(false); setDetailRecord(null); setFeedbacks([]); setFeedbackText('') }} wide>
+        <Modal title="出库记录详情" onClose={() => { setShowDetailModal(false); setDetailRecord(null); setFeedbacks([]); setFeedbackText(''); setAllocations([]) }} wide>
           <div className="p-6">
             {/* 基本信息 */}
             <div className="grid grid-cols-2 gap-4 mb-6">
@@ -1324,6 +1483,35 @@ function OutboundTab({
                 <p className="text-sm" style={{ color: '#1f1f1f' }}>{detailRecord.remark || '-'}</p>
               </div>
             </div>
+
+            {/* 批次出库明细 */}
+            {allocations.length > 0 && (
+              <div className="mb-5">
+                <h4 className="text-sm font-semibold mb-3" style={{ color: '#1f1f1f' }}>批次出库明细</h4>
+                <div className="border rounded-lg overflow-hidden" style={{ borderColor: '#f0f0f0' }}>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr style={{ background: '#fafaf9' }}>
+                        <th className="px-3 py-2 text-left text-xs font-medium" style={{ color: '#737373' }}>批次号</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium" style={{ color: '#737373' }}>单价</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium" style={{ color: '#737373' }}>数量</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium" style={{ color: '#737373' }}>小计</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allocations.map((a, i) => (
+                        <tr key={i} className="border-t" style={{ borderColor: '#f0f0f0' }}>
+                          <td className="px-3 py-2 font-mono text-xs" style={{ color: '#404040' }}>{a.batch_no}</td>
+                          <td className="px-3 py-2 text-right text-xs" style={{ color: '#737373' }}>¥{a.unit_price.toFixed(2)}</td>
+                          <td className="px-3 py-2 text-right text-xs font-medium" style={{ color: '#1f1f1f' }}>{a.quantity}</td>
+                          <td className="px-3 py-2 text-right text-xs" style={{ color: '#404040' }}>¥{(a.unit_price * a.quantity).toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* 处理记录 */}
             <div className="border-t pt-5" style={{ borderColor: '#f0f0f0' }}>
@@ -1417,6 +1605,10 @@ function ReturnToFactoryTab({ canCreate, canDelete, onStatsRefresh }: { canCreat
   const [feedbacks, setFeedbacks] = useState<WarehouseReturnToFactoryFeedback[]>([])
   const [feedbackText, setFeedbackText] = useState('')
   const [addingFeedback, setAddingFeedback] = useState(false)
+  const [showRepairModal, setShowRepairModal] = useState(false)
+  const [repairItem, setRepairItem] = useState<WarehouseReturnToFactory | null>(null)
+  const [repairQty, setRepairQty] = useState(0)
+  const [repairing, setRepairing] = useState(false)
   const productRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!showProductDropdown) return
@@ -1454,9 +1646,25 @@ function ReturnToFactoryTab({ canCreate, canDelete, onStatsRefresh }: { canCreat
     try { await deleteReturnToFactory(item.id); load(); onStatsRefresh() } catch (e) { console.error(e) }
   }
 
-  const handleRepair = async (item: WarehouseReturnToFactory) => {
-    if (!confirm(`确认 ${item.product_name} x${item.quantity} 已维修完成返库？`)) return
-    try { await updateReturnToFactory(item.id, { status: 'repaired' }); load(); onStatsRefresh() } catch (e: any) { alert(e.response?.data?.detail || '操作失败') }
+  const openRepairModal = (item: WarehouseReturnToFactory) => {
+    const remaining = item.quantity - (item.returned_quantity || 0)
+    setRepairItem(item)
+    setRepairQty(remaining)
+    setShowRepairModal(true)
+  }
+
+  const handleConfirmRepair = async () => {
+    if (!repairItem || repairQty <= 0) { alert('请输入有效的返库数量'); return }
+    const remaining = repairItem.quantity - (repairItem.returned_quantity || 0)
+    if (repairQty > remaining) { alert(`最多可返库 ${remaining} 件`); return }
+    setRepairing(true)
+    try {
+      await updateReturnToFactory(repairItem.id, { returned_quantity: repairQty })
+      setShowRepairModal(false)
+      setRepairItem(null)
+      load()
+      onStatsRefresh()
+    } catch (e: any) { alert(e.response?.data?.detail || '操作失败') } finally { setRepairing(false) }
   }
 
   const openDetail = async (item: WarehouseReturnToFactory) => {
@@ -1479,7 +1687,8 @@ function ReturnToFactoryTab({ canCreate, canDelete, onStatsRefresh }: { canCreat
       const data = await getReturnToFactoryList({ page: 1, page_size: 100000, search, status: statusFilter, start_date: startDate, end_date: endDate })
       const rows = data.items.map((r: WarehouseReturnToFactory, idx: number) => ({
         '序号': idx + 1, '日期': r.date, '货品名称': r.product_name, '货品编码': r.product_code,
-        '数量': r.quantity, '返厂原因': r.reason, '状态': r.status === 'repaired' ? '已返库' : '维修中',
+        '数量': r.quantity, '已返库': r.returned_quantity || 0, '返厂原因': r.reason,
+        '状态': r.status === 'repaired' ? `已返库(${r.returned_quantity || r.quantity}/${r.quantity})` : `维修中${(r.returned_quantity || 0) > 0 ? `(${r.returned_quantity}/${r.quantity})` : ''}`,
         '经手人': r.operator, '备注': r.remark, '登记人': r.creator_name,
         '登记时间': r.created_at?.slice(0, 16).replace('T', ' ') || '',
       }))
@@ -1553,8 +1762,12 @@ function ReturnToFactoryTab({ canCreate, canDelete, onStatsRefresh }: { canCreat
                   <td className="px-4 py-3">{item.quantity}</td>
                   <td className="px-4 py-3 max-w-[200px] truncate text-gray-500">{item.reason}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${item.status === 'repaired' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                      {item.status === 'repaired' ? '已返库' : '维修中'}
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                      item.status === 'repaired' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {item.status === 'repaired'
+                        ? `已返库 ${item.returned_quantity || item.quantity}/${item.quantity}`
+                        : `维修中 ${(item.returned_quantity || 0) > 0 ? `(${item.returned_quantity}/${item.quantity})` : ''}`}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-gray-500">{item.operator}</td>
@@ -1562,7 +1775,7 @@ function ReturnToFactoryTab({ canCreate, canDelete, onStatsRefresh }: { canCreat
                     <div className="flex items-center gap-1">
                       <button onClick={() => openDetail(item)} className="p-1 text-gray-400 hover:text-blue-500" title="详情"><Eye className="w-4 h-4" /></button>
                       {item.status === 'repairing' && (
-                        <button onClick={() => handleRepair(item)} className="px-2 py-0.5 text-xs font-medium text-white bg-green-500 rounded hover:bg-green-600" title="维修完成返库">返库</button>
+                        <button onClick={() => openRepairModal(item)} className="px-2 py-0.5 text-xs font-medium text-white bg-green-500 rounded hover:bg-green-600" title="维修完成返库">返库</button>
                       )}
                       {canDelete && (
                         <button onClick={() => handleDelete(item)} className="p-1 text-gray-400 hover:text-red-500" title="删除"><Trash2 className="w-4 h-4" /></button>
@@ -1650,7 +1863,9 @@ function ReturnToFactoryTab({ canCreate, canDelete, onStatsRefresh }: { canCreat
               <div><span className="text-gray-500">日期：</span>{detailRecord.date}</div>
               <div><span className="text-gray-500">状态：</span>
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${detailRecord.status === 'repaired' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                  {detailRecord.status === 'repaired' ? '已返库' : '维修中'}
+                  {detailRecord.status === 'repaired'
+                    ? `已返库 ${detailRecord.returned_quantity || detailRecord.quantity}/${detailRecord.quantity}`
+                    : `维修中${(detailRecord.returned_quantity || 0) > 0 ? `（${detailRecord.returned_quantity}/${detailRecord.quantity}）` : ''}`}
                 </span>
               </div>
               <div><span className="text-gray-500">货品：</span>{detailRecord.product_name}（{detailRecord.product_code}）</div>
@@ -1688,6 +1903,37 @@ function ReturnToFactoryTab({ canCreate, canDelete, onStatsRefresh }: { canCreat
                   <Send className="w-4 h-4" />
                 </button>
               </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* 返库数量弹窗 */}
+      {showRepairModal && repairItem && (
+        <Modal title="维修完成返库" onClose={() => { setShowRepairModal(false); setRepairItem(null) }}>
+          <div className="p-6 space-y-4">
+            <div className="text-sm space-y-2">
+              <p><span className="text-gray-500">货品：</span>{repairItem.product_name}（{repairItem.product_code}）</p>
+              <p><span className="text-gray-500">返厂总数：</span>{repairItem.quantity}</p>
+              <p><span className="text-gray-500">已返库：</span>{repairItem.returned_quantity || 0}</p>
+              <p><span className="text-gray-500">本次返库：</span>
+                <input type="number" min={1} max={repairItem.quantity - (repairItem.returned_quantity || 0)}
+                  value={repairQty}
+                  onChange={e => setRepairQty(Math.min(Number(e.target.value) || 0, repairItem.quantity - (repairItem.returned_quantity || 0)))}
+                  className="w-24 px-3 py-2 text-sm border rounded-lg outline-none ml-1"
+                  style={{ borderColor: '#e5e5e5' }}
+                  autoFocus
+                />
+                <span className="text-gray-400 ml-1">件</span>
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => { setShowRepairModal(false); setRepairItem(null) }}
+                className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50" style={{ borderColor: '#e5e5e5' }}>取消</button>
+              <button onClick={handleConfirmRepair} disabled={repairing || repairQty <= 0}
+                className="px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50 flex items-center gap-1.5" style={{ background: '#16a34a' }}>
+                {repairing ? '处理中...' : `确认返库 ${repairQty} 件`}
+              </button>
             </div>
           </div>
         </Modal>

@@ -504,6 +504,7 @@ export interface WarehouseProduct {
   inbound_qty: number
   outbound_qty: number
   current_qty: number
+  avg_unit_price: number
   created_by?: number
   creator_name: string
   created_at?: string
@@ -520,6 +521,8 @@ export interface WarehouseInbound {
   spec: string
   location: string
   quantity: number
+  unit_price: number
+  batch_no: string
   operator: string
   remark: string
   created_by?: number
@@ -592,6 +595,7 @@ export interface WarehouseReturnToFactory {
   spec: string
   location: string
   quantity: number
+  returned_quantity: number
   reason: string
   status: string
   repaired_at?: string
@@ -610,6 +614,26 @@ export interface WarehouseReturnToFactoryFeedback {
   content: string
   created_at?: string
   user_name: string
+}
+
+// ── 批次管理 ─────────────────────────────────────────────────────────
+
+export interface WarehouseBatch {
+  id: number
+  product_id: number
+  batch_no: string
+  unit_price: number
+  initial_quantity: number
+  remaining_quantity: number
+  inbound_id: number
+  created_at?: string
+}
+
+export interface WarehouseOutboundAllocation {
+  batch_id: number
+  batch_no: string
+  unit_price: number
+  quantity: number
 }
 
 // ── 角色管理 ─────────────────────────────────────────────────────────

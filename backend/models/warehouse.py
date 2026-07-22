@@ -37,6 +37,8 @@ class WarehouseInbound(Base):
     spec = Column(String(200), default="")                  # 产品规格
     location = Column(String(100), default="")              # 位置
     quantity = Column(Integer, default=0)                    # 入库数量
+    unit_price = Column(Float, default=0)                   # 进货单价
+    batch_id = Column(Integer, ForeignKey("warehouse_batches.id"), nullable=True)  # 关联批次
     operator = Column(String(50), default="")               # 入库人
     remark = Column(Text, default="")                       # 备注
     created_by = Column(Integer, ForeignKey("users.id"))
@@ -45,6 +47,7 @@ class WarehouseInbound(Base):
 
     creator = relationship("User", foreign_keys=[created_by])
     product = relationship("WarehouseProduct", foreign_keys=[product_id])
+    batch = relationship("WarehouseBatch", foreign_keys=[batch_id], uselist=False)
     feedbacks = relationship("WarehouseInboundFeedback", back_populates="record", cascade="all, delete-orphan")
 
 class WarehouseOutbound(Base):
@@ -69,6 +72,7 @@ class WarehouseOutbound(Base):
 
     creator = relationship("User", foreign_keys=[created_by])
     product = relationship("WarehouseProduct", foreign_keys=[product_id])
+    outbound_batches = relationship("WarehouseOutboundBatch", back_populates="outbound", cascade="all, delete-orphan")
     feedbacks = relationship("WarehouseOutboundFeedback", back_populates="record", cascade="all, delete-orphan")
 
 
@@ -119,6 +123,7 @@ class WarehouseReturnToFactory(Base):
     spec = Column(String(200), default="")
     location = Column(String(100), default="")
     quantity = Column(Integer, default=0)
+    returned_quantity = Column(Integer, default=0)       # 已返库数量（支持分批返库）
     reason = Column(String(200), default="")            # 返厂原因
     status = Column(String(20), default="repairing")    # repairing=维修中, repaired=已返库
     repaired_at = Column(DateTime, nullable=True)        # 返库时间
@@ -148,4 +153,38 @@ class WarehouseReturnToFactoryFeedback(Base):
     user = relationship("User")
 
 
-# ── 财务业务 ─────────────────────────────────────────────────────────────
+
+# -- batch management -------------------------------------------------
+
+class WarehouseBatch(Base):
+    '''product batch (tracks purchase price and remaining qty per batch)'''
+    __tablename__ = 'warehouse_batches'
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey('companies.id'), nullable=True, index=True)
+    product_id = Column(Integer, ForeignKey('warehouse_products.id'), nullable=False, index=True)
+    batch_no = Column(String(50), nullable=False)
+    unit_price = Column(Float, default=0)
+    initial_quantity = Column(Integer, default=0)
+    remaining_quantity = Column(Integer, default=0)
+    inbound_id = Column(Integer, ForeignKey('warehouse_inbound.id'), nullable=True)
+    created_at = Column(DateTime, default=datetime.now)
+
+    product = relationship('WarehouseProduct', foreign_keys=[product_id])
+    inbound = relationship('WarehouseInbound', foreign_keys=[inbound_id], uselist=False)
+
+
+class WarehouseOutboundBatch(Base):
+    '''outbound batch allocation detail'''
+    __tablename__ = 'warehouse_outbound_batches'
+
+    id = Column(Integer, primary_key=True, index=True)
+    outbound_id = Column(Integer, ForeignKey('warehouse_outbound.id'), nullable=False)
+    batch_id = Column(Integer, ForeignKey('warehouse_batches.id'), nullable=False)
+    quantity = Column(Integer, default=0)
+
+    outbound = relationship('WarehouseOutbound', back_populates='outbound_batches')
+    batch = relationship('WarehouseBatch', foreign_keys=[batch_id])
+
+
+# -- finance -----------------------------------------------------------
